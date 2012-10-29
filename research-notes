@@ -1,0 +1,10 @@
+52 minutes, 376K words, 36K were unique.  
+Some of these unique words are not unique.
+  Case Matters
+  Some words might be stuck together (like: thesewords)
+  Some puncutation might be fusing words (like: this,due)
+
+Plan of attack for identifing actually unique words:
+
+Parse in a dictionary.
+Words that occur once are most likely invalid.
