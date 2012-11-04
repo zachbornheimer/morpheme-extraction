@@ -1,4 +1,5 @@
 #!/usr/local/bin/perl6
+
 use v6;
 :autoflush; # Forces immediate flush.
 
@@ -12,6 +13,7 @@ my @dictionary = ();
 my $nlpLiteratureDir = "nlp-literature"; # No trailing slash
 my %wordsOnEitherSide = ();
 my @filesToParse;
+my %frequencyHash;
 
 grammar english {
     token punctuation {
@@ -25,7 +27,7 @@ grammar replGrammar {
         <command>
     }
     token command {
-        <keyword>\s+<command> | <keyword>\s+<expression> | <expression> | <keyword>
+        <keyword>\s+<command> | <keyword>\s+(<expression> +)+ | <expression> | <keyword>
     }
     token expression {
         <- keyword>*
@@ -37,6 +39,7 @@ grammar replGrammar {
     token keyword:sym<parse> { <sym> }
     token keyword:sym<learn> { <sym> }
     token keyword:sym<exit> { <sym> }
+    token keyword:sym<process> { <sym> }
 
 }
 
@@ -138,6 +141,42 @@ multi sub learn(@filesToParse) {
     say "done";
 }
 
+multi sub stats($kind) {
+}
+
+multi sub stats($kind, $num) {
+    if ($kind eq "wordFrequency") {
+        my %uniqueArrayHash;
+        my %frequencyHash;
+        for (@words) {
+            if defined %uniqueArrayHash{$_} {
+                %uniqueArrayHash{$_} += 1;
+            } else {
+                %uniqueArrayHash{$_} = 1;
+            }
+        }
+
+       %uniqueArrayHash = reverse (%uniqueArrayHash.pairs.sort: { $^a.value <=> $^b.value });
+        for (0 .. $num) {
+            %frequencyHash{(keys %uniqueArrayHash)[$_]} = %uniqueArrayHash{(keys %uniqueArrayHash)[$_]};
+        }
+        for (0 .. $num) {
+            if (defined %uniqueArrayHash.keys[$_]) {
+                my $key = %uniqueArrayHash.keys[$_];
+                say $key ~ " => " ~ %uniqueArrayHash{$key} ~ " occurances.";
+            }
+        }
+        return %frequencyHash;
+    }
+}
+
+sub process($type) {
+    if ($type eq "word_frequency") {
+        my $num = prompt("How many words would you like to see? ");
+        stats("wordFrequency", $num);
+    }
+}
+
 sub display_knowledge() {
     say "I know " ~ @dictionary.elems ~ " unique words.";
 }
@@ -151,7 +190,11 @@ sub unique(@array) {
     my %uniqueArrayHash;
     for (@array) {
         chomp($_);
-        %uniqueArrayHash{$_} = 1;
+        if defined %uniqueArrayHash{$_} {
+            %uniqueArrayHash{$_} += 1;
+        } else {
+            %uniqueArrayHash{$_} = 1;
+        }
     }
     return keys %uniqueArrayHash;
 }
@@ -172,14 +215,18 @@ sub recursiveDir($path, @array is rw) {
 sub repl() {
     say "Welcome to Z. Bornheimer's Quasi-Artifically Intelligent Computation Linguistics Program.";
     say "Interestingly enough, most rules for acquiring language are not in here, and I will extrapolate them";
-    say "If you need any help, ask me for help.\n";
+    say "If you need any help, ask me.  Please note that hyphens (-) are not allowed.\n";
     my $input;
     while (1) {
         $input = prompt(" >> ");
         my $parserResults = replGrammar.parse($input);
-# Substitutions
-        if (defined $parserResults<command><command><expression> && $parserResults<command><command><expression> ne "") {
+        # Substitutions
+        if defined $parserResults<command><command><expression> && $parserResults<command><command><expression> ne "" {
             my $exp = $parserResults<command><command><expression>;
+            my $origExp = $exp;
+            $exp ~~ s:g/\-/_/;
+            $exp ~~ s:g/\ /_/;
+            $input ~~ s:g/$origExp/$exp/;
             my $code;
             if ($exp ~~ rx/[\W\D]/) {
                 $code = Mu;
@@ -217,5 +264,6 @@ sub repl() {
         }
     }
 }
+
 
 repl();
