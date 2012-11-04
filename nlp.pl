@@ -133,7 +133,7 @@ multi sub learn(@filesToParse) {
         say "Learned " ~ $acqWordsCounter ~ " words\n";
     }
     say "Done reading the text in $nlpLiteratureDir.";
-    print "Creating the dictionary database by removing duplicate words my the word database ...";
+    print "Creating the dictionary database by removing duplicate words in the word database ...";
     @dictionary = unique(@words);
     say "done";
 }
@@ -209,7 +209,6 @@ sub repl() {
                 $input ~~ s/($keyword\s+)(.*)/{$0}"{$1}"/;
             }
             if (eval('defined(&' ~ $keyword ~ ')')) {
-                say $input;
                 eval $input;
                 say "";
             }
