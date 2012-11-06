@@ -78,10 +78,13 @@ multi sub learn(@filesToParse) {
 ###################################################################################
 # The ending data structure for the following code will look something like this:
 # This example is done for 4 words.
-# %hash = ( @wordsBefore, @wordsAfter);
+# %hash = ( $word => (@wordsBefore, @wordsAfter) );
 # @wordsBefore is the  words before that word. 
-# @wordsBefore = ( @_4wordsBefore, @_3wordsBefore, @_2wordsBefore, @_1wordBefore );
+# @wordsBefore = ( %_4wordsBefore, %_3wordsBefore, %_2wordsBefore, %_1wordBefore );
+# %_4wordsBefore = ("another"=>3, "word"=>2, "frequency"=>14, "table"=>9);
+# %_NUMwordsBefore (where NUM is any number) is similar to %_4wordsBefore
 # @wordsAfter looks like @wordsBefore
+# Note: frequency for surrounding words only happens after running the stats.
 ###################################################################################
 
                 if ($acqWordsIndex > 0) {
@@ -149,39 +152,75 @@ sub removeEmpty(@array) {
     return @a;
 }
 
-multi sub stats($kind) {
-}
 
-multi sub stats($kind, $num) {
+sub stats($kind is rw, $num?) {
     if ($kind eq "wordFrequency") {
-        my %uniqueArrayHash;
-        my %freqHash;
-        for (@words) {
-            if defined %uniqueArrayHash{$_} {
-                %uniqueArrayHash{$_} += 1;
-            } else {
-                %uniqueArrayHash{$_} = 1;
+        return frequency(@words, $num);
+    } elsif ($kind eq "surroundingWordFrequency") {
+        # We do this for each one
+        for (%wordsOnEitherSide.keys) {
+            # Two Elements, 0 and 1
+            # We must get the arrays and replace them with hashes.
+            for %wordsOnEitherSide{$_}[0] -> @item is rw {
+                for 0 .. @item.elems-1 -> $index {
+                    for @item[$index] -> @alpha is rw {
+                        @alpha = frequency(@alpha);
+                    }
+                }
+            }
+            for %wordsOnEitherSide{$_}[1] -> @item is rw {
+                for 0 .. @item.elems-1 -> $index {
+                    for @item[$index] -> @alpha is rw {
+                        @alpha = frequency(@alpha);
+                    }
+                }
             }
         }
-
-       %uniqueArrayHash = reverse (%uniqueArrayHash.pairs.sort: { $^a.value <=> $^b.value });
-        for (0 .. $num) {
-            %freqHash{(keys %uniqueArrayHash)[$_]} = %uniqueArrayHash{(keys %uniqueArrayHash)[$_]};
-        }
-        for (0 .. $num) {
-            if (defined %uniqueArrayHash.keys[$_]) {
-                my $key = %uniqueArrayHash.keys[$_];
-                say $key ~ " => " ~ %uniqueArrayHash{$key} ~ " occurances.";
-            }
-        }
-        return %freqHash;
+        say %wordsOnEitherSide;
     }
 }
 
-sub process($type) {
+multi sub frequency(@array is rw, $num?) {
+    my %uniqueArrayHash;
+    my %freqHash;
+    for @array -> @a is rw {
+        for 0 .. @a.elems - 1 -> $q {
+            my $w = @a[$q];
+            if $w ne "" {
+                if defined %uniqueArrayHash{$w} {
+                    %uniqueArrayHash{$w} += 1;
+                } else {
+                    %uniqueArrayHash{$w} = 1;
+                }
+            }
+        }
+    }
+
+    %uniqueArrayHash = reverse (%uniqueArrayHash.pairs.sort: { $^a.value <=> $^b.value });
+    if ($num) {
+    for (0 .. $num) {
+        %freqHash{(keys %uniqueArrayHash)[$_]} = %uniqueArrayHash{(keys %uniqueArrayHash)[$_]};
+    }
+    for (0 .. $num) {
+        if (defined %uniqueArrayHash.keys[$_]) {
+            my $key = %uniqueArrayHash.keys[$_];
+            say $key ~ " => " ~ %uniqueArrayHash{$key} ~ " occurances.";
+        }
+    }
+    } else {
+        %freqHash = %uniqueArrayHash;
+    }
+    return %freqHash;
+}
+
+sub process($type, $num? = 42) {
     if ($type eq "word_frequency") {
-        my $num = prompt("How many words would you like to see? ");
+        if !$num {
+            my $num = prompt("How many words would you like to see? ");
+        }
         %frequencyHash = stats("wordFrequency", $num);
+    } elsif ($type eq "surrounding_word_frequency") {
+        stats("surroundingWordFrequency");
     }
 }
 
@@ -242,18 +281,24 @@ sub store($defaults? = 1) {
     say "done."
 }
 
-sub load($defaults? = 1) {
-    my $fileName = "";
-    if !$defaults {
-        $fileName = prompt("What is the filename which should be loaded?\nNote, this will overwrite any data that has been learned this session.  Make sure this is done first. [$restoreFile]  ");
+multi sub load(Int $defaults? = 1, Str $fileName? = "") {
+    my $filename = $fileName;
+    if $filename eq "" {
+        if $defaults {
+            $filename = prompt("What is the filename which should be loaded?\nNote, this will overwrite any data that has been learned this session.  Make sure this is done first. [$restoreFile]  ");
+        }
     }
-    if chomp $fileName == "" {
-        $fileName = $restoreFile;
+    if chomp $filename eq "" {
+        $filename = $restoreFile;
     }
     print "Restoring data ...";
-    my $fh = open $fileName;
+    my $fh = open $filename;
     for $fh.lines { eval $_; }
     say "done.";
+}
+
+multi sub load(Str $filename) {
+    load(0, $filename);
 }
 
 sub repl() {
@@ -276,7 +321,7 @@ sub repl() {
             } else {
                 $code = "defined(&$exp)";
             }
-            if ($code && !eval $code) {
+            if ($exp ~~ /\./ || $code && !eval $code) {
                 my $sub = '"' ~ $exp ~ '"';
                 $input ~~ s/$exp/$sub/;
             }
