@@ -155,7 +155,7 @@ sub removeEmpty(@array) {
 
 sub stats($kind is rw, $num?) {
     if ($kind eq "wordFrequency") {
-        return frequency(@words, $num);
+        return wFrequency(@words, $num);
     } elsif ($kind eq "surroundingWordFrequency") {
         # We do this for each one
         for (%wordsOnEitherSide.keys) {
@@ -164,14 +164,14 @@ sub stats($kind is rw, $num?) {
             for %wordsOnEitherSide{$_}[0] -> @item is rw {
                 for 0 .. @item.elems-1 -> $index {
                     for @item[$index] -> @alpha is rw {
-                        @alpha = frequency(@alpha);
+                        @alpha = sFrequency(@alpha);
                     }
                 }
             }
             for %wordsOnEitherSide{$_}[1] -> @item is rw {
                 for 0 .. @item.elems-1 -> $index {
                     for @item[$index] -> @alpha is rw {
-                        @alpha = frequency(@alpha);
+                        @alpha = sFrequency(@alpha);
                     }
                 }
             }
@@ -180,7 +180,31 @@ sub stats($kind is rw, $num?) {
     }
 }
 
-multi sub frequency(@array is rw, $num?) {
+sub wFrequency(@array, $num) {
+    my %uniqueArrayHash;
+    my %freqHash;
+    for (@array) {
+        if defined %uniqueArrayHash{$_} {
+            %uniqueArrayHash{$_} += 1;
+        } else {
+            %uniqueArrayHash{$_} = 1;
+        }
+    }
+
+    %uniqueArrayHash = reverse (%uniqueArrayHash.pairs.sort: { $^a.value <=> $^b.value });
+    for (0 .. $num) {
+        %freqHash{(keys %uniqueArrayHash)[$_]} = %uniqueArrayHash{(keys %uniqueArrayHash)[$_]};
+    }
+    for (0 .. $num) {
+        if (defined %uniqueArrayHash.keys[$_]) {
+            my $key = %uniqueArrayHash.keys[$_];
+            say $key ~ " => " ~ %uniqueArrayHash{$key} ~ " occurances.";
+        }
+    }
+    return %freqHash;
+}
+
+sub sFrequency(@array is rw, $num?) {
     my %uniqueArrayHash;
     my %freqHash;
     for @array -> @a is rw {
@@ -198,15 +222,15 @@ multi sub frequency(@array is rw, $num?) {
 
     %uniqueArrayHash = reverse (%uniqueArrayHash.pairs.sort: { $^a.value <=> $^b.value });
     if ($num) {
-    for (0 .. $num) {
-        %freqHash{(keys %uniqueArrayHash)[$_]} = %uniqueArrayHash{(keys %uniqueArrayHash)[$_]};
-    }
-    for (0 .. $num) {
-        if (defined %uniqueArrayHash.keys[$_]) {
-            my $key = %uniqueArrayHash.keys[$_];
-            say $key ~ " => " ~ %uniqueArrayHash{$key} ~ " occurances.";
+        for (0 .. $num) {
+            %freqHash{(keys %uniqueArrayHash)[$_]} = %uniqueArrayHash{(keys %uniqueArrayHash)[$_]};
         }
-    }
+        for (0 .. $num) {
+            if (defined %uniqueArrayHash.keys[$_]) {
+                my $key = %uniqueArrayHash.keys[$_];
+                say $key ~ " => " ~ %uniqueArrayHash{$key} ~ " occurances.";
+            }
+        }
     } else {
         %freqHash = %uniqueArrayHash;
     }
