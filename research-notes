@@ -18,3 +18,7 @@ Because of this, I have implemented a very dangerous, but usable way of storing 
 Because it takes unrealistically long to parse the data, the program parses it once then stores the actual variable in
 restore.zy (or an alternate filename) and then it is loaded into $_ via a for loop and evaluated.
 This is increadibly dangerous, but it is the only solution until Zedram is done.
+
+===============
+
+To read the data and store it in the file, it took ~241 minutes for the 376K words and the word frequencies.
