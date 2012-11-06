@@ -8,3 +8,13 @@ Plan of attack for identifing actually unique words:
 
 Parse in a dictionary.
 Words that occur once are most likely invalid.
+
+===============
+
+Because of some recent additions in tracking words around a target word, 
+I have been forced to use the USF Research Computing Cluster to get this done.
+It took ~2 hours for it to parse __Moby Dick__, __The Advetures of Huckleberry Finn__, and __War of the Worlds__.
+Because of this, I have implemented a very dangerous, but usable way of storing and loading the data.
+Because it takes unrealistically long to parse the data, the program parses it once then stores the actual variable in
+restore.zy (or an alternate filename) and then it is loaded into $_ via a for loop and evaluated.
+This is increadibly dangerous, but it is the only solution until Zedram is done.

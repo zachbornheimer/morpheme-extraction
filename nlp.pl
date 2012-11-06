@@ -6,7 +6,7 @@ use v6;
 constant PreviousWords = 4; # How many words behind the currently analyzed word should have their positions recorded
 constant SubsequentWords = 4; # How many words in front of the currently analyzed word shave their positions recorded
 
-
+my $restoreFile = "restore.zy";
 my @letters;
 my @words = ();
 my @dictionary = ();
@@ -40,6 +40,8 @@ grammar replGrammar {
     token keyword:sym<learn> { <sym> }
     token keyword:sym<exit> { <sym> }
     token keyword:sym<process> { <sym> }
+    token keyword:sym<store> { <sym> }
+    token keyword:sym<load> { <sym> }
 
 }
 
@@ -65,15 +67,13 @@ multi sub learn(@filesToParse) {
         for 0 .. (@text.elems - 1) -> $index {
             my $text = @text[$index];
             my @uniqueWords;
-            print "\tProcessing the text ..." ~ ($index / @text.elems) * 100 ~ "%\r";
+            print "\tProcessing the text ..." ~ ($index / @text.elems) * 100 ~ "%                        \r";
             my @acqWords = $text.split(' '); # acquired words
                 my $acqWordsIndex = 0;
             for (@acqWords) {
                 $_ ~~ s:g/<english::punctuation>/ /; # Needs to replace the punctuation with a space 
 # because it uses a space as a delimiter
-                    if $_ ~~ /^\s*$/ {
-                        $_ = "";
-                    }
+                $_ ~~ s:g/\ //;
 
 ###################################################################################
 # The ending data structure for the following code will look something like this:
@@ -95,14 +95,14 @@ multi sub learn(@filesToParse) {
                     }
                     for $startingNum .. $acqWordsIndex - 1 {
                         my $i = ($acqWordsIndex - 1) - $_;
-                        push @wordsBefore[$i], @acqWords[$_];
+                        push @wordsBefore[$i], @acqWords[$_] if @acqWords[$_] ne "";
                     }
 
 # Because we have not yet incremented $acqWordsIndex, it is 1 lower than the current value, so the current word is at $acqWordsIndex+1
                     for $acqWordsIndex + 2 .. $acqWordsIndex + (SubsequentWords + 1) {
                         my $i = ($acqWordsIndex + (SubsequentWords + 1)) - $_;
                         if defined @acqWords[$_] {
-                            push @wordsAfter[$i], @acqWords[$_];
+                            push @wordsAfter[$i], @acqWords[$_] if @acqWords[$_] ne "";
                         }
                     }
 
@@ -126,6 +126,7 @@ multi sub learn(@filesToParse) {
                 $acqWordsIndex++;
             }
 
+            @acqWords = removeEmpty(@acqWords);
             @uniqueWords = unique(@acqWords);
             push @words, @uniqueWords;
             $acqWordsCounter += @uniqueWords.elems;
@@ -139,6 +140,13 @@ multi sub learn(@filesToParse) {
     print "Creating the dictionary database by removing duplicate words in the word database ...";
     @dictionary = unique(@words);
     say "done";
+}
+sub removeEmpty(@array) {
+    my @a;
+    for (@array) {
+        push @a, $_ if $_ ne "";
+    }
+    return @a;
 }
 
 multi sub stats($kind) {
@@ -212,10 +220,46 @@ sub recursiveDir($path, @array is rw) {
 }
 
 
+
+sub store($defaults? = 1) {
+    my $fileName = "";
+    if !$defaults {
+        $fileName = prompt("What is the filename where I should save this data? -- Note, this WILL overwrite the data  [$restoreFile]  ");
+    }
+    if chomp $fileName eq "" {
+        $fileName = $restoreFile;
+    }
+    print "Storing data ...";
+    my $fh = open $fileName, :w;
+    $fh.print('my @letters = ' ~ @letters.perl ~ ';'); 
+    $fh.print('my @words = ' ~ @words.perl ~ ';'); 
+    $fh.print('my @dictionary = ' ~ @dictionary.perl ~ ';'); 
+    $fh.print('my %wordsOnEitherSide = ' ~ %wordsOnEitherSide.perl ~ ';'); 
+    $fh.print('my %frequencyHash = ' ~ %frequencyHash.perl ~ ';'); 
+    $fh.print('my @letters = ' ~ @letters.perl ~ ';'); 
+    $fh.close();
+
+    say "done."
+}
+
+sub load($defaults? = 1) {
+    my $fileName = "";
+    if !$defaults {
+        $fileName = prompt("What is the filename which should be loaded?\nNote, this will overwrite any data that has been learned this session.  Make sure this is done first. [$restoreFile]  ");
+    }
+    if chomp $fileName == "" {
+        $fileName = $restoreFile;
+    }
+    say "Restoring data ...";
+    my $fh = open $fileName;
+    for $fh.lines { say $_; }
+    say "Done restoring data.";
+}
+
 sub repl() {
-    say "Welcome to Z. Bornheimer's Quasi-Artifically Intelligent Computation Linguistics Program.";
+    say "\nWelcome to Z. Bornheimer's Quasi-Artifically Intelligent Computational Linguistics Program.";
     say "Interestingly enough, most rules for acquiring language are not in here, and I will extrapolate them";
-    say "If you need any help, ask me.  Please note that hyphens (-) are not allowed.\n";
+    say "If you need any help, ask me.\n";
     my $input;
     while (1) {
         $input = prompt(" >> ");
@@ -224,7 +268,6 @@ sub repl() {
         if defined $parserResults<command><command><expression> && $parserResults<command><command><expression> ne "" {
             my $exp = $parserResults<command><command><expression>;
             my $origExp = $exp;
-            $exp ~~ s:g/\-/_/;
             $exp ~~ s:g/\ /_/;
             $input ~~ s:g/$origExp/$exp/;
             my $code;
@@ -260,7 +303,9 @@ sub repl() {
                 say "";
             }
         } else {
-            say "Sorry, but \`$input\` is not recognized.  It was probably a typo that I didn't catch, but if you need help, let me know.\n";
+            if $input ne "" {
+                say "Sorry, but \`$input\` is not recognized.  It was probably a typo that I didn't catch, but if you need help, let me know.\n";
+            }
         }
     }
 }
