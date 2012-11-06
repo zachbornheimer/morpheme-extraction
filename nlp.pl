@@ -155,7 +155,7 @@ multi sub stats($kind) {
 multi sub stats($kind, $num) {
     if ($kind eq "wordFrequency") {
         my %uniqueArrayHash;
-        my %frequencyHash;
+        my %freqHash;
         for (@words) {
             if defined %uniqueArrayHash{$_} {
                 %uniqueArrayHash{$_} += 1;
@@ -166,7 +166,7 @@ multi sub stats($kind, $num) {
 
        %uniqueArrayHash = reverse (%uniqueArrayHash.pairs.sort: { $^a.value <=> $^b.value });
         for (0 .. $num) {
-            %frequencyHash{(keys %uniqueArrayHash)[$_]} = %uniqueArrayHash{(keys %uniqueArrayHash)[$_]};
+            %freqHash{(keys %uniqueArrayHash)[$_]} = %uniqueArrayHash{(keys %uniqueArrayHash)[$_]};
         }
         for (0 .. $num) {
             if (defined %uniqueArrayHash.keys[$_]) {
@@ -174,14 +174,14 @@ multi sub stats($kind, $num) {
                 say $key ~ " => " ~ %uniqueArrayHash{$key} ~ " occurances.";
             }
         }
-        return %frequencyHash;
+        return %freqHash;
     }
 }
 
 sub process($type) {
     if ($type eq "word_frequency") {
         my $num = prompt("How many words would you like to see? ");
-        stats("wordFrequency", $num);
+        %frequencyHash = stats("wordFrequency", $num);
     }
 }
 
@@ -231,12 +231,12 @@ sub store($defaults? = 1) {
     }
     print "Storing data ...";
     my $fh = open $fileName, :w;
-    $fh.print('my @letters = ' ~ @letters.perl ~ ';'); 
-    $fh.print('my @words = ' ~ @words.perl ~ ';'); 
-    $fh.print('my @dictionary = ' ~ @dictionary.perl ~ ';'); 
-    $fh.print('my %wordsOnEitherSide = ' ~ %wordsOnEitherSide.perl ~ ';'); 
-    $fh.print('my %frequencyHash = ' ~ %frequencyHash.perl ~ ';'); 
-    $fh.print('my @letters = ' ~ @letters.perl ~ ';'); 
+    $fh.print('@letters = ' ~ @letters.perl ~ ';'); 
+    $fh.print('@words = ' ~ @words.perl ~ ';'); 
+    $fh.print('@dictionary = ' ~ @dictionary.perl ~ ';'); 
+    $fh.print('%wordsOnEitherSide = ' ~ %wordsOnEitherSide.perl ~ ';'); 
+    $fh.print('%frequencyHash = ' ~ %frequencyHash.perl ~ ';'); 
+    $fh.print('@letters = ' ~ @letters.perl ~ ';'); 
     $fh.close();
 
     say "done."
@@ -250,10 +250,10 @@ sub load($defaults? = 1) {
     if chomp $fileName == "" {
         $fileName = $restoreFile;
     }
-    say "Restoring data ...";
+    print "Restoring data ...";
     my $fh = open $fileName;
-    for $fh.lines { say $_; }
-    say "Done restoring data.";
+    for $fh.lines { eval $_; }
+    say "done.";
 }
 
 sub repl() {
