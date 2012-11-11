@@ -22,3 +22,12 @@ This is increadibly dangerous, but it is the only solution until Zedram is done.
 ===============
 
 To read the data and store it in the file, it took ~241 minutes for the 376K words and the word frequencies.
+
+
+==================
+Nov. 11
+
+Latest results:
+~403K words, ~28K unique.  Forced to rewrite the storage mechanism becuase it would cause memory overflows with large datasets.  Program passed tests.
+
+Also, figured out the latest flows for the program and some of the impressive implications. See README.md for details.
