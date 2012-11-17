@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl6
+#!/usr/loal/bin/perl6
 
 use v6;
 :autoflush; # Forces immediate flush.
@@ -14,6 +14,8 @@ my $nlpLiteratureDir = "nlp-literature"; # No trailing slash
 my %wordsOnEitherSide = ();
 my @filesToParse;
 my %frequencyHash;
+my %procedureHash;
+my %wordsInSimilarContexts;
 
 grammar english {
     token punctuation {
@@ -174,7 +176,101 @@ sub stats($kind is rw, $num? = 0) {
                 }
             }
         }
+    } elsif ($kind eq "context") {
+        # General Procedure:
+        #
+        # Analyze the Following:
+        #     P(W0|Wb0_in_pos_1); P(W0|Wa0_in_pos_1); P(W1|Wb1_in_pos_2); P(W0|Wa1_in_pos_2); 
+        #     P(W0|Wbn_in_pos_n+1); P(W0|Wan_in_pos_n+1);
+        #     Where W0 is the Current word and Wb0 is the the first word before and Wa0 is the first word after
+        # Then analyze the following:
+        #     P(W0|Wbn_in_pos_n+1_AND_Wbn+1+in_pos_n+2) etc for each category and word.
+        #     Eventually we need to see both before and after so: P(W0|wb0_in_pos_1_AND_wa0_in_pos_1) etc for
+        #         additional words AND additional columns. 
+        #
+        # We then create a new hash, %context which will contain a lot of data.
+        #
+        # The data structure looks like this:
+        #
+        # %context = { <word> => %dataHash };
+        # %dataHash = { <surrounding word> => %hash2 }
+        # %hash2 = { <surrounding word => @array }
+        # @array = @array[2] = ( %hash3, %hash4 );
+        # %hash3 = { <before = b, after = a> ~ <column index>) => <P(W0|WB0)> }
+        # %hash4 = { @array, <P(W|@array.join(' ')) } Note, if @array = (1,2,3), in this case,
+        #     @array as the key would look like @array.join(' ')
+        #
+        # It is probably necessary to call a recursive function to generate the insane amount of possibilities.
+        #     we will call that function procStat.  See procStat for implementation details.
+        procStat(%frequencyHash);
     }
+}
+
+
+sub procStat(%frequencyHash) {
+    # For now, this will compare words before and after to similar words.  The similar words are based on
+    # the percent of words it has in common with the other word (in a particular position).
+    # Ex.  If "the" is wb0 and "is" is wa0, then what other words have "the" in the wb0 array and "is" in wa0?
+    #      We will store those words in a hash.
+    my %similarWords;
+    my @similarWords;
+    print "Processing context...\r";
+    my $i = 1;
+    for %wordsOnEitherSide.keys -> $w {
+        print "Processing context ..." ~ ($i / %frequencyHash.keys.elems) * 100 ~ "% complete \r";
+        my @wordsBefore = %wordsOnEitherSide{$w}[0];
+        my @wordsAfter  = %wordsOnEitherSide{$w}[1];
+        for %wordsOnEitherSide.keys -> $a {
+            if $a ne $w {
+                if defined %wordsOnEitherSide{$a} {
+                    if arraysAreSimilar(@wordsBefore, %wordsOnEitherSide{$a}[0], 50) && arraysAreSimilar(@wordsAfter, %wordsOnEitherSide{$a}[1], 50) {
+                        push @similarWords, $a;
+                    }
+                }
+            }
+        }
+        if @similarWords ne "" {
+             %similarWords{$w} = @similarWords;
+        }
+        $i++;
+    }
+
+    print "Processing context...finishing                                                 \r ";
+    for %similarWords.keys {
+        %similarWords{$_} = unique(%similarWords{$_}, $_);
+    }
+    say "Processing context...done          ";
+}
+
+sub arraysAreSimilar(@array1 = (), @array2 = (), Int $percentAgreement = 50) {
+    my %arrayHash;
+    my Int $totalElements = 1; # base 1 due to comarison with *.elems (which is base 1)
+    for @array1 -> $q {
+        for 0 .. $q.elems - 1 -> $index {
+            for (0 .. $q[$index].elems - 1) -> $i {
+                my $surroundingWord = $q[$index][$i];
+                if defined $surroundingWord && $surroundingWord ne "" {
+                    %arrayHash{$surroundingWord} = 1;
+                    $totalElements++;
+                }
+            }
+        }
+    }
+    for @array2 -> $q {
+        for 0 .. $q.elems - 1 -> $index {
+            for (0 .. $q[$index].elems - 1) -> $i {
+                my $surroundingWord = $q[$index][$i];
+                if defined $surroundingWord && $surroundingWord ne "" {
+                    %arrayHash{$surroundingWord} = 1;
+                    $totalElements++;
+                }
+            }
+        }
+    }
+
+    my $num = (((%arrayHash.keys.elems)/$totalElements) * 100); 
+    return ($num >= $percentAgreement);
+
 }
 
 sub wFrequency(@array, Int $num? = 0) {
@@ -232,20 +328,31 @@ sub sFrequency(@array is rw, $num?) {
 
 sub process($type, $num? = -1) {
     if ($type eq "word_frequency") {
-        if $num == -1 {
-            my $num = prompt("How many words would you like to see? ");
-        }
+        #if $num == -1 {
+        #    my $num = prompt("How many words would you like to see? ");
+        #}
         print "Processing Word Frequency ...";
         %frequencyHash = stats("wordFrequency", $num);
+        %procedureHash{"processWordFrequency"} = 1;
         say "done.";
     } elsif ($type eq "surrounding_word_frequency") {
         print "Processing Surrounding Word Frequency ...";
-        stats("surroundingWordFrequency");
+        stats("surroundingWordFrequency"); # Modifies the data structure by reference
+        %procedureHash{"processSurroundingWordFrequency"} = 1;
         say "done";
+    } elsif ($type eq "context") {
+        if (!%procedureHash{"processWordFrequency"}) {
+            process "word_frequency";
+        }
+        if (!%procedureHash{"processSurroundingWordFrequency"}) {
+          #  process "surrounding_word_frequency";
+        }
+        stats("context"); # Modifies the data structure by reference
     }
 }
 
 sub display_knowledge() {
+    say "I have processed " ~ @words.elems ~ " total words.";
     say "I know " ~ @dictionary.elems ~ " unique words.";
 }
 
@@ -254,14 +361,16 @@ sub display($what) {
     eval ($s);
 }
 
-sub unique(@array) {
+sub unique(@array, $ignore?) {
     my %uniqueArrayHash;
     for (@array) {
         chomp($_);
         if defined %uniqueArrayHash{$_} {
             %uniqueArrayHash{$_} += 1;
         } else {
-            %uniqueArrayHash{$_} = 1;
+            if $ignore && $ignore ne $_ {
+                %uniqueArrayHash{$_} = 1;
+            }
         }
     }
     return keys %uniqueArrayHash;
@@ -297,18 +406,18 @@ multi sub store(Int $defaults? = 0, Str $fileName? = "") {
     print "Storing data ...";
     my $fh = open $filename, :w;
     for (@letters) {
-        if $_ ne "" && $_ ~~ s:g/\"// {
-           $fh.print('@letters.push("' ~ $_ ~ '");');    
+        if $_ ne "" && $_ ~~ s:g/\"// { 
+           $fh.print('@letters.push("' ~ $_ ~ '");' ~ "\n"); 
         }
     }
     for (@words) {
-        if $_ ne "" && $_ ~~ s:g/\"// {
-           $fh.print('@words.push("' ~ $_ ~ '");');    
+        if $_ ne "" && $_ ~~ s:g/\"// { # Quote to fix vim formatting "
+           $fh.print('@words.push("' ~ $_ ~ '");' ~ "\n");    
         }
     }
     for (@dictionary) {
-        if $_ ne "" && $_ ~~ s:g/\"// {
-           $fh.print('@dictionary.push("' ~ $_ ~ '");');    
+        if $_ ne "" && $_ ~~ s:g/\"// { # Quote to fix vim formatting "
+           $fh.print('@dictionary.push("' ~ $_ ~ '");' ~ "\n");    
         }
     }
 
@@ -318,7 +427,7 @@ multi sub store(Int $defaults? = 0, Str $fileName? = "") {
             if $key && $key ne "" {
                 for 0 .. 1 -> $j {
                     for %wordsOnEitherSide[$i]{$key}[$j] -> $u {
-                        $fh.print( '%wordsOnEitherSide[' ~ $i ~ ']{'~ $key.perl ~'}[' ~ $j ~ '].push(' ~ $u.perl ~ ');' );
+                        $fh.print( '%wordsOnEitherSide[' ~ $i ~ ']{'~ $key.perl ~'}[' ~ $j ~ '].push(' ~ $u.perl ~ ');' ~ "\n");
                     }
                 }
             }
@@ -326,8 +435,11 @@ multi sub store(Int $defaults? = 0, Str $fileName? = "") {
     }
 
     for %frequencyHash.keys -> $key {
-        $fh.print('%frequencyHash{' ~ $key.perl ~ '}=' ~ %frequencyHash{$key}.perl ~ ';'); 
+        $fh.print('%frequencyHash{' ~ $key.perl ~ '}=' ~ %frequencyHash{$key}.perl ~ ';' ~ "\n"); 
     }
+
+    # NEED TO ADD STORAGE FOR CONTEXT
+
     $fh.close();
 
     say "done."
@@ -353,6 +465,8 @@ multi sub load(Str $filename) {
     load(0, $filename);
 }
 
+
+# Note: repl() MUST be last to enable paren-less sub calls
 sub repl() {
     say "\nWelcome to Z. Bornheimer's Quasi-Artifically Intelligent Computational Linguistics Program.";
     say "Interestingly enough, most rules for acquiring language are not in here, and I will extrapolate them";
@@ -408,4 +522,6 @@ sub repl() {
     }
 }
 
-repl();
+#repl();
+parse "t";
+process "context";
