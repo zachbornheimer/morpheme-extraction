@@ -181,7 +181,7 @@ sub secondLevel($w1, $w2, %matches is rw) {
                     if $morpheme.chars >= 2  {
                         my $w1I;
                         my $w2I;
-# starting pace in w1, starting place in w2, morpheme
+# starting place in w1, starting place in w2, morpheme
                         if ($switch) {
                            $w1I = $w2index;
                            $w2I = $w1index; 
