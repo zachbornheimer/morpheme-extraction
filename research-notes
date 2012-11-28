@@ -31,3 +31,19 @@ Latest results:
 ~403K words, ~28K unique.  Forced to rewrite the storage mechanism becuase it would cause memory overflows with large datasets.  Program passed tests.
 
 Also, figured out the latest flows for the program and some of the impressive implications. See README.md for details.
+
+==================
+Nov. 25
+
+Interestingly enough, this algorithm seems to function as a completly universal algorithm for learning language.  No matter what the language, it seems that this algorithm should be able to parse it (given that it uses an alphabet).  Without strain, this could easily be extended to speech.
+
+I'm currently working on the extrapolation procedure.
+I am forced to explicitly define the four classes of morphemes: prefix, suffix, stem, and infix.  I'm not thrilled with that especially since it requires that I hardcode the algorithm into the code.
+
+The algorithm looks like this:
+If the regex ends with the morpheme and then an end-of-line char OR morpheme then a set of characters then a *, it is a suffix.
+If the inverse is true, it is a prefix.
+
+Theoretically, no word will be in the same context and change its presentation.  If the word appears in one context it should stay the same (meaning that you aren't going to have different prefixes and suffixes for the same stem in the same context).  If you do, enough data will rectify that misinformation.
+
+Stems can be isolated by removing morphemes and substituting them by checking to see if they are valid words.  That, however is not going to be a part of this first round of experimentation.
