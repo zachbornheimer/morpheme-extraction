@@ -61,3 +61,6 @@ The only challenge is infixes.  The concept I will use is identifing if it can b
 Once again, once the alphabet is discovered, character classes can begin to be generalized: <all-letters>, <nm>, etc.   This allows for optimization of storage.
 
 Finally, it is imperative that this be done because it may descover the true character classes of the language (and it, of course, will misname them because it doesn't understand what vowels are).
+======
+Unrelated.
+I found that I am unable to do dynamic grammar naming in perl6 (at least as of now).  I'm going to try and contact Larry Wall to see what his reasoning behind it is or if it is just an implementation issue.  THe workaround (and possibly best solution is to have the program write the lines for the grammar and store it in a file.  It will then slurp and eval.  I may have to do some modifcations to make sure it doesn't breech available memory.  We'll cross that bridge in due time.
