@@ -280,10 +280,11 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
             my $e1;
             my $b2;
             my $e2;
+            say @dat.perl;
 
             if ($type ne "secondLv") {
                 $b1 = $word1.substr(0, @dat[0]);
-                $m = $word1.substr(@dat[0], @dat[0] + @dat[1] + 1);
+                $m = $word1.substr(@dat[0], @dat[1] + 1);
                 $e1 = $word1.substr(@dat[0] + @dat[1] + 1);
                 $b2 = $word2.substr(0, @dat[0]);
                 $e2 = $word2.substr(@dat[0] + @dat[1] + 1);
@@ -368,6 +369,7 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
         $currentBeginning = ~$0;
         $regexInProgress ~~ /$currentBeginning$morpheme(.*)/;
         $currentEnding = ~$0;
+        say $regexInProgress;
     }
     my Str $content;
 
@@ -394,7 +396,6 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
 # Step 6, generalize pre-morpheme rule
 # Step 7, generalize post-morpheme rule
 # Step 8, store regex
-
 
 
 }
