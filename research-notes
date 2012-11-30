@@ -9,7 +9,7 @@ Plan of attack for identifing actually unique words:
 Parse in a dictionary.
 Words that occur once are most likely invalid.
 
-===============
+====================
 
 Because of some recent additions in tracking words around a target word, 
 I have been forced to use the USF Research Computing Cluster to get this done.
@@ -19,12 +19,12 @@ Because it takes unrealistically long to parse the data, the program parses it o
 restore.zy (or an alternate filename) and then it is loaded into $_ via a for loop and evaluated.
 This is increadibly dangerous, but it is the only solution until Zedram is done.
 
-===============
+====================
 
 To read the data and store it in the file, it took ~241 minutes for the 376K words and the word frequencies.
 
 
-==================
+====================
 Nov. 11
 
 Latest results:
@@ -32,7 +32,7 @@ Latest results:
 
 Also, figured out the latest flows for the program and some of the impressive implications. See README.md for details.
 
-==================
+====================
 Nov. 25
 
 Interestingly enough, this algorithm seems to function as a completly universal algorithm for learning language.  No matter what the language, it seems that this algorithm should be able to parse it (given that it uses an alphabet).  Without strain, this could easily be extended to speech.
@@ -47,3 +47,17 @@ If the inverse is true, it is a prefix.
 Theoretically, no word will be in the same context and change its presentation.  If the word appears in one context it should stay the same (meaning that you aren't going to have different prefixes and suffixes for the same stem in the same context).  If you do, enough data will rectify that misinformation.
 
 Stems can be isolated by removing morphemes and substituting them by checking to see if they are valid words.  That, however is not going to be a part of this first round of experimentation.
+
+====================
+Nov. 29
+
+I thought I should clarify why I chose to use a grammar and extend the grammar with prefixes, suffixes, infixes, and roots (and also why not circumfixes).  Basically, all languages need to terminate their words and start their words.  All words, no matter the language can be matched (in the most general yet specific way possible) as followed:
+/(<prefix>*)<root>+(<suffix>*)/
+
+I can explain this tautologically, but it is unnecessary.  For the most part, everything can be explained in these categories.  Circumfixes and infixes, however, cannot.  Circumfixes will be handled by the probabilites.  For example, if it is a circumfix, what is the probability the suffix and prefix will appear together?  What about apart?  What about in this particular context?  The problem will be solved with ease using this method.
+The only challenge is infixes.  The concept I will use is identifing if it can be represented with .*<infix>.* then it is an infix.  Both .*s will be captured and a character class will be made.  This is the easiest method (even if it turns out to be more verbose).  The problem with infixation is that it may rely on more than just the previous character.  Character classes will be created for each character preceeding the infix:
+/[aeiou][mn]et[lr][d]/
+
+Once again, once the alphabet is discovered, character classes can begin to be generalized: <all-letters>, <nm>, etc.   This allows for optimization of storage.
+
+Finally, it is imperative that this be done because it may descover the true character classes of the language (and it, of course, will misname them because it doesn't understand what vowels are).

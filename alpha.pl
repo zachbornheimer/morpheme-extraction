@@ -74,7 +74,7 @@ sub getMorphemes($word1, $word2) {
     for <lmFront lmBack secondLv> -> $type {
         if %matches{$type}.elems >= 1 {
             for (0 .. %matches{$type}.elems - 1) {
-#                say %matches.perl;
+#                #say %matches.perl;
                 regexify(@regex, $word1, $word2, %matches{$type}[$_], $type);
             }
         }
@@ -280,7 +280,7 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
             my $e1;
             my $b2;
             my $e2;
-            say @dat.perl;
+            #say @dat.perl;
 
             if ($type ne "secondLv") {
                 $b1 = $word1.substr(0, @dat[0]);
@@ -329,7 +329,7 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
 
             }
             $regexInProgress = $toAddb ~ $morpheme ~ $toAdde;
-            say $regexInProgress.perl;
+            #say $regexInProgress.perl;
 
         }
 
@@ -385,17 +385,20 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
         }
     }
 
-    if ($currentBeginning) {
-        if ($currentBeginning.substr(0,1) ne "[" && $currentBeginning ~~ /^{$currentBeginning.substr(0,1)}.*{chr(ord($currentBeginning.substr(0,1)) + 1)}/) {
-            $content ~= $currentBeginning.substr(1, $currentBeginning.chars - 2); 
+# Step 5, merge post-morpheme rule
+    if ($existingBeginning) {
+
+        my $openingChar = $existingBeginning.substr(0,1);
+        my $closingChar = chr(ord($openingChar) + 1);
+# If it is a paren, turn it into a class
+        if ($openingChar ne "[" && $existingBeginning ~~ /^$openingChar.*$closingChar/) {
+            $content = $existingBeginning.substr(1, $existingBeginning.chars - 2);
         }
     }
-    $content ~~ s/\|// if $content;
 
-# Step 5, merge post-morpheme rule
-# Step 6, generalize pre-morpheme rule
-# Step 7, generalize post-morpheme rule
-# Step 8, store regex
+
+# Step 6, add part of word (prefix, suffix, infix) to grammar
+# Step 7, store morpheme in frequency hash by <sym>
 
 
 }
