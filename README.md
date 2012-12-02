@@ -7,6 +7,7 @@ All my research for Artificial Intelligence
 Natural Language Processing: nlp.pl
 ===================================
 Coded in: Perl 6
+
 Flow:
 * Use statistical analysis to discerne the most frequent morphemes in a given scenario [Extraction]
 * Use statistical analysis to discerne the context in which those morphemes appear [Extrapolation]
