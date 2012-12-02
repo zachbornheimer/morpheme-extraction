@@ -1,29 +1,98 @@
 #!/usr/bin/perl6
 
 #my @alpha = <wb3a wb2ac wb1 wb0 w0 wa0 wa1 wa2 wa3>;
-my @alpha = <thinking begrudgingly sparingly>;
+my @alpha = <thoughts forethought foreshadow shadows begrudgingly sparingly>;
 my $i;
 my %similarArray;
+my %morphemeGrammar;
+my $alphabet = 'abcdefghijklmnopqrstuvwxyz';
+my @regex; # stores the undetermined morphemes
+my $z = 0; # Total Increments
+my $y = 0; # Current Increment
+# $z and $y are used for determining if this is the last run...dealing with the infix
+
 for 0 .. @alpha.elems - 1 {
     my $currentElem = @alpha[$_];
     for ($_ + 1 .. @alpha.elems - 1) {
         my $smallElem = @alpha[$_];
-
-
-
-        %similarArray{$currentElem}.push(getMorphemes($currentElem, $smallElem));
-
-
-
-
-
-
+        %similarArray{$currentElem}.push(getMorphemes($currentElem, $smallElem, %morphemeGrammar, @regex));
     }
 }
-#say %similarArray.perl;
 
+my $mostCommonWordLength = 6; # This should be set by the data
+if ($mostCommonWordLength % 2 != 0) {
+    $mostCommonWordLength++;
+}
+# Break each regex into half around the morpheme.
+# If infront of the morpheme, take the last ciel($mostCommonWordLength/2) character classes
+# If behind of the morpheme, thake the first ciel($mostCommonWordLength/2) character classes
+# If all characters in those categories DON'T match all letters, it is a valid infix.
 
-sub getMorphemes($word1, $word2) {
+for @regex {
+    my @a = $_.split(')');
+    my $morpheme = @a[1];
+    $morpheme ~~ s/(.*?)\(.*/$0/;
+    my $preMorpheme = @a[0].substr(1);
+    my $postMorpheme = @a[1].substr($morpheme.chars + 1) ~ @a[2];
+    if (!defined %morphemeGrammar{$morpheme}) {
+
+        my @preMorphemeSplit = $preMorpheme.split('[');
+        @preMorphemeSplit.shift();
+        for @preMorphemeSplit -> $_ is rw {
+            $_ = '[' ~ $_;
+        }
+        $preMorpheme = '';
+        @preMorphemeSplit = reverse @preMorphemeSplit;
+        for 0 .. ($mostCommonWordLength / 2) - 1 {
+            if defined @preMorphemeSplit[$_] {
+                $preMorpheme ~= @preMorphemeSplit[$_];
+            }
+        } 
+        $preMorpheme = rev $preMorpheme;
+        $preMorpheme ~~ s:g/(\[|\])//;
+
+        my @postMorphemeSplit = $postMorpheme.split('[');
+        @postMorphemeSplit.shift();
+
+        for @postMorphemeSplit -> $_ is rw {
+            $_ = '[' ~ $_;
+        }
+        $postMorpheme = '';
+        for 0 .. ($mostCommonWordLength / 2) - 1 {
+            if defined @postMorphemeSplit[$_] {
+                $postMorpheme ~= @postMorphemeSplit[$_];
+            }
+        }
+        $postMorpheme ~~ s:g/(\[|\])//;
+
+        $preMorpheme = (uniq $preMorpheme.split('')).sort( {lc($^a) cmp lc($^b)} ).join('');
+        $postMorpheme = (uniq $postMorpheme.split('')).sort( {lc($^a) cmp lc($^b)} ).join('');
+        $preMorpheme = lc($preMorpheme);
+        $postMorpheme = lc($postMorpheme);
+        if (!($preMorpheme eq $alphabet || $preMorpheme eq $alphabet)) {
+            if ($morpheme.substr(0,1) eq '*') {
+                addMorphemeToGrammar($morpheme.substr(1), 'stem', %morphemeGrammar);
+            } else {
+                addMorphemeToGrammar($morpheme, 'infix', %morphemeGrammar);
+            }
+        }
+    }
+}
+my $fh = open 'thisIsATest', :w;
+$fh.say(%morphemeGrammar.perl);
+$fh.close();
+
+sub addMorphemeToGrammar($morpheme, $type, %morphemeGrammar is rw) {
+    %morphemeGrammar{$morpheme}[0] = $type;
+    if defined %morphemeGrammar{$morpheme}[1] {
+        %morphemeGrammar{$morpheme}[1]++;
+    } else {
+        %morphemeGrammar{$morpheme}[1] = 1;
+    }
+    return 1;
+}
+
+sub getMorphemes($word1, $word2, %morphemeGrammar is rw, @regex is rw) {
 # Extracts all possible morphemes
 # from two arguments
 # 
@@ -69,17 +138,13 @@ sub getMorphemes($word1, $word2) {
 
 # we now have all the possible morphemes.
 # now we need to convert the extracted morphemes into valid regex
-
-    my @regex;
     for <lmFront lmBack secondLv> -> $type {
         if %matches{$type}.elems >= 1 {
             for (0 .. %matches{$type}.elems - 1) {
-#                #say %matches.perl;
-                regexify(@regex, $word1, $word2, %matches{$type}[$_], $type);
+                regexify(%morphemeGrammar, @regex, $word1, $word2, %matches{$type}[$_], $type);
             }
         }
     }
-
 
 # Step 3, return a non-unique array of regex found in Steps 1 & 2.
 
@@ -183,11 +248,11 @@ sub secondLevel($w1, $w2, %matches is rw) {
                         my $w2I;
 # starting place in w1, starting place in w2, morpheme
                         if ($switch) {
-                           $w1I = $w2index;
-                           $w2I = $w1index; 
+                            $w1I = $w2index;
+                            $w2I = $w1index; 
                         } else {
-                           $w1I = $w1index;
-                           $w2I = $w2index; 
+                            $w1I = $w1index;
+                            $w2I = $w2index; 
                         }
                         %matches{$id}[%matches{$id}.elems] = ([$w1I, $w2I, $morpheme]);
                         $skip += $i;
@@ -200,12 +265,14 @@ sub secondLevel($w1, $w2, %matches is rw) {
     }
 }
 
-sub rev (Str $a) {
+multi sub rev (Str $a) {
     return (reverse $a.split('')).join('');
 }
+multi sub rev (Str @a) {
+    return reverse @a;
+}
 
-#regexify(@regex, $word1, $word2, %matches{$type}[$_], $type);
-sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
+sub regexify(%morphemeGrammar is rw, @regex is rw,  $w1?, $w2?, @dat?, $type?) {
 
 # Proc:
 # =====
@@ -256,13 +323,15 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
 # secondLv will not contain any new morphemes for this category
         if ($type ne "secondLv") {
             if (@dat[0] == 0) {
-                my $s = @dat[2];
+                $morpheme = @dat[2];
+                my $s;
                 if ($type eq "lmBack") {
-                    $s = (reverse $s) ~ '$';
+                    $morpheme = rev $morpheme;
+                    $s = $morpheme ~ '$';
                 } else {
-                    $s = '^' ~ $s;
+                    $s = '^' ~ $morpheme;
                 }
-                $regexInProgress = '/' ~ $s ~ '/';
+                $regexInProgress = $s;
             }
         }
 
@@ -280,7 +349,6 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
             my $e1;
             my $b2;
             my $e2;
-            #say @dat.perl;
 
             if ($type ne "secondLv") {
                 $b1 = $word1.substr(0, @dat[0]);
@@ -290,7 +358,7 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
                 $e2 = $word2.substr(@dat[0] + @dat[1] + 1);
             } else {
                 $b1 = $word1.substr(0, @dat[0]);
-                $m = $word1.substr(@dat[0], @dat[0] - 1 + @dat[2].chars - 1);
+                $m = $word1.substr(@dat[0], @dat[0] + @dat[2].chars);
                 $e1 = $word1.substr(@dat[0] + @dat[2].chars);
                 $b2 = $word2.substr(0, @dat[1]);
                 $e2 = $word2.substr(@dat[1] + @dat[2].chars);
@@ -328,11 +396,15 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
                 $toAdd = '(' ~ $end1 ~ '|' ~ $end2 ~ ')';
 
             }
+            if $toAddb eq '' {
+                $toAddb = '^';
+            }
+            if $toAdde eq '' {
+                $toAdde = '$';
+            }
             $regexInProgress = $toAddb ~ $morpheme ~ $toAdde;
-            #say $regexInProgress.perl;
 
         }
-
     }
 
 # If suffix, generalize after suffix
@@ -347,59 +419,200 @@ sub regexify(@regex is rw,  $w1?, $w2?, @dat?, $type?) {
 
 
 # Step 1, find regex for the same morpheme
-    
+
 # Examples:
 #     (th|test)in(g)*
 #     (.*)ary
-    my $existingRegex;
-    my $existingBeginning;
-    my $existingEnd;
-    my $currentBeginning;
-    my $currentEnding;
-    for @regex {
-        if ($_ ~~ rx/(.*\)|\*|\+|\}|\^|\])$morpheme(\(|\[|\{|\$.*)/) {
-# Step 2, identify the pre-morpheme rule
-            $existingBeginning = $0;
-# Step 3, identify the post-morpheme rule
-            $_ ~~ /$existingBeginning$morpheme(.*)/;
-            $existingEnd = ~$0;
+    my $existingRegex = '';
+    my $existingBeginning = '';
+    my $existingEnd = '';
+    my $currentBeginning = '';
+    my $currentEnd = '';
+    my $mergedBeginning = '';
+    my $mergedEnd = '';
+    my $morphemeClass = '';
+    my $kind = '';
+    if $regexInProgress.substr(0,1) eq '^' && $regexInProgress.substr(*-1) ne '$' {
+        if (defined(%morphemeGrammar{$morpheme}) && %morphemeGrammar{$morpheme} eq 'suffix') {
+            $kind = 'stem';
+        } else {
+            $kind = 'prefix';
         }
-    }
-    if ($regexInProgress ~~ rx/(.*\)|\*|\+|\}|\^|\])$morpheme(\(|\[|\{|\$.*)/) {
-        $currentBeginning = ~$0;
-        $regexInProgress ~~ /$currentBeginning$morpheme(.*)/;
-        $currentEnding = ~$0;
-        say $regexInProgress;
-    }
-    my Str $content;
+    } elsif $regexInProgress.substr(0,1) ne '^' && $regexInProgress.substr(*-1) eq '$' {
+        if (defined(%morphemeGrammar{$morpheme}) && %morphemeGrammar{$morpheme} eq 'prefix') {
+            $kind = 'stem';
+        } else {
+            $kind = 'suffix';
+        }
+    } else {
+        if (!defined %morphemeGrammar{$morpheme}) {
+            my $regexIndex = 0;
+            repeat {
+                my $pushed = 0;
+                for (0 .. (@regex.elems - 1)) {
+                    my $replaceNum = $_;
+                    my $value = @regex[$replaceNum];
+                    if ($value ~~ rx/(.*?(\)|\*|\+|\}|\^|\]))$morpheme((\(|\[|\{|\$).*)/) { # is this a matching rule?
+# Step 2, identify the pre-morpheme rule
+                        $existingBeginning = ~$0;
+# Step 3, identify the post-morpheme rule
+                        $value ~~ /$existingBeginning$morpheme(.*)/;
+                        $existingEnd = ~$0;
+                        $regexIndex++;
+
+                        if ($regexInProgress ~~  rx/(.*?(\)|\*|\+|\}|\^|\]))$morpheme((\(|\[|\{|\$).*)/) {
+                            $currentBeginning = ~$0;
+                            $regexInProgress ~~ /$currentBeginning$morpheme(.*)/;
+                            $currentEnd = ~$0;
+                        }
 
 # Step 4, merge pre-morpheme rule
-
-    if ($existingBeginning) {
-
-        my $openingChar = $existingBeginning.substr(0,1);
-        my $closingChar = chr(ord($openingChar) + 1);
+                        my Str $content;
+                        if ($existingBeginning && $existingBeginning.chars > 1) {
+                            my $openingChar = $existingBeginning.substr(0,1);
+                            my $closingChar = chr(ord($openingChar) + 1);
 # If it is a paren, turn it into a class
-        if ($openingChar ne "[" && $existingBeginning ~~ /^$openingChar.*$closingChar/) {
-            $content = $existingBeginning.substr(1, $existingBeginning.chars - 2);
-        }
-    }
+                            mergeRules($existingBeginning, $currentBeginning, $mergedBeginning, 1);
+                        } else {
+                            $mergedBeginning = $currentBeginning;
+                        }
 
 # Step 5, merge post-morpheme rule
-    if ($existingBeginning) {
-
-        my $openingChar = $existingBeginning.substr(0,1);
-        my $closingChar = chr(ord($openingChar) + 1);
+                        if ($existingEnd && $existingEnd.chars > 1) {
+                            my $openingChar = $existingEnd.substr(0,1);
+                            my $closingChar = chr(ord($openingChar) + 1);
 # If it is a paren, turn it into a class
-        if ($openingChar ne "[" && $existingBeginning ~~ /^$openingChar.*$closingChar/) {
-            $content = $existingBeginning.substr(1, $existingBeginning.chars - 2);
-        }
-    }
+                            mergeRules($existingEnd, $currentEnd, $mergedEnd);
+                        } else {
+                            $mergedEnd = $currentEnd;
+                        }
+
+                        if $kind eq '' {
+                            my $val = $mergedBeginning ~ $morpheme ~ $mergedEnd;
+                            @regex[$replaceNum] = $val;
+                            $pushed = 1;
+                        }
+                    }
+                }
+                if (!$pushed) {
+                    @regex.push($regexInProgress);
+                    $regexIndex++;
+                }
+            } while ($regexIndex < @regex.elems );
 
 
 # Step 6, add part of word (prefix, suffix, infix) to grammar
-# Step 7, store morpheme in frequency hash by <sym>
 
+# Step 6a: is prefix?
 
+# Step 6b: is suffix?
+
+# Step 6c: is infix?
+
+# Step 6d: is stem?
+
+# Step 7, store morpheme in @regex so when all morphemes are done, it can be analyzed and stored.
+
+        }
+    }
+
+    if $kind ne '' {
+        addMorphemeToGrammar($morpheme, $kind, %morphemeGrammar); 
+    }
 }
 
+sub mergeRules($existing, $current, $merged is rw, $reverse?) {
+    my $content;
+    if $existing.substr(0) eq '(' {
+        $content = $existing.substr(1, $existing.chars - 2);
+    } else {
+        $content = $existing;
+    }
+    if ($content ne '.*') {
+        if ($current.substr(*-1) eq '*') {
+            $merged = $current;
+            return;
+        }
+        if ($current.substr(*-1) eq ')') {
+            $merged = $current.substr(0, *-1) ~ '|' ~ $content ~ ')';
+        }
+        my @working = $merged.substr(1,*-1).split('|');
+        my @classes = @working.join('').split('[');
+        my $classesYN = 0;
+        for @classes -> $_ is rw {
+            if $_.substr(*-1) eq ']' {
+                $_ = '[' ~ $_;
+                $classesYN = 1;
+            }
+        }
+        if !$classesYN {
+            @classes = '';
+        }
+        for @working -> $_ is rw {
+            $_ ~~ s:g/\[.*\]?//;
+        }
+        if @classes ne '' {
+            for @classes -> $_ is rw {
+                if $_.substr(*-1) ne ']' {
+                    $_ = '';
+
+                }
+            }
+        }
+        for @working -> $_ is rw {
+            if $_.substr(0, 1) eq '[' {
+                $_ = '';
+            }
+            $_ ~~ s/(\(|\))//;
+        }
+        my @temp = Nil;
+        for @classes {
+            if $_ ne '' {
+                @temp.push($_);
+            }
+        }
+        @classes = @temp;
+        @temp = Nil;
+        for @working {
+            if $_ ne '' {
+                @temp.push($_);
+            }
+        }
+        @working = @temp;
+
+        for @classes -> $_ is rw {
+            $_ = $_.substr(1, *-1);
+        }
+
+        @classes = reverse @classes;
+
+        for @working -> $elem {
+            my $e;
+            if ($reverse) {
+                $e = rev $elem;
+            } else {
+                $e = $elem;
+            }
+            my @splitted = $e.split('');
+            my $i = 0;
+            for @splitted {
+                my @chars;
+                if defined @classes[$i] {
+                    @chars = @classes[$i].split('');
+                }
+                @classes[$i] = @chars.push($_).join('');
+                $i++;
+            }
+        }
+        @classes = reverse @classes;
+        for @classes -> $_ is rw {
+            $_ = (uniq $_.split('')).join('');
+        }
+        for @classes -> $_ is rw {
+            $_ = '[' ~ $_ ~ ']';
+        }
+        $merged = '(' ~ @classes.join('') ~ ')';
+
+    }
+
+}
