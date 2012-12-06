@@ -1,0 +1,5 @@
+token suffix:sym<s> { <sym> }
+token prefix:sym<fore> { <sym> }
+token stem:sym<thought> { <sym> }
+token stem:sym<shadow> { <sym> }
+token infix:sym<h> { ([ft][ftoh][ftohr][tfohreu][tfhoreug])h([t][th][thg][thgu][thguo]) }

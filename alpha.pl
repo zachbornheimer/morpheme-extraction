@@ -1,86 +1,82 @@
 #!/usr/bin/perl6
+say getMorphemicStructure(<foreshadow shadows thoughts forethoughts>).perl;
 
-#my @alpha = <wb3a wb2ac wb1 wb0 w0 wa0 wa1 wa2 wa3>;
-my @alpha = <thoughts forethought foreshadow shadows begrudgingly sparingly>;
-my $i;
-my %similarArray;
-my %morphemeGrammar;
-my $alphabet = 'abcdefghijklmnopqrstuvwxyz';
-my @regex; # stores the undetermined morphemes
-my $z = 0; # Total Increments
-my $y = 0; # Current Increment
-# $z and $y are used for determining if this is the last run...dealing with the infix
+sub getMorphemicStructure(@alpha) {
+    my $i;
+    my %similarArray;
+    my %morphemeGrammar;
+    my $alphabet = 'abcdefghijklmnopqrstuvwxyz'; # this will be dynamically defined later
+    my @regex; # stores the undetermined morphemes
 
-for 0 .. @alpha.elems - 1 {
-    my $currentElem = @alpha[$_];
-    for ($_ + 1 .. @alpha.elems - 1) {
-        my $smallElem = @alpha[$_];
-        %similarArray{$currentElem}.push(getMorphemes($currentElem, $smallElem, %morphemeGrammar, @regex));
-    }
-}
+        for 0 .. @alpha.elems - 1 {
+            my $currentElem = @alpha[$_];
+            for ($_ + 1 .. @alpha.elems - 1) {
+                my $smallElem = @alpha[$_];
+                %similarArray{$currentElem}.push(getMorphemes($currentElem, $smallElem, %morphemeGrammar, @regex));
+            }
+        }
 
-my $mostCommonWordLength = 6; # This should be set by the data
-if ($mostCommonWordLength % 2 != 0) {
-    $mostCommonWordLength++;
-}
+    my $mostCommonWordLength = 6; # This should be set by the data
+        if ($mostCommonWordLength % 2 != 0) {
+            $mostCommonWordLength++;
+        }
 # Break each regex into half around the morpheme.
 # If infront of the morpheme, take the last ciel($mostCommonWordLength/2) character classes
 # If behind of the morpheme, thake the first ciel($mostCommonWordLength/2) character classes
 # If all characters in those categories DON'T match all letters, it is a valid infix.
 
-for @regex {
-    my @a = $_.split(')');
-    my $morpheme = @a[1];
-    $morpheme ~~ s/(.*?)\(.*/$0/;
-    my $preMorpheme = @a[0].substr(1);
-    my $postMorpheme = @a[1].substr($morpheme.chars + 1) ~ @a[2];
-    if (!defined %morphemeGrammar{$morpheme}) {
+    for @regex {
+        my @a = $_.split(')');
+        my $morpheme = @a[1];
+        $morpheme ~~ s/(.*?)\(.*/$0/;
+        my $preMorpheme = @a[0].substr(1);
+        my $postMorpheme = @a[1].substr($morpheme.chars + 1) ~ @a[2];
+        if (!defined %morphemeGrammar{$morpheme}) {
 
-        my @preMorphemeSplit = $preMorpheme.split('[');
-        @preMorphemeSplit.shift();
-        for @preMorphemeSplit -> $_ is rw {
-            $_ = '[' ~ $_;
-        }
-        $preMorpheme = '';
-        @preMorphemeSplit = reverse @preMorphemeSplit;
-        for 0 .. ($mostCommonWordLength / 2) - 1 {
-            if defined @preMorphemeSplit[$_] {
-                $preMorpheme ~= @preMorphemeSplit[$_];
+            my @preMorphemeSplit = $preMorpheme.split('[');
+            @preMorphemeSplit.shift();
+            for @preMorphemeSplit -> $_ is rw {
+                $_ = '[' ~ $_;
             }
-        } 
-        $preMorpheme = rev $preMorpheme;
-        $preMorpheme ~~ s:g/(\[|\])//;
+            $preMorpheme = '';
+            @preMorphemeSplit = reverse @preMorphemeSplit;
+            for 0 .. ($mostCommonWordLength / 2) - 1 {
+                if defined @preMorphemeSplit[$_] {
+                    $preMorpheme ~= @preMorphemeSplit[$_];
+                }
+            } 
+            $preMorpheme = rev $preMorpheme;
+            $preMorpheme ~~ s:g/(\[|\])//;
 
-        my @postMorphemeSplit = $postMorpheme.split('[');
-        @postMorphemeSplit.shift();
+            my @postMorphemeSplit = $postMorpheme.split('[');
+            @postMorphemeSplit.shift();
 
-        for @postMorphemeSplit -> $_ is rw {
-            $_ = '[' ~ $_;
-        }
-        $postMorpheme = '';
-        for 0 .. ($mostCommonWordLength / 2) - 1 {
-            if defined @postMorphemeSplit[$_] {
-                $postMorpheme ~= @postMorphemeSplit[$_];
+            for @postMorphemeSplit -> $_ is rw {
+                $_ = '[' ~ $_;
             }
-        }
-        $postMorpheme ~~ s:g/(\[|\])//;
+            $postMorpheme = '';
+            for 0 .. ($mostCommonWordLength / 2) - 1 {
+                if defined @postMorphemeSplit[$_] {
+                    $postMorpheme ~= @postMorphemeSplit[$_];
+                }
+            }
+            $postMorpheme ~~ s:g/(\[|\])//;
 
-        $preMorpheme = (uniq $preMorpheme.split('')).sort( {lc($^a) cmp lc($^b)} ).join('');
-        $postMorpheme = (uniq $postMorpheme.split('')).sort( {lc($^a) cmp lc($^b)} ).join('');
-        $preMorpheme = lc($preMorpheme);
-        $postMorpheme = lc($postMorpheme);
-        if (!($preMorpheme eq $alphabet || $preMorpheme eq $alphabet)) {
-            if ($morpheme.substr(0,1) eq '*') {
-                addMorphemeToGrammar($morpheme.substr(1), 'stem', %morphemeGrammar);
-            } else {
-                addMorphemeToGrammar($morpheme, 'infix', %morphemeGrammar);
+            $preMorpheme = (uniq $preMorpheme.split('')).sort( {lc($^a) cmp lc($^b)} ).join('');
+            $postMorpheme = (uniq $postMorpheme.split('')).sort( {lc($^a) cmp lc($^b)} ).join('');
+            $preMorpheme = lc($preMorpheme);
+            $postMorpheme = lc($postMorpheme);
+            if (!($preMorpheme eq $alphabet || $preMorpheme eq $alphabet)) {
+                if ($morpheme.substr(0,1) eq '*') {
+                    addMorphemeToGrammar($morpheme.substr(1), 'stem', %morphemeGrammar);
+                } else {
+                    addMorphemeToGrammar($morpheme, 'infix', %morphemeGrammar);
+                }
             }
         }
     }
+    return %morphemeGrammar;
 }
-my $fh = open 'thisIsATest', :w;
-$fh.say(%morphemeGrammar.perl);
-$fh.close();
 
 sub addMorphemeToGrammar($morpheme, $type, %morphemeGrammar is rw) {
     %morphemeGrammar{$morpheme}[0] = $type;
@@ -384,7 +380,7 @@ sub regexify(%morphemeGrammar is rw, @regex is rw,  $w1?, $w2?, @dat?, $type?) {
             for (0 .. 1) {
                 if ($toAdd ~~ /(\(\||\|\))/) {
                     $toAdd ~~ s/\(\|/(/;
-                    $toAdd ~~ s/\|\)/)/;
+                                $toAdd ~~ s/\|\)/)/;
                     $toAdd ~= '*';
                 }
                 $toAdd ~~ s/\(\)\*//;
