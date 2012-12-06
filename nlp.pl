@@ -54,6 +54,7 @@ grammar replGrammar {
     token keyword:sym<process> { <sym> }
     token keyword:sym<store> { <sym> }
     token keyword:sym<load> { <sym> }
+    token keyword:sym<demo> { <sym> }
 
 }
 
@@ -152,17 +153,24 @@ multi sub learn(@filesToParse) {
             $acqWordsIndex++;
         }
 
-        #@acqWords = removeEmpty(@acqWords);
-        push @words, @acqWords ==> map { if $_ ne "" { $_ } };
+        for (@acqWords) {
+            if $_ ne "" {
+                @words.push($_);
+            }
+        }
         print "\tProcessing the text ...100%                            \r";
         say "\tProcessing the text ...done";
         say "Done Reading $_";
         say "Learned " ~ @acqWords.elems ~ " words\n";
         say "Done reading the text in $nlpLiteratureDir.";
-        print "Creating the dictionary database by removing duplicate words in the word database ...";
-        @dictionary = unique(@words);
-        say "done";
     }
+    print "Creating the dictionary database by removing duplicate words in the word database ...";
+    for unique(@words) {
+        @dictionary.push($_);
+    }
+    @dictionary = unique @dictionary;
+    say "done";
+ 
 }
 sub removeEmpty(@array) {
     my @a;
@@ -236,17 +244,19 @@ sub procStat(%frequencyHash) {
     my %similarWords;
     my @similarWords;
     print "Processing context...\r";
-    my $i = 1;
+    my Int $i = 1;
+    #my Int $totalCount = 0;
+    #my Int $maxNum = %wordsOnEitherSide.keys.elems * %wordsOnEitherSide.keys.elems;
     for %wordsOnEitherSide.keys -> $w {
         print "Processing context ..." ~ ($i / %frequencyHash.keys.elems) * 100 ~ "% complete                        \r";
         my @wordsBefore = %wordsOnEitherSide{$w}[0];
         my @wordsAfter  = %wordsOnEitherSide{$w}[1];
         for %wordsOnEitherSide.keys -> $a {
+            #say $totalCount++ ~ ':' ~ $maxNum;
             if $a ne $w {
                 if defined %wordsOnEitherSide{$a} {
                     if arraysAreSimilar(@wordsBefore, %wordsOnEitherSide{$a}[0], 50) && arraysAreSimilar(@wordsAfter, %wordsOnEitherSide{$a}[1], 50) {
                         push @similarWords, $a;
-                        say 'Similar Words Length: ' ~ @similarWords.elems - 1;
                     }
                 }
             }
@@ -276,7 +286,7 @@ sub procStat(%frequencyHash) {
         say "Analyzing morphemes..."~$u~"/"~%similarWords.keys.elems~ "                                     ";
         %similarWords{$_}[1] = getMorphemicStructure(@wordsToExamine, $avgWordLength, %allMorphemes);
     }
-    say "Processing context...done          ";
+    say "Processing context...done                                 ";
     my $fh = open 'grammar.zy', :w;
     $fh.say('grammar Morphemes is Lang {');
     for %allMorphemes.keys {
@@ -298,8 +308,6 @@ sub round($num) {
 
 
 sub arraysAreSimilar(@array1 = (), @array2 = (), Int $percentAgreement = 50) {
-    say @array1.perl;
-    say @array2.perl;
     my %arrayHash;
     my Int $totalElements = 0; # base 1 because *.elems is base 1
     for @array1 -> $q {
@@ -691,7 +699,6 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
             my $e1;
             my $b2;
             my $e2;
-
             if ($type ne "secondLv") {
                 $b1 = $word1.substr(0, @dat[0]);
                 $m = $word1.substr(@dat[0], @dat[1] + 1);
@@ -700,7 +707,7 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
                 $e2 = $word2.substr(@dat[0] + @dat[1] + 1);
             } else {
                 $b1 = $word1.substr(0, @dat[0]);
-                $m = $word1.substr(@dat[0], @dat[0] + @dat[2].chars);
+                $m = @dat[2];
                 $e1 = $word1.substr(@dat[0] + @dat[2].chars);
                 $b2 = $word2.substr(0, @dat[1]);
                 $e2 = $word2.substr(@dat[1] + @dat[2].chars);
@@ -1054,14 +1061,13 @@ sub display($what) {
     eval ($s);
 }
 
-sub unique(@array, $ignore?) {
+sub unique(@array, $ignore = '') {
     my %uniqueArrayHash;
     for (@array) {
-        chomp($_);
         if defined %uniqueArrayHash{$_} {
             %uniqueArrayHash{$_} += 1;
         } else {
-            if $ignore && $ignore ne $_ && $_ ne '' {
+            if $ignore ne $_ && $_ ne '' {
                 %uniqueArrayHash{$_} = 1;
             }
         }
@@ -1080,7 +1086,6 @@ sub recursiveDir($path, @array is rw) {
     }
     return @array;
 }
-
 
 multi sub store(Str $f) {
     store(0, $f);
@@ -1160,6 +1165,14 @@ multi sub load(Str $filename) {
 }
 
 
+sub demo($name) {
+    parse $name;
+    display "knowledge";
+    process "context";
+
+}
+
+
 # Note: repl() MUST be last to enable paren-less sub calls
 sub repl() {
     say "\nWelcome to Z. Bornheimer's Quasi-Artifically Intelligent Computational Linguistics Program.";
@@ -1200,7 +1213,7 @@ sub repl() {
             }
         }
         if defined ($keyword) {
-            if $keyword eq "parse" {
+            if $keyword eq "parse" || $keyword eq "demo" {
                 $input ~~ s/($keyword\s+)(.*)/{$0}"{$1}"/;
                 $input ~~ s:g/\"\"/"/;
             }
@@ -1217,5 +1230,6 @@ sub repl() {
 }
 
 #repl();
-parse "t";
-process "context";
+#parse "t";
+#process "context";
+demo 'MD.2';
