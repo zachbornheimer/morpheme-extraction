@@ -1228,8 +1228,4 @@ sub repl() {
         }
     }
 }
-
-#repl();
-#parse "t";
-#process "context";
-demo 'MD.2';
+repl();

@@ -2,7 +2,16 @@ artificial-intelligence-engine
 ==============================
 
 All my research for Artificial Intelligence
+NOTE: The software, if not licensed, will be.  Until that time the following multi-license solution is necessary:
 
+    Individuals may use the software under the terms of the GPLv2 or Later
+    Business, Governments, and Militaries  must contact Zysys (zach at zysys.org) before use or looking at the code and must sign a license agreement (the terms are up in the air).
+
+    Terms for licensing are not necessary financial.  Terms may include be a place to test the code, results be recommitted, and/or attribution.
+
+    If licensee must disclose the use of the software/algorithms to Zysys (who are able to sign a non-disclosure agreement) and may never alter the use of the software without another licensing agreement.  This means that if a company desides to use the software for search and now they want to use it for advertising, the company would need to disclose how they would use the software (and how it integrates) and negotiate a new license.
+
+    These terms apply to all of these software without license agreements (including previous and future revisions).
 
 Natural Language Processing: nlp.pl
 ===================================
