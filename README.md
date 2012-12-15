@@ -13,7 +13,7 @@ NOTE: The software, if not licensed, will be.  Until that time the following mul
 
     These terms apply to all of these software without license agreements (including previous and future revisions).
 
-Natural Language Processing: nlp.pl
+Natural Language Processing: nlp.pl6
 ===================================
 Coded in: Perl 6
 
@@ -26,4 +26,4 @@ Flow:
 * Be able to get the program to print out a summarizing report of parts of speech given an input sentence AND be able to have the program change the morphemes in the words (like adding an {-s} or {-es} and similar).
 
 
-Eventually the nlp.pl program can be used to solve the Summarization Problem (given text input, summarize it).  Note, the problem with this program thus far is that the computer does not understand the meaning of words.  At the core, words can be defined in terms of other words, but at the very base level there is sensory association.  Without that sensory association, it cannot define any words.  So, after vision and robotics are complete, this program will be complete.
+Eventually the nlp.pl6 program can be used to solve the Summarization Problem (given text input, summarize it).  Note, the problem with this program thus far is that the computer does not understand the meaning of words.  At the core, words can be defined in terms of other words, but at the very base level there is sensory association.  Without that sensory association, it cannot define any words.  So, after vision and robotics are complete, this program will be complete.

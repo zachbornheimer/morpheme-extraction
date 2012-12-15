@@ -21,7 +21,6 @@ grammar english {
     token punctuation {
         <- [a..zA..Z\d\s]>+($|\s+|<- [a..zA..Z\d]>)
     }
-
 }
 
 grammar Lang {
@@ -86,17 +85,17 @@ multi sub learn(@filesToParse) {
 my $numFilesProcessed = 0;
     for (@filesToParse) {
         if $_.IO ~~ :e  {
+            my @uniqueWords;
             my $acqWordsCounter = 0;
+            my $acqWordsIndex = 0;
             say "\nReading $_";
             print "\tParsing $_ ...";
             my Str $text = slurp $_;
             $text ~~ s:g/\n/\ /;
             my Int $numWords = $text.split(' ').elems - 1; # index 0 
             say "done";
-            my @uniqueWords;
             print "\tProcessing the text ...\r";
             my @acqWords = $text.split(' '); # acquired words
-            my $acqWordsIndex = 0;
             for (@acqWords) {
                 print "\tProcessing the text ..." ~ ($acqWordsIndex / $numWords) * 100 ~ "%                 \r";
                 $_ ~~ s:g/<english::punctuation>/ /; # Needs to replace the punctuation with a space 
