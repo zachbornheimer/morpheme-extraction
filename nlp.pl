@@ -55,7 +55,20 @@ grammar replGrammar {
     token keyword:sym<store> { <sym> }
     token keyword:sym<load> { <sym> }
     token keyword:sym<demo> { <sym> }
+}
 
+
+sub run($val, $failMessage = 'Code failed to evaluate successfully') {
+# The purpose of this is to generate a simplistic error catching interface
+    return $val.eval;
+    CATCH {
+        say $failMessage if $failMessage;
+        return 0;
+    }
+}
+
+sub typecheck($object, $type) {
+    return ~$object.WHICH ~~ m:i/^$type\|/;
 }
 
 sub parse(Str $filename) {
@@ -70,23 +83,24 @@ multi sub learn() {
 multi sub learn(@filesToParse) {
 
 # Read all text into an array of words.
+my $numFilesProcessed = 0;
     for (@filesToParse) {
-        my $acqWordsCounter = 0;
-        say "\nReading $_";
-        print "\tParsing $_ ...";
-        my Str $text = slurp $_;
-        $text ~~ s:g/\n/\ /;
-        my Int $numWords = $text.split(' ').elems - 1; # index 0 
-        say "done";
-        my @uniqueWords;
-        print "\tProcessing the text ...\r";
-        my @acqWords = $text.split(' '); # acquired words
-        my $acqWordsIndex = 0;
-        for (@acqWords) {
-            print "\tProcessing the text ..." ~ ($acqWordsIndex / $numWords) * 100 ~ "%                 \r";
-            $_ ~~ s:g/<english::punctuation>/ /; # Needs to replace the punctuation with a space 
-# because it uses a space as a delimiter
-            $_ ~~ s:g/\ //;
+        if $_.IO ~~ :e  {
+            my $acqWordsCounter = 0;
+            say "\nReading $_";
+            print "\tParsing $_ ...";
+            my Str $text = slurp $_;
+            $text ~~ s:g/\n/\ /;
+            my Int $numWords = $text.split(' ').elems - 1; # index 0 
+            say "done";
+            my @uniqueWords;
+            print "\tProcessing the text ...\r";
+            my @acqWords = $text.split(' '); # acquired words
+            my $acqWordsIndex = 0;
+            for (@acqWords) {
+                print "\tProcessing the text ..." ~ ($acqWordsIndex / $numWords) * 100 ~ "%                 \r";
+                $_ ~~ s:g/<english::punctuation>/ /; # Needs to replace the punctuation with a space 
+                $_ ~~ s:g/\ //;
 
 ###################################################################################
 # The ending data structure for the following code will look something like this:
@@ -100,77 +114,89 @@ multi sub learn(@filesToParse) {
 # Note: frequency for surrounding words only happens after running the stats.
 ###################################################################################
 
-            if ($acqWordsIndex >= 0) {
-                my @wordsBefore;
-                my @wordsAfter;
+                if ($acqWordsIndex >= 0) {
+                    for 0 .. 1 -> $iterator {
+                        %wordsOnEitherSide{$_}[$iterator] = [] if !(typecheck %wordsOnEitherSide{$_}[$iterator], 'List');
+                    }
+
+                    my $wordsBefore = item %wordsOnEitherSide{$_}[0];
+                    my $wordsAfter = item %wordsOnEitherSide{$_}[1];
 
 # Because we have not yet incremented $acqWordsIndex, it will automatically be 1 less than the current word
-                my $startingNum = $acqWordsIndex - PreviousWords;
-                if $startingNum < 0 {
-                    $startingNum = 0;
-                }
-                for $startingNum .. $acqWordsIndex - 1 {
-                    my $i = ($acqWordsIndex - 1) - $_;
-                    push @wordsBefore[$i], @acqWords[$_] if @acqWords[$_] ne "";
-                }
+                    my $startingNum = $acqWordsIndex - PreviousWords;
+                    if $startingNum < 0 {
+                        $startingNum = 0;
+                    }
 
-# Because we have not yet incremented $acqWordsIndex, it is 1 lower than the current value, so the current word is at $acqWordsIndex+1
-                for $acqWordsIndex + 2 .. $acqWordsIndex + (SubsequentWords + 1) {
-                    my $i = ($acqWordsIndex + (SubsequentWords + 1)) - $_;
-                    if defined @acqWords[$_] {
-                        push @wordsAfter[$i], @acqWords[$_] if @acqWords[$_] ne "";
+                    my $endingNum = $acqWordsIndex - 1;
+                    my $array = $wordsBefore;
+                    for 0 .. 1 -> $iteration {
+                        for $startingNum .. $endingNum {
+                            my $i = $endingNum - $_;
+                            @$array[$i].push(@acqWords[$_]) if defined @acqWords[$_] && @acqWords[$_] ne "" ;
+                        }
+                        if $iteration == 0 {
+                            $startingNum = $acqWordsIndex + 2; # $acqWordsIndex + 1 = current_word
+                            $endingNum = $acqWordsIndex + SubsequentWords + 1; # SubsequentWord is base 0
+                            $array = $wordsAfter;
+                        }
                     }
-                }
 
+                    $endingNum = PreviousWords - 1;
+                    $array = $wordsBefore;
+                    for 0 .. 1 -> $iteration {
+                        for 0 .. $endingNum -> $val {
+                            my @arr;
+                            my $t = @$array[$val][$iteration];
+                            push @arr, @$array[$val][$iteration] if (defined $t) && $t;
+                            push %wordsOnEitherSide{$_}[$iteration][$val], @arr;
+                        }
+                        if $iteration == 0 {
+                            $endingNum = SubsequentWords - 1;
+                            $array = $wordsAfter;
+                        }
+                    }
 
-                for 0 .. (PreviousWords - 1) -> $val {
-                    my $t = @wordsBefore[$val][0];
-                    my @arrayBefore;
-                    if (defined $t && $t) {
-                        push @arrayBefore, @wordsBefore[$val][0];
+                    for ($wordsBefore, $wordsAfter) -> $array {
+                        @$array = unique(@$array);
                     }
-                    push %wordsOnEitherSide{$_}[0][$val], @arrayBefore;
-                }
-                for 0 .. (SubsequentWords - 1) -> $val {
-                    my $y = @wordsAfter[$val][0];
-                    my @arrayAfter;
-                    if (defined $y && $y) {
-                        push @arrayAfter, @wordsAfter[$val][0];
+
+                    if !defined %wordsOnEitherSide{$_}[0] {
+                        for 0 .. PreviousWords - 1 {
+                            %wordsOnEitherSide{$_}[0].push('[]');
+                        }
                     }
-                    push %wordsOnEitherSide{$_}[1][$val], @arrayAfter;
-                }
-                if (!defined %wordsOnEitherSide{$_}[0]) {
-                    for 0 .. PreviousWords - 1 {
-                        %wordsOnEitherSide{$_}[0].push('[]');
+                    if !defined %wordsOnEitherSide{$_}[1] {
+                        for 0 .. SubsequentWords - 1 {
+                            %wordsOnEitherSide{$_}[1].push('[]');
+                        }
                     }
-                }
-                if (!defined %wordsOnEitherSide{$_}[1]) {
-                    for 0 .. SubsequentWords - 1 {
-                        %wordsOnEitherSide{$_}[1].push('[]');
-                    }
+
+                    $acqWordsIndex++;
+
                 }
             }
-            $acqWordsIndex++;
-        }
-
-        for (@acqWords) {
-            if $_ ne "" {
-                @words.push($_);
+            for (@acqWords) {
+                if $_ ne ""  {
+                    @words.push($_);
+                }
             }
+            print "\tProcessing the text ...100%                            \r";
+            say "\tProcessing the text ...done";
+            say "Done Reading $_";
+            say "Learned " ~ @acqWords.elems ~ " words\n";
+            $numFilesProcessed++;
         }
-        print "\tProcessing the text ...100%                            \r";
-        say "\tProcessing the text ...done";
-        say "Done Reading $_";
-        say "Learned " ~ @acqWords.elems ~ " words\n";
-        say "Done reading the text in $nlpLiteratureDir.";
     }
-    print "Creating the dictionary database by removing duplicate words in the word database ...";
-    for unique(@words) {
-        @dictionary.push($_);
+    if $numFilesProcessed > 0 {
+        print "Creating the dictionary database by removing duplicate words in the word database ...";
+        for unique(@words) {
+            @dictionary.push($_);
+        }
+        @dictionary = unique @dictionary;
+        say "done";
     }
-    @dictionary = unique @dictionary;
-    say "done";
- 
+
 }
 sub removeEmpty(@array) {
     my @a;
@@ -206,53 +232,53 @@ sub stats($kind is rw, $num? = 0) {
             }
         }
     } elsif ($kind eq "context") {
-        # General Procedure:
-        #
-        # Analyze the Following:
-        #     P(W0|Wb0_in_pos_1); P(W0|Wa0_in_pos_1); P(W1|Wb1_in_pos_2); P(W0|Wa1_in_pos_2); 
-        #     P(W0|Wbn_in_pos_n+1); P(W0|Wan_in_pos_n+1);
-        #     Where W0 is the Current word and Wb0 is the the first word before and Wa0 is the first word after
-        # Then analyze the following:
-        #     P(W0|Wbn_in_pos_n+1_AND_Wbn+1+in_pos_n+2) etc for each category and word.
-        #     Eventually we need to see both before and after so: P(W0|wb0_in_pos_1_AND_wa0_in_pos_1) etc for
-        #         additional words AND additional columns. 
-        #
-        # We then create a new hash, %context which will contain a lot of data.
-        #
-        # The data structure looks like this:
-        #
-        # %context = { <word> => %dataHash };
-        # %dataHash = { <surrounding word> => %hash2 }
-        # %hash2 = { <surrounding word => @array }
-        # @array = @array[2] = ( %hash3, %hash4 );
-        # %hash3 = { <before = b, after = a> ~ <column index>) => <P(W0|WB0)> }
-        # %hash4 = { @array, <P(W|@array.join(' ')) } Note, if @array = (1,2,3), in this case,
-        #     @array as the key would look like @array.join(' ')
-        #
-        # It is probably necessary to call a recursive function to generate the insane amount of possibilities.
-        #     we will call that function procStat.  See procStat for implementation details.
+# General Procedure:
+#
+# Analyze the Following:
+#     P(W0|Wb0_in_pos_1); P(W0|Wa0_in_pos_1); P(W1|Wb1_in_pos_2); P(W0|Wa1_in_pos_2); 
+#     P(W0|Wbn_in_pos_n+1); P(W0|Wan_in_pos_n+1);
+#     Where W0 is the Current word and Wb0 is the the first word before and Wa0 is the first word after
+# Then analyze the following:
+#     P(W0|Wbn_in_pos_n+1_AND_Wbn+1+in_pos_n+2) etc for each category and word.
+#     Eventually we need to see both before and after so: P(W0|wb0_in_pos_1_AND_wa0_in_pos_1) etc for
+#         additional words AND additional columns. 
+#
+# We then create a new hash, %context which will contain a lot of data.
+#
+# The data structure looks like this:
+#
+# %context = { <word> => %dataHash };
+# %dataHash = { <surrounding word> => %hash2 }
+# %hash2 = { <surrounding word => @array }
+# @array = @array[2] = ( %hash3, %hash4 );
+# %hash3 = { <before = b, after = a> ~ <column index>) => <P(W0|WB0)> }
+# %hash4 = { @array, <P(W|@array.join(' ')) } Note, if @array = (1,2,3), in this case,
+#     @array as the key would look like @array.join(' ')
+#
+# It is probably necessary to call a recursive function to generate the insane amount of possibilities.
+#     we will call that function procStat.  See procStat for implementation details.
         procStat(%frequencyHash);
     }
 }
 
 
 sub procStat(%frequencyHash) {
-    # For now, this will compare words before and after to similar words.  The similar words are based on
-    # the percent of words it has in common with the other word (in a particular position).
-    # Ex.  If "the" is wb0 and "is" is wa0, then what other words have "the" in the wb0 array and "is" in wa0?
-    #      We will store those words in a hash.
+# For now, this will compare words before and after to similar words.  The similar words are based on
+# the percent of words it has in common with the other word (in a particular position).
+# Ex.  If "the" is wb0 and "is" is wa0, then what other words have "the" in the wb0 array and "is" in wa0?
+#      We will store those words in a hash.
     my %similarWords;
-    my @similarWords;
     print "Processing context...\r";
-    my Int $i = 1;
-    #my Int $totalCount = 0;
-    #my Int $maxNum = %wordsOnEitherSide.keys.elems * %wordsOnEitherSide.keys.elems;
+    my Int $i = 0;
+#my Int $totalCount = 0;
+#my Int $maxNum = %wordsOnEitherSide.keys.elems * %wordsOnEitherSide.keys.elems;
     for %wordsOnEitherSide.keys -> $w {
+    my @similarWords;
         print "Processing context ..." ~ ($i / %frequencyHash.keys.elems) * 100 ~ "% complete                        \r";
         my @wordsBefore = %wordsOnEitherSide{$w}[0];
         my @wordsAfter  = %wordsOnEitherSide{$w}[1];
         for %wordsOnEitherSide.keys -> $a {
-            #say $totalCount++ ~ ':' ~ $maxNum;
+#say $totalCount++ ~ ':' ~ $maxNum;
             if $a ne $w {
                 if defined %wordsOnEitherSide{$a} {
                     if arraysAreSimilar(@wordsBefore, %wordsOnEitherSide{$a}[0], 50) && arraysAreSimilar(@wordsAfter, %wordsOnEitherSide{$a}[1], 50) {
@@ -297,9 +323,9 @@ sub procStat(%frequencyHash) {
     $fh.say('}');
     $fh.close();
 
-    #say "I have stored all the data I have learned.  If you want me to refresh the data I have now, tell me: load grammar.zy";
-    my $doc = slurp 'grammar.zy';
-    #eval (say Morphemes.parse('shadows'));
+    say "I have stored all the data I have learned."#  If you want me to refresh the data I have now, tell me: load grammar.zy";
+#    my $doc = slurp 'grammar.zy';
+    #run (say Morphemes.parse('shadows'));
 }
 
 sub round($num) {
@@ -336,7 +362,7 @@ sub arraysAreSimilar(@array1 = (), @array2 = (), Int $percentAgreement = 50) {
             }
         }
     }
-
+    return 0 if $totalElements == 0;
     my $num = (((%arrayHash.keys.elems)/$totalElements) * 100); 
     return ($num >= $percentAgreement);
 
@@ -1058,7 +1084,7 @@ sub display_knowledge() {
 
 sub display($what) {
     my $s = "display_$what";
-    eval ($s);
+    run $s, 'Error, cannot display ' ~ $s;
 }
 
 sub unique(@array, $ignore = '') {
@@ -1156,7 +1182,7 @@ multi sub load(Int $defaults? = 0, Str $fileName? = "") {
     }
     print "Restoring data ...";
     my $fh = open $filename;
-    for $fh.lines { eval $_; }
+    for $fh.lines { run $_, 'ERROR: SYNTAX ERROR INSIDE ' ~ $filename; }
     say "done.";
 }
 
@@ -1194,7 +1220,7 @@ sub repl() {
             } else {
                 $code = "defined(&$exp)";
             }
-            if ($exp ~~ m/\./ || $code && !eval $code) {
+            if ($exp ~~ m/\./ || $code && !run $code, Nil) {
                 my $sub = '"' ~ $exp ~ '"';
                 $input ~~ s/$exp/$sub/;
             }
@@ -1217,8 +1243,8 @@ sub repl() {
                 $input ~~ s/($keyword\s+)(.*)/{$0}"{$1}"/;
                 $input ~~ s:g/\"\"/"/;
             }
-            if  eval('defined(&' ~ $keyword ~ ')') {
-                eval $input;
+            if  run('defined(&' ~ $keyword ~ ')',Nil) {
+                run $input, Nil;
                 say "";
             }
         } else {
