@@ -59,11 +59,12 @@ grammar replGrammar {
 
 sub run($val, $failMessage = 'Code failed to evaluate successfully') {
     # The purpose of this is to generate a simplistic error catching interface
-    return $val.eval;
+    my $evalResult = $val.eval;
     CATCH {
         say $failMessage if $failMessage;
-        return 0;
+        $evalResult = 0;
     }
+    return $evalResult;
 }
 
 sub typecheck($object, $type) {
@@ -266,28 +267,19 @@ sub procStat(%frequencyHash) {
     # Ex.  If "the" is wb0 and "is" is wa0, then what other words have "the" in the wb0 array and "is" in wa0?
     #      We will store those words in a hash.
     my %similarWords;
+    my @similarWords = [];
     print "Processing context...\r";
     my Int $i = 0;
-    #my Int $totalCount = 0;
-    #my Int $maxNum = %wordsOnEitherSide.keys.elems * %wordsOnEitherSide.keys.elems;
     for %wordsOnEitherSide.keys -> $w {
-        my @similarWords;
         print "Processing context ..." ~ ($i / %frequencyHash.keys.elems) * 100 ~ "% complete                        \r";
         my @wordsBefore = %wordsOnEitherSide{$w}[0];
         my @wordsAfter  = %wordsOnEitherSide{$w}[1];
         for %wordsOnEitherSide.keys -> $a {
-            #say $totalCount++ ~ ':' ~ $maxNum;
-            if $a ne $w {
-                if defined %wordsOnEitherSide{$a} {
-                    if arraysAreSimilar(@wordsBefore, %wordsOnEitherSide{$a}[0], 50) && arraysAreSimilar(@wordsAfter, %wordsOnEitherSide{$a}[1], 50) {
-                        push @similarWords, $a;
-                    }
-                }
+            if $a ne $w && defined(%wordsOnEitherSide{$a}) && arraysAreSimilar(@wordsBefore, %wordsOnEitherSide{$a}[0], 50) && arraysAreSimilar(@wordsAfter, %wordsOnEitherSide{$a}[1], 50) {
+                @similarWords.push($a);
             }
         }
-        if @similarWords ne "" {
-            %similarWords{$w}[0] = @similarWords;
-        }
+        %similarWords{$w}[0] = @similarWords if @similarWords ne "";
         $i++;
     }
 
