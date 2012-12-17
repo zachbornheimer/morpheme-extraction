@@ -334,7 +334,6 @@ sub arraysAreSimilar(@array1 = (), @array2 = (), Int $percentAgreement = 50) {
                 my $surroundingWord = $q[$index][$i];
                 if defined $surroundingWord && $surroundingWord ne "" {
                     %arrayHash{$surroundingWord} = 1;
-                    #            $totalElements++;
                 }
             }
         }
@@ -347,17 +346,13 @@ sub arraysAreSimilar(@array1 = (), @array2 = (), Int $percentAgreement = 50) {
                 my $surroundingWord = $q[$index][$i];
                 if defined $surroundingWord && $surroundingWord ne "" {
                     %arrayHash{$surroundingWord} = 1;
-                    #            $totalElements++;
                 }
             }
         }
     }
     return 0 if $totalElements == 0;
-    my $num = (((%arrayHash.keys.elems)/$totalElements) * 100); 
-    return ($num >= $percentAgreement);
-
+    return (((%arrayHash.keys.elems)/$totalElements) * 100) >= $percentAgreement; 
 }
-
 
 sub getMorphemicStructure(@alpha, $mostCommonWordLength is rw, %allMorphemes is rw) {
     my $i;
@@ -523,6 +518,7 @@ sub getMorphemes($word1, $word2, %morphemeGrammar is rw, %allMorphemes is rw, @r
 }
 
 sub firstLevel($w1, $w2, %matches is rw) {
+    # Execute Step 1
 
     # lm = LongestMatch 
     # lmFront = Longest Matches starting with pos 0 being at the front.
@@ -545,7 +541,6 @@ sub firstLevel($w1, $w2, %matches is rw) {
     my $prevWasMatch = 0;
 
     for (0 .. $maxnum) {
-
         for (0 .. @w2.elems - 1) {
             my Int $matchIndex = %matches{$hashID}.elems - 1;
             my Int $matchIndexNew = $matchIndex + 1;
@@ -560,22 +555,18 @@ sub firstLevel($w1, $w2, %matches is rw) {
                         %matches{$hashID}[$matchIndexNew][1] = 0;
                         %matches{$hashID}[$matchIndexNew][2] = @w1[$_];
                         # Now that the prev contiguous string has been identified, process regex
-
                     }
                     $prevWasMatch = 1 if $match;
                 }
-
             } else {
                 $prevWasMatch = 0;
             }
         }
 
-
         @w1 = reverse @w1;
         @w2 = reverse @w2;
         $prevWasMatch = 0;
         $hashID = <lmBack>;
-
     }
 }
 
@@ -609,7 +600,6 @@ sub secondLevel($w1, $w2, %matches is rw) {
                         $i++;
                     }
 
-
                     if $morpheme.chars >= 2  {
                         my $w1I;
                         my $w2I;
@@ -633,7 +623,7 @@ sub secondLevel($w1, $w2, %matches is rw) {
 }
 
 multi sub rev (Str $a) {
-    return (reverse $a.split('')).join('');
+    return $a.flip;
 }
 multi sub rev (Str @a) {
     return reverse @a;
@@ -677,9 +667,7 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
     my $before2;
     my $end2;
 
-    if ($w1 && $w2 && @dat && $type) {
-        $proc = "gen";
-    }
+    $proc = "gen" if ($w1 && $w2 && @dat && $type)
 
     if ($proc eq "gen") {
         # Is the pattern at beginning?
@@ -729,11 +717,11 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
                 $e2 = $word2.substr(@dat[1] + @dat[2].chars);
             }
             if ($type eq 'lmBack') {
-                $before1 = rev $e1;
-                $morpheme = rev $m;
-                $end1 = rev $b1;
-                $before2 = rev $e2;
-                $end2 = rev $b2;
+                $before1 = $e1.flip;
+                $morpheme = $m.flip;
+                $end1 = $b1.flip;
+                $before2 = $e2.flip;
+                $end2 = $b2.flip;
             } else {
                 $before1 = $b1;
                 $morpheme = $m;
@@ -772,22 +760,9 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
         }
     }
 
-    # If suffix, generalize after suffix
-    # If prefix, generalize before prefix
-    # If infix and !secondLv, use pos-mapping
-    # If infix and secondLv, characterize literally.
-    # Generalizations will be made later.
-    # Uniquify Regex.
+    # Now we have extracted the morpheme.
+    # Now we need to generalize and extrapolate.
 
-    # How to deal with subset problem ??? :
-    #     {-in-} when it is really a subset of {-ing-}
-
-
-    # Step 1, find regex for the same morpheme
-
-    # Examples:
-    #     (th|test)in(g)*
-    #     (.*)ary
     my $existingRegex = '';
     my $existingBeginning = '';
     my $existingEnd = '';
@@ -797,18 +772,46 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
     my $mergedEnd = '';
     my $morphemeClass = '';
     my $kind = '';
+
+    # If suffix, generalize after suffix
+    # If prefix, generalize before prefix
+    # If infix, characterize literally.
+    #     Generalizations will be made with more data. 
+    # Uniquify Regex.
+
+    # How to deal with subset problem ??? :
+    #     {-in-} when it is really a subset of {-ing-}
+    #
+    #     For now, we must ignore this problem because
+    #     {-in-} as a subset will appear in the same frequency
+    #     as {-ing-}, so we can't know what is truely the morpheme
+    #     because {-in-} may be a morpheme in another circumstnace.
+    #     This problem will be solved when dealing with spellings to
+    #     confirm correct morpheme usage.  If {-in-} never occurs where
+    #     {-ing-} does besides in {-ing-}, then we can safely say that it
+    #     must be a subset.  This is not yet implemented, thus we must ignore the problem.
+
+    ##########################################
+    # Step 1, find regex for the same morpheme
+    #
+    # Example:
+    #     (th|test)in(g)*
+    ##########################################
+
     if $regexInProgress eq '^' ~ $morpheme || $regexInProgress eq $morpheme ~ '$' {
         # If it is standing alone, it must be a stem
         $kind = 'stem';
     }
     if $regexInProgress.substr(0,1) eq '^' && $regexInProgress.substr(*-1) ne '$' {
         if (defined(%morphemeGrammar{$morpheme}) && %morphemeGrammar{$morpheme} eq 'suffix') {
+            # If it starts and ends the word, it must be a stem
             $kind = 'stem';
         } else {
             $kind = 'prefix';
         }
     } elsif $regexInProgress.substr(0,1) ne '^' && $regexInProgress.substr(*-1) eq '$' {
         if (defined(%morphemeGrammar{$morpheme}) && %morphemeGrammar{$morpheme} eq 'prefix') {
+            # If it starts and ends the word, it must be a stem
             $kind = 'stem';
         } else {
             $kind = 'suffix';
@@ -824,6 +827,7 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
                     if ($value ~~ rx/(.*?(\)|\*|\+|\}|\^|\]))$morpheme((\(|\[|\{|\$).*)/) { # is this a matching rule?
                         # Step 2, identify the pre-morpheme rule
                         $existingBeginning = ~$0;
+
                         # Step 3, identify the post-morpheme rule
                         $value ~~ /$existingBeginning$morpheme(.*)/;
                         $existingEnd = ~$0;
@@ -869,18 +873,6 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
                 }
             } while ($regexIndex < @regex.elems );
 
-
-            # Step 6, add part of word (prefix, suffix, infix) to grammar
-
-            # Step 6a: is prefix?
-
-            # Step 6b: is suffix?
-
-            # Step 6c: is infix?
-
-            # Step 6d: is stem?
-
-            # Step 7, store morpheme in @regex so when all morphemes are done, it can be analyzed and stored.
 
         }
     }
