@@ -1,1 +1,0 @@
-("fore" => ["prefix", 2], "s" => ["suffix", 2], "thoughts" => ["suffix", 2], "shadow" => ["stem", 1], "h" => ["infix", 1]).hash

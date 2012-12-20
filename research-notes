@@ -65,9 +65,14 @@ Finally, it is imperative that this be done because it may descover the true cha
 Unrelated.
 I found that I am unable to do dynamic grammar naming in perl6 (at least as of now).  I'm going to try and contact Larry Wall to see what his reasoning behind it is or if it is just an implementation issue.  THe workaround (and possibly best solution is to have the program write the lines for the grammar and store it in a file.  It will then slurp and eval.  I may have to do some modifcations to make sure it doesn't breech available memory.  We'll cross that bridge in due time.
 
-====================
+====================y
 Dec. 1
 
 I have it extracting infixes, prefixes, and suffixes.
 Circumfixes will be handled through frequencies, specifically given a prefix and suffix that occur in the same frequency for a particualr situation.  This will be very rare if the data set is large enough...which will give a good guess towards circumfixes.  Further, global morphemes will help.  If certain prefixes and suffixes are ONLY seen in the presence of one another, they can be, with relative certainty, be called circumfixes.  From a global scope, this can also be narrowed to just a particular context...and it will work just the same.  In fact, a hash table with guesses towards a words's context (being circumfix or stem) can be handled as well.
 Remember that the stem will never be identifiable directly because the algorithm looks for patterns in two words, but those words won't be the same.  The only way it will identify a stem is if the stem occurs like: /^(thought)s/ and /(fore)thought$/ and even in this situation, it could get tricky.  It will automatically consider a word a stem if it occurs in both the prefix and suffix positions to another morpheme.  This is the only way to access the data...indirectly.
+
+====================
+Dec. 19, 2012
+
+Created a style guide <http://zysys.org/wiki/index.php/Perl6_Style_Guide> for Perl6 and published it online.  Implemented those stylistic changes except for POD Documentation.  Because the REPL has a `help` function, I think that, for now, it is unnecessary.  After the optimization of the algorithms syntactically, there is a slight change to the order of data stored (so it would give a different order of morphemes, but the same content would be there).   These mods have been tested and, so far, no bugs have been found.  The syntactic changes made reflect the ideas in the style guide.  If this project expands to a project as large as I think it will need to be, I think that it is important to get some of this basic style out of the way early.
