@@ -56,19 +56,19 @@ grammar replGrammar {
 }
 
 sub help() {
-   say "So you need some help?\n";
-   say 'Here are some things to try:';
-   say "\tdisplay knowledge : this displays words learned.";
-   say "\tparse <filename> : takes one argument, this parses a file and stores the data learned.";
-   say "\tlearn : this parses all files in the $nlpLiteratureDir directory and stores the data learned.";
-   say "\tprocess word frequency : this determines the frequency of words acquired.";
-   say "\tprocess surrounding word frequency : this determines the frequency of words surrounding a target word";
-   say "\tprocess context : this extracts and extrapolates morphemes.  This will automatically run process word frequency.  This also stores the results in grammar.zy";
-   say "\tstore <optional_filename> : this stores acquired data (except context...because it is stored elsewhere), my default, it saves to $restoreFile";
-   say "\tload <optional_filename>: this loads the data stored by store, by default, it loads $restoreFile";
-   say "\tdemo <filename>: takes one argument, parses that file and then runs process context";
-   say "\texit";
-   say "\nThe best way to find if something makes sense, just try it.  You won't kill me...I think."
+    say "So you need some help?\n";
+    say 'Here are some things to try:';
+    say "\tdisplay knowledge : this displays words learned.";
+    say "\tparse <filename> : takes one argument, this parses a file and stores the data learned.";
+    say "\tlearn : this parses all files in the $nlpLiteratureDir directory and stores the data learned.";
+    say "\tprocess word frequency : this determines the frequency of words acquired.";
+    say "\tprocess surrounding word frequency : this determines the frequency of words surrounding a target word";
+    say "\tprocess context : this extracts and extrapolates morphemes.  This will automatically run process word frequency.  This also stores the results in grammar.zy";
+    say "\tstore <optional_filename> : this stores acquired data (except context...because it is stored elsewhere), my default, it saves to $restoreFile";
+    say "\tload <optional_filename>: this loads the data stored by store, by default, it loads $restoreFile";
+    say "\tdemo <filename>: takes one argument, parses that file and then runs process context";
+    say "\texit";
+    say "\nThe best way to find if something makes sense, just try it.  You won't kill me...I think."
 }
 
 sub run($val, $failMessage = 'Code failed to evaluate successfully') {
@@ -87,17 +87,17 @@ sub typecheck($object, $type) {
 
 sub parse(Str $filename) {
     # Eventually will allow for directories.
-    learn ([$filename]);
+    learn([$filename]);
 }
 
 multi sub learn() {
-    recursiveDir($nlpLiteratureDir, @filesToParse);
+    recursive_dir($nlpLiteratureDir, @filesToParse);
     learn(@filesToParse);
 }
 multi sub learn(@filesToParse) {
     # Read all text into an array of words.
     my $numFilesProcessed = 0;
-    for (@filesToParse) {
+    for @filesToParse {
         if $_.IO ~~ :e  {
             my @uniqueWords;
             my $acqWordsCounter = 0;
@@ -106,11 +106,11 @@ multi sub learn(@filesToParse) {
             print "\tParsing $_ ...";
             my Str $text = slurp $_;
             $text ~~ s:g/\n/\ /;
-            my Int $numWords = $text.split(' ').elems - 1; # index 0 
+            my Int $numWords = $text.split(' ').end;
             say "done";
             print "\tProcessing the text ...\r";
             my @acqWords = $text.split(' '); # acquired words
-            for (@acqWords) {
+            for @acqWords {
                 print "\tProcessing the text ..." ~ ($acqWordsIndex / $numWords) * 100 ~ "%                 \r";
                 $_ ~~ s:g/<english::punctuation>/ /; # Needs to replace the punctuation with a space 
                 $_ ~~ s:g/\ //;
@@ -128,27 +128,24 @@ multi sub learn(@filesToParse) {
                 ###################################################################################
 
                 if $acqWordsIndex >= 0 {
-                    for 0 .. 1 -> $iterator {
-                        %wordsOnEitherSide{$_}[$iterator] = [] if !(typecheck %wordsOnEitherSide{$_}[$iterator], 'List');
+                    for (0 .. 1) -> $iterator {
+                        %wordsOnEitherSide{$_}[$iterator] = [] if !typecheck(%wordsOnEitherSide{$_}[$iterator], 'List');
                     }
 
-                    my $wordsBefore = item %wordsOnEitherSide{$_}[0];
-                    my $wordsAfter = item %wordsOnEitherSide{$_}[1];
+                    my $wordsBefore = %wordsOnEitherSide{$_}[0].item;
+                    my $wordsAfter = %wordsOnEitherSide{$_}[1].item;
 
                     # Because we have not yet incremented $acqWordsIndex, it will automatically be 1 less than the current word
                     my $startingNum = $acqWordsIndex - PreviousWords;
-                    if $startingNum < 0 {
-                        $startingNum = 0;
-                    }
-
+                    $startingNum = 0 if $startingNum < 0;
                     my $endingNum = $acqWordsIndex - 1;
                     my $array = $wordsBefore;
-                    for 0 .. 1 -> $iteration {
+                    for (0 .. 1) -> $iterator {
                         for $startingNum .. $endingNum {
                             my $i = $endingNum - $_;
-                            @$array[$i].push(@acqWords[$_]) if defined(@acqWords[$_]) && @acqWords[$_] ne "" ;
+                            @$array[$i].push(@acqWords[$_]) if @acqWords[$_].defined && @acqWords[$_] ne "" ;
                         }
-                        if $iteration == 0 {
+                        if $iterator == 0 {
                             $startingNum = $acqWordsIndex + 2; # $acqWordsIndex + 1 = current_word
                             $endingNum = $acqWordsIndex + SubsequentWords + 1; # SubsequentWord is base 0
                             $array = $wordsAfter;
@@ -157,40 +154,36 @@ multi sub learn(@filesToParse) {
 
                     $endingNum = PreviousWords - 1;
                     $array = $wordsBefore;
-                    for 0 .. 1 -> $iteration {
-                        for 0 .. $endingNum -> $val {
-                            my @arr;
-                            my $t = @$array[$val][$iteration];
-                            push @arr, @$array[$val][$iteration] if defined($t) && $t;
-                            push %wordsOnEitherSide{$_}[$iteration][$val], @arr;
+                    for (0 .. 1) -> $iterator {
+                        for (0 .. $endingNum) -> $val {
+                            my $item = @$array[$val][$iterator];
+                            %wordsOnEitherSide{$_}[$iterator][$val].push($item) if $item.defined && $item;
                         }
-                        if $iteration == 0 {
+                        if $iterator == 0 {
                             $endingNum = SubsequentWords - 1;
                             $array = $wordsAfter;
                         }
                     }
 
                     for ($wordsBefore, $wordsAfter) -> $array {
-                        @$array = unique @$array;
+                        @$array = unique(@$array);
                     }
 
-                    if !defined(%wordsOnEitherSide{$_}[0]) {
-                        for 0 .. PreviousWords - 1 {
-                            %wordsOnEitherSide{$_}[0].push('[]');
+                    my $end = PreviousWords - 1;
+                    for (0 .. 1) -> $iterator {
+                        if !(%wordsOnEitherSide{$_}[$iterator].defined) {
+                            for 0 .. $end {
+                                %wordsOnEitherSide{$_}[$iterator].push('[]');
+                            }
                         }
-                    }
-                    if !defined(%wordsOnEitherSide{$_}[1]) {
-                        for 0 .. SubsequentWords - 1 {
-                            %wordsOnEitherSide{$_}[1].push('[]');
-                        }
+                        $end = SubsequentWords - 1;
                     }
 
                     $acqWordsIndex++;
-
                 }
             }
-            for (@acqWords) {
-                if $_ ne ""  {
+            for @acqWords {
+                if $_ ne "" {
                     @words.push($_);
                 }
             }
@@ -201,45 +194,45 @@ multi sub learn(@filesToParse) {
             $numFilesProcessed++;
         }
     }
+
     if $numFilesProcessed > 0 {
         print "Creating the dictionary database by removing duplicate words in the word database ...";
-        for unique @words {
+        for unique(@words) {
             @dictionary.push($_);
         }
-        @dictionary = unique @dictionary;
+        @dictionary = unique(@dictionary);
         say "done";
     }
 
 }
-sub removeEmpty(@array) {
+
+sub remove_empty(@array) {
     my @a;
-    for (0 .. @array.elems - 1) {
-        push @a, @array[$_] if @array[$_] ne "";
+    for 0 .. @array.end {
+        @a.push(@array[$_]) if @array[$_] ne "";
     }
     return @a;
 }
 
-
 sub stats($kind is rw, $num? = 0) {
     if $kind eq "wordFrequency" {
-        return wFrequency(@words, $num);
+        return w_frequency(@words, $num);
     } elsif $kind eq "surroundingWordFrequency" {
-        # We do this for each one
-        for (%wordsOnEitherSide.keys) {
+        for %wordsOnEitherSide.keys {
             # Two Elements, 0 and 1
             # We must get the arrays and replace them with hashes.
             # @alpha is a throwaway reference in both the blocks below.
             for %wordsOnEitherSide{$_}[0] -> @item is rw {
-                for 0 .. @item.elems-1 -> $index {
+                for (0 .. @item.end) -> $index {
                     for @item[$index] -> @alpha is rw {
-                        @alpha = sFrequency(@alpha);
+                        @alpha = s_frequency(@alpha);
                     }
                 }
             }
             for %wordsOnEitherSide{$_}[1] -> @item is rw {
-                for 0 .. @item.elems-1 -> $index {
+                for (0 .. @item.end) -> $index {
                     for @item[$index] -> @alpha is rw {
-                        @alpha = sFrequency(@alpha);
+                        @alpha = s_frequency(@alpha);
                     }
                 }
             }
@@ -254,7 +247,9 @@ sub stats($kind is rw, $num? = 0) {
         # Then analyze the following:
         #     P(W0|Wbn_in_pos_n+1_AND_Wbn+1+in_pos_n+2) etc for each category and word.
         #     Eventually we need to see both before and after so: P(W0|wb0_in_pos_1_AND_wa0_in_pos_1) etc for
-        #         additional words AND additional columns. 
+        #         additional words AND additional columns.
+        #
+        # This information (words in similar contexts) gives us the groups to examine for morphemes.
         #
         # We then create a new hash, %context which will contain a lot of data.
         #
@@ -270,12 +265,15 @@ sub stats($kind is rw, $num? = 0) {
         #
         # It is probably necessary to call a recursive function to generate the insane amount of possibilities.
         #     we will call that function procStat.  See procStat for implementation details.
-        procStat(%frequencyHash);
+        # 
+        # Note, although I have described the problem in terms of statistics, we are not useing statistics.
+        # Statistics is, however, the easiest method of describing the problem.
+        proc_stat(%frequencyHash);
     }
 }
 
 
-sub procStat(%frequencyHash) {
+sub proc_stat(%frequencyHash) {
     # For now, this will compare words before and after to similar words.  The similar words are based on
     # the percent of words it has in common with the other word (in a particular position).
     # Ex.  If "the" is wb0 and "is" is wa0, then what other words have "the" in the wb0 array and "is" in wa0?
@@ -289,7 +287,7 @@ sub procStat(%frequencyHash) {
         my @wordsBefore = %wordsOnEitherSide{$w}[0];
         my @wordsAfter  = %wordsOnEitherSide{$w}[1];
         for %wordsOnEitherSide.keys -> $a {
-            if $a ne $w && defined(%wordsOnEitherSide{$a}) && arraysAreSimilar(@wordsBefore, %wordsOnEitherSide{$a}[0], 50) && arraysAreSimilar(@wordsAfter, %wordsOnEitherSide{$a}[1], 50) {
+            if $a ne $w && (%wordsOnEitherSide{$a}).defined && arrays_are_similar(@wordsBefore, %wordsOnEitherSide{$a}[0], 50) && arrays_are_similar(@wordsAfter, %wordsOnEitherSide{$a}[1], 50) {
                 @similarWords.push($a);
             }
         }
@@ -302,19 +300,19 @@ sub procStat(%frequencyHash) {
     for @words {
         $totalLength += $_.chars;
     }
-    my Int $avgWordLength = round ($totalLength / @words.elems);
+    my Int $avgWordLength = round($totalLength / @words.elems);
     my $u = 0;
     my %allMorphemes;
     for %similarWords.keys {
         $u++;
-        %similarWords{$_}[0] = unique %similarWords{$_}[0], $_;
+        %similarWords{$_}[0] = unique(%similarWords{$_}[0], $_);
         my @wordsToExamine;
-        for 0 .. %similarWords{$_}[0].elems - 1 -> $num {
+        for (0 .. %similarWords{$_}[0].end) -> $num {
             @wordsToExamine.push(%similarWords{$_}[0][$num]);
         }
         @wordsToExamine.push($_);
-        say "Analyzing morphemes..."~$u~"/"~%similarWords.keys.elems~ "                                     ";
-        %similarWords{$_}[1] = getMorphemicStructure(@wordsToExamine, $avgWordLength, %allMorphemes);
+        say "Analyzing morphemes..." ~ $u ~ "/" ~ %similarWords.keys.elems ~ "                                     ";
+        %similarWords{$_}[1] = get_morphemic_structure(@wordsToExamine, $avgWordLength, %allMorphemes);
     }
     say "Processing context...done                                 ";
     my $fh = open 'grammar.zy', :w;
@@ -327,48 +325,37 @@ sub procStat(%frequencyHash) {
     $fh.say('}');
     $fh.close();
 
-    say "I have stored all the data I have learned."#  If you want me to refresh the data I have now, tell me: load grammar.zy";
-    #    my $doc = slurp 'grammar.zy';
-    #run (say Morphemes.parse('shadows'));
+    say "I have stored all the data I have learned.";
 }
 
 sub round($num) {
-    return floor($num + 0.5);
+    return ($num + 0.5).floor;
 }
 
-
-sub arraysAreSimilar(@array1 = (), @array2 = (), Int $percentAgreement = 50) {
+sub arrays_are_similar(@array1 = (), @array2 = (), Int $percentAgreement = 50) {
     my %arrayHash;
-    my Int $totalElements = 0; # base 1 because *.elems is base 1
-    for @array1 -> $q {
-        $totalElements += $q.elems;
-        for 0 .. $q.elems - 1 -> $index {
-            for (0 .. $q[$index].elems - 1) -> $i {
-                $totalElements += $q[$index].elems - 1;
-                my $surroundingWord = $q[$index][$i];
-                if defined($surroundingWord) && $surroundingWord ne "" {
-                    %arrayHash{$surroundingWord} = 1;
+    my Int $totalElements = 0;
+
+    my $array = @array1.item;
+    for (0 .. 1) -> $iterator {
+        for @$array -> $q {
+            $totalElements += $q.elems;
+            for (0 .. $q.end) -> $index {
+                for (0 .. $q[$index].end) -> $i {
+                    $totalElements += $q[$index].end;
+                    my $surroundingWord = $q[$index][$i];
+                    %arrayHash{$surroundingWord} = 1 if $surroundingWord.defined && $surroundingWord ne "";
                 }
             }
         }
+        $array = @array2.item if $iterator == 0;
     }
-    for @array2 -> $q {
-        $totalElements += $q.elems;
-        for 0 .. $q.elems - 1 -> $index {
-            for (0 .. $q[$index].elems - 1) -> $i {
-                $totalElements += $q[$index].elems - 1;
-                my $surroundingWord = $q[$index][$i];
-                if defined($surroundingWord) && $surroundingWord ne "" {
-                    %arrayHash{$surroundingWord} = 1;
-                }
-            }
-        }
-    }
+
     return 0 if $totalElements == 0;
-    return (((%arrayHash.keys.elems)/$totalElements) * 100) >= $percentAgreement; 
+    return ((%arrayHash.keys.elems/$totalElements) * 100) >= $percentAgreement; 
 }
 
-sub getMorphemicStructure(@alpha, $mostCommonWordLength is rw, %allMorphemes is rw) {
+sub get_morphemic_structure(@alpha, $mostCommonWordLength is rw, %allMorphemes is rw) {
     my $i;
     my %morphemeGrammar = %allMorphemes;
     for %morphemeGrammar.keys {
@@ -378,25 +365,26 @@ sub getMorphemicStructure(@alpha, $mostCommonWordLength is rw, %allMorphemes is 
     my @regex; # stores the undetermined morphemes
     my $z = 0;
     my $increment = 0;
-    for 0 .. @alpha.elems - 1 {
-        for ($_ + 1 .. @alpha.elems - 1) {
+    for 0 .. @alpha.end {
+        for ($_ + 1) .. @alpha.end {
             $z++;
         }
     }
 
-    for 0 .. @alpha.elems - 1 {
+    for 0 .. @alpha.end {
         my $currentElem = @alpha[$_];
-        for ($_ + 1 .. @alpha.elems - 1) {
+        for ($_ + 1) .. @alpha.end {
             print 'Processing morphemes for this context...' ~ ($increment / $z) * 100 ~ "%            \r";
             my $smallElem = @alpha[$_];
-            getMorphemes($currentElem, $smallElem, %morphemeGrammar, %allMorphemes, @regex);
+            get_morphemes($currentElem, $smallElem, %morphemeGrammar, %allMorphemes, @regex);
             $increment++;
         }
     }
 
-    if $mostCommonWordLength % 2 != 0 {
+    if ($mostCommonWordLength % 2) != 0 {
         $mostCommonWordLength++;
     }
+
     # Break each regex into half around the morpheme.
     # If infront of the morpheme, take the last ciel($mostCommonWordLength/2) character classes
     # If behind of the morpheme, thake the first ciel($mostCommonWordLength/2) character classes
@@ -409,21 +397,20 @@ sub getMorphemicStructure(@alpha, $mostCommonWordLength is rw, %allMorphemes is 
         my $preMorpheme = @a[0].substr(1);
         my $postMorpheme = @a[1].substr($morpheme.chars + 1) ~ @a[2];
         my $rule = $_;
-        if !defined(%morphemeGrammar{$morpheme}) {
-
+        if !(%morphemeGrammar{$morpheme}.defined) {
             my @preMorphemeSplit = $preMorpheme.split('[');
             @preMorphemeSplit.shift();
             for @preMorphemeSplit -> $_ is rw {
                 $_ = '[' ~ $_;
             }
             $preMorpheme = '';
-            @preMorphemeSplit = reverse @preMorphemeSplit;
-            for 0 .. ($mostCommonWordLength / 2) - 1 {
-                if defined(@preMorphemeSplit[$_]) {
+            @preMorphemeSplit = @preMorphemeSplit.reverse;
+            for 0 .. (($mostCommonWordLength / 2) - 1) {
+                if @preMorphemeSplit[$_].defined {
                     $preMorpheme ~= @preMorphemeSplit[$_];
                 }
             } 
-            $preMorpheme = rev $preMorpheme;
+            $preMorpheme = $preMorpheme.flip;
             $preMorpheme ~~ s:g/(\[|\])//;
 
             my @postMorphemeSplit = $postMorpheme.split('[');
@@ -433,44 +420,44 @@ sub getMorphemicStructure(@alpha, $mostCommonWordLength is rw, %allMorphemes is 
                 $_ = '[' ~ $_;
             }
             $postMorpheme = '';
-            for 0 .. ($mostCommonWordLength / 2) - 1 {
-                if defined(@postMorphemeSplit[$_]) {
+            for 0 .. (($mostCommonWordLength / 2) - 1) {
+                if @postMorphemeSplit[$_].defined {
                     $postMorpheme ~= @postMorphemeSplit[$_];
                 }
             }
             $postMorpheme ~~ s:g/(\[|\])//;
 
-            $preMorpheme = (uniq $preMorpheme.split('')).sort( {lc($^a) cmp lc($^b)} ).join('');
-            $postMorpheme = (uniq $postMorpheme.split('')).sort( {lc($^a) cmp lc($^b)} ).join('');
-            $preMorpheme = lc($preMorpheme);
-            $postMorpheme = lc($postMorpheme);
+            $preMorpheme = $preMorpheme.split('').uniq.sort( {lc($^a) cmp lc($^b)} ).join('');
+            $postMorpheme = $postMorpheme.split('').uniq.sort( {lc($^a) cmp lc($^b)} ).join('');
+            $preMorpheme = $preMorpheme.lc;
+            $postMorpheme = $postMorpheme.lc;
             if !($preMorpheme eq $alphabet || $preMorpheme eq $alphabet) {
-                if defined(@a[2]) && @a[2] eq $morpheme.substr(0,1) eq '*' {
-                    addMorphemeToGrammar($morpheme.substr(1), 'stem', %morphemeGrammar);
-                    addMorphemeToGrammar($morpheme.substr(1), 'stem', %allMorphemes);
+                if @a[2].defined && @a[2] eq $morpheme.substr(0,1) eq '*' {
+                    add_morpheme_to_grammar($morpheme.substr(1), 'stem', %morphemeGrammar);
+                    add_morpheme_to_grammar($morpheme.substr(1), 'stem', %allMorphemes);
                 } else {
                     if $morpheme.substr(0,1) eq '*' {
                         $morpheme = $morpheme.substr(1);
                         $rule ~~ s/\*$morpheme/$morpheme/;
                     }
-                    addMorphemeToGrammar($morpheme, 'infix', %morphemeGrammar, $rule);
-                    addMorphemeToGrammar($morpheme, 'infix', %allMorphemes, $rule);
+                    add_morpheme_to_grammar($morpheme, 'infix', %morphemeGrammar, $rule);
+                    add_morpheme_to_grammar($morpheme, 'infix', %allMorphemes, $rule);
                 }
             } else {
-                addMorphemeToGrammar($morpheme, 'NOTaMorpheme', %morphemeGrammar);
-                addMorphemeToGrammar($morpheme, 'NOTaMorpheme', %allMorphemes);
+                add_morpheme_to_grammar($morpheme, 'NOTaMorpheme', %morphemeGrammar);
+                add_morpheme_to_grammar($morpheme, 'NOTaMorpheme', %allMorphemes);
             }
         }
     }
     return %morphemeGrammar;
 }
 
-sub addMorphemeToGrammar($morpheme, $type, %morphemeGrammar is rw, $regex = '<sym>') {
-    if !defined(%morphemeGrammar{$morpheme}[0]) || (defined(%morphemeGrammar{$morpheme}[0]) && %morphemeGrammar{$morpheme}[0] ne 'stem') {
+sub add_morpheme_to_grammar($morpheme, $type, %morphemeGrammar is rw, $regex = '<sym>') {
+    if !(%morphemeGrammar{$morpheme}[0].defined) || (%morphemeGrammar{$morpheme}[0].defined && %morphemeGrammar{$morpheme}[0] ne 'stem') {
         %morphemeGrammar{$morpheme}[0] = $type;
         %morphemeGrammar{$morpheme}[2] = $regex;
     }
-    if defined(%morphemeGrammar{$morpheme}[1]) {
+    if %morphemeGrammar{$morpheme}[1].defined {
         %morphemeGrammar{$morpheme}[1]++;
     } else {
         %morphemeGrammar{$morpheme}[1] = 1;
@@ -478,7 +465,7 @@ sub addMorphemeToGrammar($morpheme, $type, %morphemeGrammar is rw, $regex = '<sy
     return 1;
 }
 
-sub getMorphemes($word1, $word2, %morphemeGrammar is rw, %allMorphemes is rw, @regex is rw) {
+sub get_morphemes($word1, $word2, %morphemeGrammar is rw, %allMorphemes is rw, @regex is rw) {
     # Extracts all possible morphemes
     # from two arguments
     # 
@@ -516,22 +503,21 @@ sub getMorphemes($word1, $word2, %morphemeGrammar is rw, %allMorphemes is rw, @r
     %matches{<lmBack>} = [];
     %matches{<secondLv>} = [];
 
-    firstLevel($word1, $word2, %matches);
+    first_level($word1, $word2, %matches);
 
     # Step 2, find all matching strings of characters in any pos (min 2).
-
-    secondLevel($word1, $word2, %matches);
+    second_level($word1, $word2, %matches);
 
     for <lmFront lmBack secondLv> -> $type {
         if %matches{$type}.elems >= 1 {
-            for (0 .. %matches{$type}.elems - 1) {
+            for 0 .. %matches{$type}.end {
                 regexify(%allMorphemes, %morphemeGrammar, @regex, $word1, $word2, %matches{$type}[$_], $type);
             }
         }
     }
 }
 
-sub firstLevel($w1, $w2, %matches is rw) {
+sub first_level($w1, $w2, %matches is rw) {
     # Execute Step 1
 
     # lm = LongestMatch 
@@ -554,14 +540,15 @@ sub firstLevel($w1, $w2, %matches is rw) {
     my @w2 = $word2.split('');
     my $prevWasMatch = 0;
 
-    for (0 .. $maxnum) {
-        for (0 .. @w2.elems - 1) {
-            my Int $matchIndex = %matches{$hashID}.elems - 1;
+    for 0 .. $maxnum {
+        for 0 .. @w2.end {
+            my Int $matchIndex = %matches{$hashID}.end;
             my Int $matchIndexNew = $matchIndex + 1;
-            if $matchIndex == -1 { $matchIndex = 0; }
+            $matchIndex = 0 if $matchIndex == -1;
             if $prevWasMatch || @w1[$_] eq @w2[$_] {
-                if my $match = @w1[$_] eq @w2[$_] {
-                    if $match && defined(%matches{$hashID}[$matchIndex][0]) && (%matches{$hashID}[$matchIndex][1] + %matches{$hashID}[$matchIndex][0] + 1) eq $_ {
+                my $match = (@w1[$_] eq @w2[$_]);
+                if $match {
+                    if (%matches{$hashID}[$matchIndex][0]).defined && (%matches{$hashID}[$matchIndex][1] + %matches{$hashID}[$matchIndex][0] + 1) eq $_ {
                         %matches{$hashID}[$matchIndex][1]++;   
                         %matches{$hashID}[$matchIndex][2] ~= @w1[$_];
                     } else {
@@ -570,21 +557,21 @@ sub firstLevel($w1, $w2, %matches is rw) {
                         %matches{$hashID}[$matchIndexNew][2] = @w1[$_];
                         # Now that the prev contiguous string has been identified, process regex
                     }
-                    $prevWasMatch = 1 if $match;
+                    $prevWasMatch = 1;
                 }
             } else {
                 $prevWasMatch = 0;
             }
         }
 
-        @w1 = reverse @w1;
-        @w2 = reverse @w2;
+        @w1 = @w1.reverse;
+        @w2 = @w2.reverse;
         $prevWasMatch = 0;
         $hashID = <lmBack>;
     }
 }
 
-sub secondLevel($w1, $w2, %matches is rw) {
+sub second_level($w1, $w2, %matches is rw) {
 
     my $word1 = $w1;
     my $word2 = $w2;
@@ -602,14 +589,14 @@ sub secondLevel($w1, $w2, %matches is rw) {
     my @w1 = $word1.split('');
     my @w2 = $word2.split('');
     my $skip = 0;
-    for (0 .. @w1.elems - 1) -> $w1index {
+    for (0 .. @w1.end) -> $w1index {
         my $currChar = @w1[$w1index];
         if $skip == 0 {
-            for (0 .. @w2.elems - 1) -> $w2index {
+            for (0 .. @w2.end) -> $w2index {
                 if $currChar eq @w2[$w2index] {
                     my $morpheme;
                     my $i = 0;
-                    while defined(@w1[$w1index + $i]) && defined(@w2[$w2index + $i]) && @w1[$w1index + $i] eq @w2[$w2index + $i] {
+                    while @w1[$w1index + $i].defined && @w2[$w2index + $i].defined && @w1[$w1index + $i] eq @w2[$w2index + $i] {
                         $morpheme ~= @w1[$w1index + $i];
                         $i++;
                     }
@@ -634,13 +621,6 @@ sub secondLevel($w1, $w2, %matches is rw) {
             $skip--;
         }
     }
-}
-
-multi sub rev (Str $a) {
-    return $a.flip;
-}
-multi sub rev (Str @a) {
-    return reverse @a;
 }
 
 sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $w2?, @dat?, $type?) {
@@ -694,7 +674,7 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
                 $morpheme = @dat[2];
                 my $s;
                 if $type eq "lmBack" {
-                    $morpheme = rev $morpheme;
+                    $morpheme = $morpheme.flip;
                     $s = $morpheme ~ '$';
                 } else {
                     $s = '^' ~ $morpheme;
@@ -703,13 +683,13 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
             }
         }
 
-        if !$regexInProgress {
+        if !($regexInProgress) {
 
             my $word1 = $w1;
             my $word2 = $w2;
             if $type eq 'lmBack' {
-                $word1 = rev $w1;
-                $word2 = rev $w2; 
+                $word1 = $w1.flip;
+                $word2 = $w2.flip; 
             }
 
             my $b1;
@@ -817,25 +797,25 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
         $kind = 'stem';
     }
     if $regexInProgress.substr(0,1) eq '^' && $regexInProgress.substr(*-1) ne '$' {
-        if defined(%morphemeGrammar{$morpheme}) && %morphemeGrammar{$morpheme} eq 'suffix' {
+        if %morphemeGrammar{$morpheme}.defined && %morphemeGrammar{$morpheme} eq 'suffix' {
             # If it starts and ends the word, it must be a stem
             $kind = 'stem';
         } else {
             $kind = 'prefix';
         }
     } elsif $regexInProgress.substr(0,1) ne '^' && $regexInProgress.substr(*-1) eq '$' {
-        if defined(%morphemeGrammar{$morpheme}) && %morphemeGrammar{$morpheme} eq 'prefix' {
+        if %morphemeGrammar{$morpheme}.defined && %morphemeGrammar{$morpheme} eq 'prefix' {
             # If it starts and ends the word, it must be a stem
             $kind = 'stem';
         } else {
             $kind = 'suffix';
         }
     } else {
-        if !defined(%morphemeGrammar{$morpheme}) {
+        if !(%morphemeGrammar{$morpheme}.defined) {
             my $regexIndex = 0;
             repeat {
                 my $pushed = 0;
-                for (0 .. (@regex.elems - 1)) {
+                for (0 .. @regex.end) {
                     my $replaceNum = $_;
                     my $value = @regex[$replaceNum];
                     if $value ~~ rx/(.*?(\)|\*|\+|\}|\^|\]))$morpheme((\(|\[|\{|\$).*)/ { # is this a matching rule?
@@ -859,7 +839,7 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
                             my $openingChar = $existingBeginning.substr(0,1);
                             my $closingChar = chr(ord($openingChar) + 1);
                             # If it is a paren, turn it into a class
-                            mergeRules($existingBeginning, $currentBeginning, $mergedBeginning, 1);
+                            merge_rules($existingBeginning, $currentBeginning, $mergedBeginning, 1);
                         } else {
                             $mergedBeginning = $currentBeginning;
                         }
@@ -869,7 +849,7 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
                             my $openingChar = $existingEnd.substr(0,1);
                             my $closingChar = chr(ord($openingChar) + 1);
                             # If it is a paren, turn it into a class
-                            mergeRules($existingEnd, $currentEnd, $mergedEnd);
+                            merge_rules($existingEnd, $currentEnd, $mergedEnd);
                         } else {
                             $mergedEnd = $currentEnd;
                         }
@@ -881,7 +861,7 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
                         }
                     }
                 }
-                if !$pushed {
+                if !($pushed) {
                     @regex.push($regexInProgress);
                     $regexIndex++;
                 }
@@ -892,12 +872,12 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
     }
 
     if $kind ne '' {
-        addMorphemeToGrammar($morpheme, $kind, %morphemeGrammar); 
-        addMorphemeToGrammar($morpheme, $kind, %allMorphemes); 
+        add_morpheme_to_grammar($morpheme, $kind, %morphemeGrammar); 
+        add_morpheme_to_grammar($morpheme, $kind, %allMorphemes); 
     }
 }
 
-sub mergeRules($existing, $current, $merged is rw, $reverse = 0) {
+sub merge_rules($existing, $current, $merged is rw, $reverse = 0) {
     my $content;
     if $existing.substr(0) eq '(' {
         $content = $existing.substr(1, $existing.chars - 2);
@@ -921,7 +901,7 @@ sub mergeRules($existing, $current, $merged is rw, $reverse = 0) {
                 $classesYN = 1;
             }
         }
-        if !$classesYN {
+        if !($classesYN) {
             @classes = '';
         }
         for @working -> $_ is rw {
@@ -961,13 +941,13 @@ sub mergeRules($existing, $current, $merged is rw, $reverse = 0) {
         }
 
         if $reverse {
-            @classes = reverse @classes;
+            @classes = @classes.reverse;
         }
 
         for @working -> $elem {
             my $e;
             if $reverse {
-                $e = rev $elem;
+                $e = $elem.flip;
             } else {
                 $e = $elem;
             }
@@ -975,7 +955,7 @@ sub mergeRules($existing, $current, $merged is rw, $reverse = 0) {
             my $i = 0;
             for @splitted {
                 my @chars;
-                if defined(@classes[$i]) {
+                if @classes[$i].defined {
                     @chars = @classes[$i].split('');
                 }
                 @classes[$i] = @chars.push($_).join('');
@@ -983,24 +963,22 @@ sub mergeRules($existing, $current, $merged is rw, $reverse = 0) {
             }
         }
         if $reverse {
-            @classes = reverse @classes;
+            @classes = @classes.reverse;
         }
         for @classes -> $_ is rw {
-            $_ = (uniq $_.split('')).join('');
+            $_ = $_.split('').uniq.join('');
         }
         for @classes -> $_ is rw {
             $_ = '[' ~ $_ ~ ']';
         }
         $merged = '(' ~ @classes.join('') ~ ')';
-
     }
-
 }
 
-sub wFrequency(@array, Int $num? = 0) {
+sub w_frequency(@array, Int $num? = 0) {
     my %uniqueArrayHash;
-    for (@array) {
-        if defined(%uniqueArrayHash{$_}) {
+    for @array {
+        if %uniqueArrayHash{$_}.defined {
             %uniqueArrayHash{$_} += 1;
         } else {
             %uniqueArrayHash{$_} = 1;
@@ -1008,8 +986,8 @@ sub wFrequency(@array, Int $num? = 0) {
     }
 
     %uniqueArrayHash = reverse (%uniqueArrayHash.pairs.sort: { $^a.value <=> $^b.value });
-    for (0 .. $num) {
-        if defined(%uniqueArrayHash.keys[$_]) {
+    for 0 .. $num {
+        if %uniqueArrayHash.keys[$_].defined {
             my $key = %uniqueArrayHash.keys[$_];
             say $key ~ " => " ~ %uniqueArrayHash{$key} ~ " occurances.";
         }
@@ -1017,14 +995,14 @@ sub wFrequency(@array, Int $num? = 0) {
     return %uniqueArrayHash;
 }
 
-sub sFrequency(@array is rw, $num?) {
+sub s_frequency(@array is rw, $num?) {
     my %uniqueArrayHash;
     my %freqHash;
     for @array -> @a is rw {
-        for 0 .. @a.elems - 1 -> $q {
+        for (0 .. @a.end) -> $q {
             my $w = @a[$q];
             if $w ne "" {
-                if defined(%uniqueArrayHash{$w}) {
+                if %uniqueArrayHash{$w}.defined {
                     %uniqueArrayHash{$w} += 1;
                 } else {
                     %uniqueArrayHash{$w} = 1;
@@ -1033,13 +1011,13 @@ sub sFrequency(@array is rw, $num?) {
         }
     }
 
-    %uniqueArrayHash = reverse (%uniqueArrayHash.pairs.sort: { $^a.value <=> $^b.value });
+    %uniqueArrayHash = (%uniqueArrayHash.pairs.sort: { $^a.value <=> $^b.value }).reverse;
     if $num {
-        for (0 .. $num) {
+        for 0 .. $num {
             %freqHash{(keys %uniqueArrayHash)[$_]} = %uniqueArrayHash{(keys %uniqueArrayHash)[$_]};
         }
-        for (0 .. $num) {
-            if defined(%uniqueArrayHash.keys[$_]) {
+        for 0 .. $num {
+            if %uniqueArrayHash.keys[$_].defined {
                 my $key = %uniqueArrayHash.keys[$_];
                 say $key ~ " => " ~ %uniqueArrayHash{$key} ~ " occurances.";
             }
@@ -1062,9 +1040,7 @@ sub process($type, $num? = -1) {
         %procedureHash{"processSurroundingWordFrequency"} = 1;
         say "done";
     } elsif $type eq "context" {
-        if !%procedureHash{"processWordFrequency"} {
-            process "word_frequency";
-        }
+        process("word_frequency") if !(%procedureHash{"processWordFrequency"});
         # stats("context") automatcially sets the surrounding word frequency
         stats("context"); # Modifies the data structure by reference
     }
@@ -1081,24 +1057,22 @@ sub display($what) {
 }
 
 sub unique(@array, $ignore = '') {
-# Non-lazy implementation of uniq
+    # Non-lazy implementation of uniq
     my %uniqueArrayHash;
-    for (@array) {
-        if defined(%uniqueArrayHash{$_}) {
+    for @array {
+        if $_ && %uniqueArrayHash{$_}.defined {
             %uniqueArrayHash{$_} += 1;
         } else {
-            if $ignore ne $_ && $_ ne '' {
-                %uniqueArrayHash{$_} = 1;
-            }
+            %uniqueArrayHash{$_} = 1 if $_ && $ignore ne $_ && $_ ne '';
         }
     }
     return %uniqueArrayHash.keys;
 }
 
-sub recursiveDir($path, @array is rw) {
-    for (dir $path) {
+sub recursive_dir($path, @array is rw) {
+    for dir $path {
         if $_ ~~ :d {
-            recursiveDir($path ~ '/' ~  $_, @array);
+            recursive_dir($path ~ '/' ~  $_, @array);
         }
         if !($_ ~~ /\.zip$/) {
             @array.push($path ~ '/' ~ $_);
@@ -1112,38 +1086,36 @@ multi sub store(Str $f) {
 }
 multi sub store(Int $defaults? = 0, Str $fileName? = "") {
     my $filename = $fileName;
-    if !$defaults {
+    if !($defaults) {
         if $filename eq "" {
             $filename = prompt "What is the filename where I should save this data? -- Note, this WILL overwrite the data  [$restoreFile]  ";
         }
     }
     if $filename eq "" {
-        say $filename; say $fileName;
         $filename = $restoreFile;
     }
     print "Storing data ...";
     my $fh = open $filename, :w;
-    for (@letters) {
-        if $_ ne "" && $_ ~~ s:g/\"// { 
-            $fh.print('@letters.push("' ~ $_ ~ '");' ~ "\n"); 
+
+    my $array = @letters.item;
+    my $arrayName = 'letters';
+    for (0 .. 2) -> $iterator {
+        for @$array {
+           $fh.say('@' ~ $arrayName ~ '.push("' ~ $_ ~ '");') if $_ ne "" && $_ ~~ s:g/\"//;
         }
-    }
-    for (@words) {
-        if $_ ne "" && $_ ~~ s:g/\"// { # Quote to fix vim formatting "
-            $fh.print('@words.push("' ~ $_ ~ '");' ~ "\n");    
-        }
-    }
-    for (@dictionary) {
-        if $_ ne "" && $_ ~~ s:g/\"// { # Quote to fix vim formatting "
-            $fh.print('@dictionary.push("' ~ $_ ~ '");' ~ "\n");    
+        if $iterator == 0 {
+            $array = @words.item;
+            $arrayName = 'words';
+        } elsif $iterator == 1 {
+            $array = @dictionary.item;
+            $arrayName = 'dictionary';
         }
     }
 
-    for 0 .. 1 -> $i {
+    for (0 .. 1) -> $i {
         for %wordsOnEitherSide[$i].keys -> $key is rw {
-            #$key ~~ s:g/\"//;
             if $key && $key ne "" {
-                for 0 .. 1 -> $j {
+                for (0 .. 1) -> $j {
                     for %wordsOnEitherSide[$i]{$key}[$j] -> $u {
                         $fh.print( '%wordsOnEitherSide[' ~ $i ~ ']{'~ $key.perl ~'}[' ~ $j ~ '].push(' ~ $u.perl ~ ');' ~ "\n");
                     }
@@ -1153,27 +1125,18 @@ multi sub store(Int $defaults? = 0, Str $fileName? = "") {
     }
 
     for %frequencyHash.keys -> $key {
-        $fh.print('%frequencyHash{' ~ $key.perl ~ '}=' ~ %frequencyHash{$key}.perl ~ ';' ~ "\n"); 
+        $fh.say('%frequencyHash{' ~ $key.perl ~ '}=' ~ %frequencyHash{$key}.perl ~ ';'); 
     }
 
-    # NEED TO ADD STORAGE FOR CONTEXT
-
     $fh.close();
-
     say "done."
 }
 
 multi sub load(Int $defaults? = 0, Str $fileName? = "") {
     say $fileName;
     my $filename = $fileName;
-    if !$defaults {
-        if $filename eq "" {
-            $filename = prompt("What is the filename which should be loaded?\nNote, this will overwrite any data that has been learned this session.  Make sure this is done first. [$restoreFile]  ");
-        }
-    }
-    if $filename eq "" {
-        $filename = $restoreFile;
-    }
+    $filename = prompt "What is the filename which should be loaded?\nNote, this will overwrite any data that has been learned this session.  Make sure this is done first. [$restoreFile]  " if !($defaults) && $filename eq "";
+    $filename = $restoreFile if $filename eq "";
     print "Restoring data ...";
     my $fh = open $filename;
     for $fh.lines { run $_, 'ERROR: SYNTAX ERROR INSIDE ' ~ $filename; }
@@ -1184,14 +1147,11 @@ multi sub load(Str $filename) {
     load(0, $filename);
 }
 
-
 sub demo($name) {
-    parse $name;
-    display "knowledge";
-    process "context";
-
+    parse($name);
+    display("knowledge");
+    process("context");
 }
-
 
 # Note: repl() MUST be last to enable paren-less sub calls
 sub repl() {
@@ -1203,7 +1163,7 @@ sub repl() {
         $input = prompt(" >> ");
         my $parserResults = replGrammar.parse($input);
         # Substitutions
-        if defined($parserResults<command><command><expression>) && $parserResults<command><command><expression> ne "" {
+        if $parserResults<command><command><expression>.defined && $parserResults<command><command><expression> ne "" {
             my $exp = $parserResults<command><command><expression>;
             my $origExp = $exp;
             $exp ~~ s:g/\ /_/;
@@ -1212,7 +1172,7 @@ sub repl() {
             if $exp ~~ rx/[\W\D]/ {
                 $code = Mu;
             } else {
-                $code = "defined(&$exp)";
+                $code = "(&$exp).defined";
             }
             if $exp ~~ m/\./ || $code && !run $code, Nil {
                 my $sub = '"' ~ $exp ~ '"';
@@ -1227,20 +1187,19 @@ sub repl() {
         } else {
             $keyword = $parserResults<command><command><sym> if $parserResults<command><command><sym>;
         }
-        if defined($keyword) {
+        if $keyword.defined {
             if $keyword eq "parse" || $keyword eq "demo" {
                 $input ~~ s/($keyword\s+)(.*)/{$0}"{$1}"/;
                 $input ~~ s:g/\"\"/"/;
             }
-            if  run('defined(&' ~ $keyword ~ ')',Nil) {
-                run $input, Nil;
+            if  run('(&' ~ $keyword ~ ').defined',Nil) {
+                run($input, Nil);
                 say "";
             }
         } else {
-            if $input ne "" {
-                say "Sorry, but \`$input\` is not recognized.  It was probably a typo that I didn't catch, but if you need help, let me know.\n";
-            }
+            say "Sorry, but \`$input\` is not recognized.  It was probably a typo that I didn't catch, but if you need help, let me know.\n" if $input ne "";
         }
     }
 }
-repl();
+demo 'd1';
+#repl();
