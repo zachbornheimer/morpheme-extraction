@@ -13,6 +13,11 @@ NOTE: The software, if not licensed, will be.  Until that time the following mul
 
     These terms apply to all of these software without license agreements (including previous and future revisions).
 
+
+If you are interested in contributing to the software, feel free to fork and shoot me a pull request.
+
+If you code in Perl6, PLEASE follow the style Zysys Perl6 Style Guide <http://zysys.org/wiki/index.php/Perl6_Style_Guide> and don't hesitate to look at the style of nlp.pl6 if you want to see how the style is implemented.
+
 Natural Language Processing: nlp.pl6
 ===================================
 Coded in: Perl 6
