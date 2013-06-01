@@ -10,18 +10,18 @@ If you code in Perl6, PLEASE follow the style Zysys Perl6 Style Guide <http://zy
 Main Program:
 nlp.pl6
 
-Documentation:
-[all coming soon]
-Provisional Patent Application with English Explainations of the System Details
+Documentation:<br />
+[all coming soon]<br />
+Provisional Patent Application with English Explainations of the System Details<br />
 Flowcharts illustrating the steps
 
-Submodules:
-[all coming soon]
-Zedram
-nlp-corpus
+Submodules:<br />
+[all coming soon]<br />
+Zedram<br />
+nlp-corpus<br />
 
 Future Implementation
 =====================
 
-The goal will be to write each feature in modules that way they can be called simply.
+The goal will be to write each feature in modules that way they can be called simply.<br />
 The creation of an OO interface for this will be a beautiful thing :O)
