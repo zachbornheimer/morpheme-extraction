@@ -1,5 +1,5 @@
 Computerized Human Language Acquisition System
-==============================
+==============================================
 
 
 This software is currently NON-FREE Software.  Thise is private software.  If you have received this somehow and are not in direct contact with me, Zach Bornheimer, contact me immediately.
@@ -16,9 +16,8 @@ Provisional Patent Application with English Explainations of the System Details<
 Flowcharts illustrating the steps
 
 Submodules:<br />
-[all coming soon]<br />
-Zedram<br />
-nlp-corpus<br />
+[Zedram](https://github.com/zachbornheimer/zedram)<br />
+[nlp-corpus](https://github.com/zachbornheimer/nlp-corpus)<br />
 
 Future Implementation
 =====================
