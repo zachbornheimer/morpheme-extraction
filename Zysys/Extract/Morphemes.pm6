@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+module Zysys::Extract::Morphemes;
+
 use Zysys::Identification::LexicalCategories;
 
 class NLPClass_M is NLPClass_LC {
