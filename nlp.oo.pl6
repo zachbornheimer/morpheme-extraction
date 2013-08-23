@@ -25,6 +25,10 @@ sub human_input() {
     # (probably through robotics) or predefined data for the purpose
     # of meaning abstraction.  This is the important part :O)
 
+
+    # Once Morality is fully examined, this is where it will be implemented
+    # Also, this is probably where reasoning is going to be programmed.
+
     constant Humanity = 0;
     return Humanity;
 }

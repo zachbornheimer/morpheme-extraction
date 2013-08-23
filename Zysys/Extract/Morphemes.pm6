@@ -2,15 +2,14 @@
 
 module Zysys::Extract::Morphemes;
 
-use Zysys::Identification::LexicalCategories;
+use Zysys::Identify::LexicalCategories;
 
-class NLPClass_M is NLPClass_LC {
-    has $.corpusDir;
-    has $.zedramOutput is rw;
-    has $.humanity;
-    has $.explicitDeclarations;
-    has $!completedAnalysis;
-    has @.acqWords;
+    my $corpusDir;
+    my $zedramOutput;
+    my $humanity;
+    my $explicitDeclarations;
+    my $completedAnalysis;
+    my @acqWords;
 
     sub recursive_dir($path, @array is rw) {
         for dir $path {
@@ -26,7 +25,7 @@ class NLPClass_M is NLPClass_LC {
 
     method assemble_structures() {
         my @filesToParse;
-        recursive_dir($nlspLiteratureDir, @filesToParse);
+        recursive_dir($corpusDir, @filesToParse);
 
         # Read all text into an array of words.
         my $numFilesProcessed = 0;
@@ -45,7 +44,7 @@ class NLPClass_M is NLPClass_LC {
                 my @acqWords = $text.split(' '); # acquired words
                 for @acqWords {
                     print "\tProcessing the text ..." ~ ($acqWordsIndex / $numWords) * 100 ~ "%                 \r";
-                    $_ ~~ s:g/<english::punctuation>/ /; # Needs to replace the punctuation with a space 
+                    # $_ ~~ s:g/<english::punctuation>/ /; # Needs to replace the punctuation with a space 
                     $_ ~~ s:g/\ //;
 
                     ###################################################################################
@@ -138,7 +137,5 @@ class NLPClass_M is NLPClass_LC {
         }
 
     }
-
-}
 
 }
