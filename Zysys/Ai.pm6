@@ -42,11 +42,6 @@ module Zysys::Ai;
 #########################################################################
 
 
-use Zysys::Identify::Alphabet;
-use Zysys::Identify::LexicalCategories;
-use Zysys::Extract::Morphemes;
-use Zysys::Create::SyntaxMode;
-use Zysys::Create::MeaningMap;
 
 
 :autoflush;
@@ -75,22 +70,32 @@ class NLPEngine is NLPClass_MM {
     }
 
     method alphabet_identification() {
+        use Zysys::Identify::Alphabet;
 
     }
 
     method morpheme_extraction() {
+        use Zysys::Extract::Morphemes;
 
     }
 
     method lexical_category_identification() {
+        use Zysys::Identify::LexicalCategories;
     
     }
 
     method syntax_model_creation() {
+        use Zysys::Create::SyntaxModel;
 
     }
 
     method meaning_map_generation() {
+        use Zysys::Create::MeaningMap;
+
+    }
+
+    method zedram() {
+        use Zysys::Zedram;
 
     }
 
