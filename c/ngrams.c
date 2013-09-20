@@ -31,29 +31,36 @@ typedef struct ngram{
 
 typedef struct member {	
 	struct submember* submembers;
-	
 } member;
 
 typedef struct submember {
 	ngram* myNgram;
-	char word[1];
+	char* word;
 	int freq;
 } submember;
 
-void expand(member* pthis)
+void expand(member* this)
 {
-	pthis->submembers = malloc((sizeof(pthis->submembers) + 1) * sizeof(pthis->submembers));
-};
+	this->submembers = malloc((sizeof(this->submembers) + 1) * sizeof(this->submembers));
+}
+
+void word(char* string, submember* this)
+{
+		this->word = string;
+		++this->freq;	
+}
+
 
 int main()
 {
 	int ngramSize = 9;
-	ngram newngram = {ngramSize};
-	printf("%d", sizeof(newngram));
-	printf("%d", sizeof(newngram.members->submembers->word));
-	newngram.members->submembers->word[0] = 'c';
-//	printf("%c", newngram.members->submembers->word);
-//	printf(newngram.members->submembers->word);
+	ngram* newngram = malloc(sizeof(ngram));
+	newngram->mySize = ngramSize;
+	char var[] = "Hi";
+	word(var, newngram->member->submembers[0]);
+	printf("%s", newngram->members->submembers->word);
+//	printf("%c", newngram->members->submembers->word);
+//	printf(newngram->members->submembers->word);
 	return 0;
 }
 
