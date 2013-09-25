@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "prototypes.h"
+#include "morphemes.h"
 
 void assemble_structures()
 {
@@ -11,10 +12,6 @@ void alphabet_identification()
     printf("%s", "Alphabet Identification\n");
 }
 
-void morpheme_extraction()
-{
-    printf("%s", "Morpheme Extraction\n");
-}
 
 void lexical_category_identification()
 {
@@ -30,3 +27,5 @@ void meaning_map_generation()
 {
     printf("%s", "Meaning Map Generation\n");
 }
+
+
