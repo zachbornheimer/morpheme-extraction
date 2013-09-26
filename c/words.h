@@ -20,7 +20,7 @@ typedef struct words_t {
 /* allows for setting of the word */
 void setword(words *word, char *w)
 {
-    word->i = strlen(w) + 1; /* include \0 */
+    word->i = strlen(w); /* include \0 */
     word->word = malloc(sizeof(words) * ++word->i);
     word->word = w;
     if (word->word == NULL) {
