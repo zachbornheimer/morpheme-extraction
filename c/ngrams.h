@@ -1,5 +1,5 @@
 /*
-File: ngrams.c
+File: ngrams.h
 Author: Kyle Ashley
 Purpose: Define Data Structures for n-grams
 */
