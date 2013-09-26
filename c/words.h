@@ -1,5 +1,5 @@
 /*
- * File: words.c
+ * File: words.h
  * Author: Z. Bornheimer
  * Purpose: Define Data Structures for words
  *
