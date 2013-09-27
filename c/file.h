@@ -39,7 +39,7 @@ file read_file(const char *filename)
     file f = malloc(sizeof(char) * bytes);
 
     if((alpha = fopen(f, "r")) == NULL)
-        printf("Couldn't read file: %s", f);
+        printf("Couldn't read file: %s\n", f);
 
     while((c = fgetc(alpha)) != EOF)
         read_by_char(c, &f, &charCount, &bytes);
