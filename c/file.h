@@ -20,7 +20,7 @@ file ask_for_file();
 void read_by_char(const int c, file *buffer, int *charCount, int *bytes)
 {
     if (*bytes <= *charCount) {
-        *bytes = *bytes; 
+        *bytes = *charCount + 1; 
         *buffer = realloc(*buffer, sizeof(char) * *bytes);
         if(buffer == NULL) {
             --(*charCount);
