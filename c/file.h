@@ -1,8 +1,12 @@
 /*
  * file.h
- * by Z. Bornheimer
  * Purpose: Define everything for reading a file and processing it
- * Ex: file f = read_file(ask_for_file());
+ * Ex: 
+ * main()
+ * {
+ *     file f = read_file(ask_for_file());
+ *     printf("%s\n", f);
+ * }
  */
  
 #include <stdlib.h>
@@ -47,6 +51,7 @@ file read_file(const char *filename)
         read_by_char(c, &f, &charCount, &bytes);
 
     fclose(alpha);
+
     return f;
 }
 

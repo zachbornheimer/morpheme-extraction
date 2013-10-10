@@ -1,20 +1,13 @@
 #include <stdio.h>
-#include <strings.h>
+#include <string.h>
 
 /* append two to the end of one */
 char* append(char* one, char* two)
 {
-    int onesize, twosize, i;
-    onesize = strlen(one);
-    twosize = strlen(two);
-
-    one = realloc(one, sizeof(char) * (onesize + twosize + 1));
-    if (one == NULL)
-        return -1;
-    for (i = onesize + 1; (i-onesize-1) <= twosize; i++)
-       one[i] = two[(i-onesize-1)]; 
-    one[i] = '\0';
-    return one;
+    char *temp = malloc(sizeof(char) * (strlen(one) + 2 + strlen(two)));
+    strcpy(temp, one);
+    strcat(temp, two);
+    return temp;
 }
 
 /*
