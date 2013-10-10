@@ -1,6 +1,3 @@
 [submodule "corpus"]
 	path = corpus
 	url = git://zysys.org/nlp-corpus.git
-[submodule "zedram"]
-	path = zedram
-	url = https://github.com/zachbornheimer/zedram.git
