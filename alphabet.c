@@ -20,9 +20,10 @@
  
  
 For now, because of the limits of my knowledge, I am omitting recursion.
- Line 63 starts the recursion, but it fails.  I'm fairly certain that I'm polluting the namespace
+ Line 64 starts the recursion, but it fails.  I'm fairly certain that I'm polluting the namespace
     but it isn't a good use of my time currently to investigate that.
  
+The recursion issue is that I'm strcpy'ing the dirpath during the recursion and currupting the namespace
  */
 
 file __gf(char dirpath[], int *index, int *count)
