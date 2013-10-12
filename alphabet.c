@@ -3,7 +3,6 @@
  *   for a particular file
  */
 
-#include "file.h"
 #include "functions.h"
 #include <dirent.h>
 #include <strings.h>
@@ -49,11 +48,10 @@ file __gf(char dirpath[], int *index, int *count)
         while ((d = readdir(currdir)) != NULL)
             if (d->d_type == DT_REG && d->d_name[0] != '.') {
                 char *curfile = append(path, d->d_name);
-               // printf("%s %d %d\n", curfile, *index, *count);
                 if ((*count)++ >= *index) {
                     ++(*index);
                     f = read_file(curfile);
-                    return curfile;
+                    return f;
                     free(curfile);
                     
                 }
@@ -84,9 +82,20 @@ file getfiles(int *index)
 
 int main(void) {
     file f;
-    int index = 0;
+    int index = 0, size = 0;
+    char *ret, **arr;
+    char word_delimiter;
+    int word_delimiter_count = 0;
     while((f = getfiles(&index))) {
-       printf("%s\n", f);
+        int i = uniq(&f, &ret);
+        for (int j = 0; j <= i; ++j) {
+            size = explode_sansnull(&arr, f, ret[j]);
+            if (word_delimiter_count < size) {
+                word_delimiter_count = size;
+                word_delimiter = ret[j];
+            }
+        }
+        printf("%c\n", word_delimiter);
     }
     free(f);
 }
