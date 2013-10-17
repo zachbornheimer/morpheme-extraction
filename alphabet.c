@@ -31,7 +31,6 @@ int main(void)
 	int index = 0;
 	char *wd;
 	while((f = getfiles(&index))) {
-		struct char_doubleton *word_delimiter;
 		if (f != NULL && strlen(f) > 2)
 			wd = find_word_delimiter(&f);
 		printf("%s\n", wd);

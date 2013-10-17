@@ -51,7 +51,7 @@ void expandSubmember(member* pthis)
 	int size = sizeof(pthis->submembers) / sizeof(submember*);
 	temp = malloc(size + sizeof(submember*)); 
 	int i;
-	for(i = 0; i < sizeof(pthis->submembers)/sizeof(submember*); i++) {
+	for(i = 0; i <(int) (sizeof(pthis->submembers)/sizeof(submember*)); i++) {
 		temp[i] = pthis->submembers[i];
 	}
 	free(pthis->submembers);
@@ -68,7 +68,7 @@ void expandMember(ngram* pthis)
 	member* temp;
 	int i, size = sizeof(pthis->members) / sizeof(member*);
 	temp = malloc(size + sizeof(member*));
-	for(i = 0; i < sizeof(pthis->members)/sizeof(member*); i++) {
+	for(i = 0; i < (int) (sizeof(pthis->members)/sizeof(member*)); i++) {
 		temp[i] = pthis->members[i];
 	}
 	free(pthis->members);

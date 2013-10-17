@@ -60,7 +60,6 @@ char* __gf(char dirpath[], int *index, int *count)
 	} else {
 		return NULL;
 	}
-
 	free(path);
 	return NULL; /* to stifle the compiler's error checking */
 }
@@ -78,8 +77,6 @@ char* find_word_delimiter(char **f)
 	char *ret, **arr;
 	int j, i = uniq(f, &ret);
 	struct char_doubleton wd[i];
-	if (wd == NULL)
-		return -1;
 	for (j = 0; j <= i; ++j) {
 		int freq = explode_sansnull(&arr, *f, ret[j]);
 		wd[j].c = ret[j];
@@ -103,7 +100,6 @@ char* find_word_delimiter(char **f)
 			wd_real = realloc(wd_real, sizeof(char) * index+2);
 		}
 	}
-	/*free(wd);*/
 
 	char *wd_final;
 	char *wd_permuted = malloc(strlen(wd_real) * sizeof(char) + 1);
@@ -111,16 +107,17 @@ char* find_word_delimiter(char **f)
 	int wd_final_freq = 0, size;
 	i = 0;
 	if(strlen(wd_real) > 1)
-		while(!strcmp(wd_real, permute(&wd_permuted, &i)))
-			if ((size = explode_sansnull(&arr, *f, wd_permuted)) > wd_final_freq) {
+		while(strcmp(wd_real, permute(&wd_permuted, &i)) != 0) {
+			if ((size = explode_sansnull_str(&arr, *f, &wd_permuted)) > wd_final_freq) {
 				size = wd_final_freq;
-				wd_final = wd_permuted;
-			} else if (size == wd_final_freq && wd_final != wd_real) {
+				wd_final = wd_permuted; 
+			}  else if (size == wd_final_freq && wd_final != wd_real) {
 				printf("This implementation is not designed to handle multiple word delimiters.\nSkipping this file...\n");
 				errno = EOVERRULED;
 			}
+		}
 
-	/*free(wd_permuted); */
+	free(wd_permuted);
 
 	if (wd_final_freq == 0)
 		return wd_real;
@@ -148,7 +145,7 @@ int in_array(const int c, char **uniq)
 {
 	if (strlen(*uniq) == 0)
 		return 0;
-	for (int i = 0; i <= strlen(*uniq); ++i)
+	for (int i = 0; i <= (int) strlen(*uniq); ++i)
 		if (c == (*uniq)[i])
 			return 1;
 	return 0;
@@ -170,7 +167,17 @@ int uniq(char **f, char **ret)
 	return i-1;
 }
 
-/* function explode_sansnull taken from:
+int explode_sansnull_str(char ***arr_ptr, char *str, char **delimiter)
+{
+	int i, size, len = strlen(*delimiter);
+	for (i = 0; i < len; i++) {
+		size = explode_sansnull(arr_ptr, str, (*delimiter)[i]);
+	}
+	return size;
+}
+
+/* 
+ * function explode_sansnull taken from:
  * http://www.it.uu.se/katalog/larme597/explode
  *   used from public domain and modified by Z. Bornheimer
  */
@@ -221,7 +228,7 @@ int move_char(int *index, char **in)
 	}
 	temp[j] = (*in)[j+1];
 	temp[j+1] = (*in)[j];
-	for (j = j+2; j <= strlen(*in); ++j)
+	for (j = j+2; j <= (int) strlen(*in); ++j)
 		temp[j] = (*in)[j];
 	temp[j] = '\0';
 	strcpy(*in,temp);
@@ -231,7 +238,8 @@ int move_char(int *index, char **in)
 
 char* permute(char **string, int *i)
 {
-	if (*i >= strlen(*string))
+
+	if (*i >= (int) strlen(*string))
 		*i = 0;
 
 	if (!move_char(i, string))

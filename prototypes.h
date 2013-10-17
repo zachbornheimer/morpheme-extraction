@@ -29,6 +29,7 @@ void expand(char**);
 int in_array(const int, char**);
 int uniq(char**, char**);
 int explode_sansnull(char***, char*, char);
+int explode_sansnull_str(char***, char*, char**);
 
 char* permute(char **string, int *i);
 int move_char(int *index, char **in);
