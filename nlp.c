@@ -13,12 +13,12 @@
 #include "functions.h"
 
 int main() {
-    assemble_structures();
-    alphabet_identification();
-    morpheme_extraction();
-    lexical_category_identification();
-    syntax_model_creation();
-    meaning_map_generation();
+	assemble_structures();
+	alphabet_identification();
+	morpheme_extraction();
+	lexical_category_identification();
+	syntax_model_creation();
+	meaning_map_generation();
 
-    return 0;
+	return 0;
 }

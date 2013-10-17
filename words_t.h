@@ -1,27 +1,22 @@
 /*
- * File: words.h
- * Author: Z. Bornheimer
+ * File: words_t.h
  * Purpose: Define Data Structures for words
- *
- *
- * usage: words w = word("word");
+ * Usage: words w = word("word");
  */
+
+#ifndef WORD_DS
+#define WORDS_DS
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-
-typedef struct words_t {
-    unsigned int i;
-    char *word;
-} words;
+#include "structs.h"
 
 /* allows for setting of the word */
-void setword(words *word, char *w)
+void setword(struct words_t *word, char *w)
 {
     word->i = strlen(w); /* include \0 */
-    word->word = malloc(sizeof(words) * ++word->i);
+    word->word = malloc(sizeof(struct words_t) * ++word->i);
     word->word = w;
     if (word->word == NULL) {
         printf("malloc failed.\n");
@@ -31,9 +26,11 @@ void setword(words *word, char *w)
 }
 
 /* constructs a new word */
-words word(char *w)
+struct words_t word(char *w)
 {
-    words a = {.i = 0};
+    struct words_t a = {.i = 0};
     setword(&a, w);
     return a;
 }
+
+#endif
