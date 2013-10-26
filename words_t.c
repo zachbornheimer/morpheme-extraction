@@ -1,5 +1,5 @@
 /*
- * File: words_t.h
+ * File: words_t.c
  * Purpose: Define Data Structures for words
  * Usage: words w = word("word");
  */

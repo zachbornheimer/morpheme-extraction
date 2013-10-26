@@ -1,5 +1,5 @@
 /*
- * morphemes.h
+ * morphemes.c
  *
  * Morpheme Extraction Algorithm
  * by Z. Bornheimer

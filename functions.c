@@ -1,3 +1,11 @@
+/*
+ * functions.c
+ * Contains all the functions for the
+ *   ai system (this is probably going to change)
+ *   as to allow for ease of 'make'ing
+ *
+ * Written by Z. Bornheimer
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,8 +16,6 @@
 #include "file.h"
 #include "data_types.h"
 #include "constants.h"
-
-
 
 char* __gf(char dirpath[], int *index, int *count)
 {

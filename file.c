@@ -1,5 +1,5 @@
 /*
- * file.h
+ * file.c
  * Purpose: Define everything for reading a file and processing it
  * Ex: 
  * main()
