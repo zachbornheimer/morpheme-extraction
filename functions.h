@@ -143,9 +143,10 @@ void expand(char **ptr)
 
 int in_array(const int c, char **uniq)
 {
+	int i;
 	if (strlen(*uniq) == 0)
 		return 0;
-	for (int i = 0; i <= (int) strlen(*uniq); ++i)
+	for (i = 0; i <= (int) strlen(*uniq); ++i)
 		if (c == (*uniq)[i])
 			return 1;
 	return 0;
