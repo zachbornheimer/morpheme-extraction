@@ -12,9 +12,10 @@
 #ifndef FILE_FUNCTIONS
 #define FILE_FUNCTIONS
 
-#include "prototypes.h"
 #include <stdlib.h>
 #include <stdio.h>
+
+#include "prototypes.h"
 
 /* adds a character to a file (char *array) type */
 void read_by_char(const int c, char **buffer, int *charCount, int *bytes)

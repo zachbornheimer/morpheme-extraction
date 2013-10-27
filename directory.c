@@ -14,7 +14,7 @@
 #include <errno.h>
 
 #include "constants.h"
-#include "file.c"
+#include "prototypes.h"
 
 /* for alphabet extraction */
 char* __gf(char[], int*, int*);

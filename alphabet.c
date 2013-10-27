@@ -15,9 +15,13 @@
  *  }
  */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
 
-#include "functions.c"
-#include "directory.c"
+#include "constants.h"
+#include "prototypes.h"
 
 char* find_word_delimiter(char**);
 

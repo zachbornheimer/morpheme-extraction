@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-c -Wall
 LDFLAGS=
-SOURCES=alphabet.c words_t.c
+SOURCES=functions.c file.c directory.c words_t.c alphabet.c 
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=alphabet
 

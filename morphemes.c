@@ -8,8 +8,9 @@
  */
 
 #include <stdio.h>
+
 #include "prototypes.h"
-#include "words_t.c"
+#include "structs.h"
 
 void morpheme_extraction()
 {
