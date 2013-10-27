@@ -1,135 +1,31 @@
 /*
- * functions.c
- * Contains all the functions for the
- *   ai system (this is probably going to change)
- *   as to allow for ease of 'make'ing
+ * functions.h
+ * Contains all global-like functions for the
+ *   ai system - this allows for non-specific things
+ *   to be included without problems.
  *
  * Written by Z. Bornheimer
  */
+
+#ifndef FUNCTIONS
+#define FUNCTIONS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <errno.h>
 
-#include "prototypes.h"
-#include "file.h"
-#include "data_types.h"
 #include "constants.h"
 
-char* __gf(char dirpath[], int *index, int *count)
-{
-	DIR *currdir;
-	char *path;
-	path = malloc(strlen(dirpath) + 2);
-	char *terminate = "/";
-	struct dirent *d;
-	strcpy(path, dirpath);
-	int p = strlen(path);  /* does not include \0 */
-	if (!path)
-		path = ".";
-	if (path[p-1] != '/') {
-		if (path == NULL)
-			return NULL;
-		strcat(path, terminate);
-	}
+/* general functions */
+char* append(char*, char*);
+void expand(char**);
+int in_array(const int, char**);
+int uniq(char**, char**);
+int explode_sansnull(char***, char*, char);
+int explode_sansnull_str(char***, char*, char**);
 
-	currdir = opendir(path);
-	char *f;
-	if (currdir) {
-		/* 
-		 * intentionally non-recursive
-		 * as it would take too much time to implement properly
-		 * as to not pollute the working *path
-		 */
-		while ((d = readdir(currdir)) != NULL)
-			if (d->d_type == DT_REG && d->d_name[0] != '.') {
-				char *curfile = append(path, d->d_name);
-				if ((*count)++ >= *index) {
-					++(*index);
-					f = read_file(curfile);
-					if (f != NULL) {
-						printf("Reading: %s\n", curfile);
-						if (curfile != NULL)
-							free(curfile);
-						
-						closedir(currdir);
-						if (path != NULL)
-							free(path);
-						return f;
-					}
-					if (curfile != NULL)
-						free(curfile);
-				}
-			}
-		closedir(currdir);
-	} else {
-		return NULL;
-	}
-	free(path);
-	return NULL; /* to stifle the compiler's error checking */
-}
-
-char* getfiles(int *index)
-{
-	/* index is how many files it should parse to catch up to where it was in the previous run */
-	/* count is the current index num */
-	int count = 0;
-	return __gf(DEFAULT_PATH, index, &count);
-}
-
-char* find_word_delimiter(char **f)
-{
-	char *ret, **arr;
-	int j, i = uniq(f, &ret);
-	struct char_doubleton wd[i];
-	for (j = 0; j <= i; ++j) {
-		int freq = explode_sansnull(&arr, *f, ret[j]);
-		wd[j].c = ret[j];
-		wd[j].freq = freq;
-		free(arr);
-	}
-	free(ret);
-
-	char *wd_real = malloc(sizeof(char) + 1);
-	int max_size = 0, index = 0;
-
-	for (j = 0; j <= i; ++j) {
-		if (wd[j].freq > max_size) {
-			free(wd_real);
-			wd_real = malloc(sizeof(char) + 1);
-			wd_real[0] = wd[j].c;
-			max_size = wd[j].freq;
-		} 
-		else if (wd[j].freq == max_size) {
-			wd_real[index++] = wd[j].c;
-			wd_real = realloc(wd_real, sizeof(char) * index+2);
-		}
-	}
-
-	char *wd_final;
-	char *wd_permuted = malloc(strlen(wd_real) * sizeof(char) + 1);
-	strcpy(wd_permuted, wd_real);
-	int wd_final_freq = 0, size;
-	i = 0;
-	if(strlen(wd_real) > 1)
-		while(strcmp(wd_real, permute(&wd_permuted, &i)) != 0) {
-			if ((size = explode_sansnull_str(&arr, *f, &wd_permuted)) > wd_final_freq) {
-				size = wd_final_freq;
-				wd_final = wd_permuted; 
-			}  else if (size == wd_final_freq && wd_final != wd_real) {
-				printf("This implementation is not designed to handle multiple word delimiters.\nSkipping this file...\n");
-				errno = EOVERRULED;
-			}
-		}
-
-	free(wd_permuted);
-
-	if (wd_final_freq == 0)
-		return wd_real;
-	else
-		return wd_final;
-}
+char* permute(char **string, int *i);
+int move_char(int *index, char **in);
 
 /* append two to the end of one */
 char* append(char* one, char* two)
@@ -227,17 +123,15 @@ int move_char(int *index, char **in)
 {
 	if ((*in)[*index + 1] == '\0')
 		*index = 0;
-	int f = *index;
+	int j, f = *index;
 	char temp[strlen(*in)+1];
-	int j;
-	for (j = 0; j < f; ++j) {
+	for (j = 0; j < f; ++j)
 		temp[j] = (*in)[j];
-	}
 	temp[j] = (*in)[j+1];
 	temp[j+1] = (*in)[j];
 	for (j = j+2; j <= (int) strlen(*in); ++j)
 		temp[j] = (*in)[j];
-	temp[j] = '\0';
+	//temp[j] = '\0';
 	strcpy(*in,temp);
 	++(*index);
 	return 1;
@@ -245,7 +139,6 @@ int move_char(int *index, char **in)
 
 char* permute(char **string, int *i)
 {
-
 	if (*i >= (int) strlen(*string))
 		*i = 0;
 
@@ -287,3 +180,5 @@ printf("%s", "Meaning Map Generation\n");
 }
 
 */
+
+#endif

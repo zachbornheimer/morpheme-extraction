@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "prototypes.h"
-#include "words.h"
+#include "words_t.c"
 
 void morpheme_extraction()
 {
@@ -25,10 +25,10 @@ void morpheme_extraction()
 int main()
 {
 
-    words *w;
+    struct words_t *w;
     int i;
     for (i = 0; i < 100; ++i) {
-        w = malloc(sizeof(words) * (i+1));
+        w = malloc(sizeof(struct words_t) * (i+1));
         w[i] = word("test");
     }
     int f = i -1;
