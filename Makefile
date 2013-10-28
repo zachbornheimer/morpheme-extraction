@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-c -Wall
+CFLAGS=-c -Wall -O
 LDFLAGS=
 SOURCES=functions.c file.c directory.c words_t.c alphabet.c 
 OBJECTS=$(SOURCES:.c=.o)
