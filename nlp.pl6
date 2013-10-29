@@ -550,7 +550,7 @@ sub regexify(%allMorphemes is rw, %morphemeGrammar is rw, @regex is rw,  $w1?, $
     my $before2;
     my $end2;
 
-    $proc = "gen" if $w1 && $w2 && @dat && $type
+    $proc = "gen" if $w1 && $w2 && @dat && $type;
 
     if $proc eq "gen" {
         # Is the pattern at beginning?
@@ -1045,7 +1045,7 @@ sub repl() {
         if $parserResults<command><command><expression>.defined && $parserResults<command><command><expression> ne "" {
             my $exp = $parserResults<command><command><expression>;
             my $origExp = $exp;
-            $exp ~~ s:g/\ /_/;
+            $exp ~~ s:g/\s/_/;
             $input ~~ s:g/$origExp/$exp/;
             my $code;
             if $exp ~~ rx/[\W\D]/ {
