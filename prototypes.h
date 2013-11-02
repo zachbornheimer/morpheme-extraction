@@ -2,6 +2,7 @@
 #define PROTOTYPES
 
 #include "structs.h"
+#include "ngram_structs.h"
 
 void assemble_structures();
 void alphabet_identification();
@@ -20,8 +21,13 @@ char* __gf(char[], int*, int*);
 char* getfiles(int*);
 char* find_word_delimiter(char**);
 
-/* for words_t */
-void setword(struct words_t*, char*);
+/* for word_t */
+void setword(struct word_t*, char*);
+
+/* for ngram_t */
+int add_ngram_element(struct word_t_array**, int);
+struct ngram_t new_ngram(void);
+void free_ngram(struct ngram_t*);
 
 /* general functions */
 char* append(char*, char*);

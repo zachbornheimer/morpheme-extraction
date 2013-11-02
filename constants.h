@@ -11,6 +11,10 @@
 #define CORPUS_DIR "corpus/corpus"
 #define ZEDRAM_OUTPUT "languageModel.zdrm"
 #define DEFAULT_PATH "./corpus/nlp-corpus/dev/normalizers/normalized/"
-#define EOVERRULED -748
+#define NGRAM_SIZE 9
+
+
+#define E_OVERRULED -748
+#define E_REALLOC -749
 
 #endif

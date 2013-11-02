@@ -1,9 +1,9 @@
-CC=gcc
-CFLAGS=-c -Wall -O
+CC=cc
+CFLAGS=-c -g -Wall
 LDFLAGS=
-SOURCES=functions.c file.c directory.c words_t.c alphabet.c 
+SOURCES=functions.c file.c directory.c word_t.c alphabet.c ngram_t.c nlp.c
 OBJECTS=$(SOURCES:.c=.o)
-EXECUTABLE=alphabet
+EXECUTABLE=nlp
 
 all: $(SOURCES) $(EXECUTABLE)
 

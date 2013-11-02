@@ -11,9 +11,10 @@ struct char_doubleton {
 	int freq;
 };
 
-struct words_t {
-    unsigned int i;
-    char *word;
+struct word_t {
+	unsigned int i;
+	int freq;
+	char *word;
 };
 
 #endif

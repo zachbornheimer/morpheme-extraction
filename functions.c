@@ -58,24 +58,22 @@ int uniq(char **f, char **ret)
 {
 	if (f == NULL || *f == NULL)
 		return -1;
-	int len = strlen(*f) + 1;
+	int len = strlen(*f);
 	char *u = malloc(len * sizeof(char));
-	int i = 0, j;
-	for (j = 0; j < len; ++j)
+	int i = 0, j=0;
+	for (j = 0; j <= len; ++j)
 		if ((*f) != NULL)
 			if (j==0 || !in_array((*f)[j], &u))
 				u[i++] = (*f)[j];
-
 	*ret = u;
 	return i-1;
 }
 
 int explode_sansnull_str(char ***arr_ptr, char *str, char **delimiter)
 {
-	int i, size, len = strlen(*delimiter);
-	for (i = 0; i < len; i++) {
+	int i, size = -1, len = strlen(*delimiter);
+	for (i = 0; i < len; i++)
 		size = explode_sansnull(arr_ptr, str, (*delimiter)[i]);
-	}
 	return size;
 }
 

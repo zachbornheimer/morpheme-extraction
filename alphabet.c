@@ -25,24 +25,6 @@
 
 char* find_word_delimiter(char**);
 
-int main(void)
-{
-	char *f;
-	int index = 0;
-	char *wd;
-	while((f = getfiles(&index))) {
-		if (f != NULL && strlen(f) > 2) {
-			wd = find_word_delimiter(&f);
-			if (errno != EOVERRULED) {
-				printf("%s\n", wd);
-				free(f);
-			}
-		}
-	}
-
-	return 0;
-}
-
 char* find_word_delimiter(char **f)
 {
 	char *ret, **arr;
@@ -86,7 +68,7 @@ char* find_word_delimiter(char **f)
 				wd_final = wd_permuted; 
 			}  else if (size == wd_final_freq) {
 				printf("This implementation is not designed to handle multiple word delimiters.\nSkipping this file...\n");
-				errno = EOVERRULED;
+				errno = E_OVERRULED;
 			}
 		}
 
