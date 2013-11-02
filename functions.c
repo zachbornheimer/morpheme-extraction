@@ -46,7 +46,7 @@ void expand(char **ptr)
 int in_array(const int c, char **uniq)
 {
 	int i;
-	if (strlen(*uniq) == 0)
+	if (strcmp(*uniq, "") || strlen(*uniq) == 0)
 		return 0;
 	for (i = 0; i <= (int) strlen(*uniq); ++i)
 		if (c == (*uniq)[i])
@@ -59,7 +59,7 @@ int uniq(char **f, char **ret)
 	if (f == NULL || *f == NULL)
 		return -1;
 	int len = strlen(*f);
-	char *u = malloc(len * sizeof(char));
+	char *u = malloc((len+1) * sizeof(char));
 	int i = 0, j=0;
 	for (j = 0; j <= len; ++j)
 		if ((*f) != NULL)

@@ -40,18 +40,21 @@ void build_ngrams(char* wd, char* f)
 	int word_count = explode_sansnull_str(&arr, f, &wd);
 	int i;
 
-	struct ngram_t *ng = malloc(sizeof(struct ngram_t) * word_count);
+	struct ngram_t **ng;
+	ng = malloc(sizeof(struct ngram_t) * word_count);
 	for (i = 0; i <= word_count; i++) {
-		ng[i] = new_ngram();	
-		setword(&(ng[i]).word, arr[i]);
+		struct ngram_t ngram = new_ngram();
+		setword(&ngram.word, arr[i]);
 		int j;
-		for (j = 0; j <= (NGRAM_SIZE/2); ++j) {
+		for (j = 0; j < (NGRAM_SIZE/2); ++j) {
 			int index = i - (NGRAM_SIZE/2) + j;
 			if (index >= 0) {
-				int elem_id = add_ngram_element(&(ng[i].before.at[j]), j);
-				setword(&(ng[i].before.at[j]->elems[elem_id]), arr[index]);
+				int elem_id = add_ngram_element(&ngram, 0, j);
+				setword(&(ngram.before.at[j]->elems[elem_id]), arr[index]);
 			}
 		}
+		ng[i] = malloc(sizeof(struct ngram_t));
+		*ng[i] = ngram;
 	}
 
 	/*for (i = word_count; i >= 0; --i)

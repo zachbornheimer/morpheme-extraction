@@ -25,7 +25,7 @@ char* find_word_delimiter(char**);
 void setword(struct word_t*, char*);
 
 /* for ngram_t */
-int add_ngram_element(struct word_t_array**, int);
+int add_ngram_element(struct ngram_t*, int, int);
 struct ngram_t new_ngram(void);
 void free_ngram(struct ngram_t*);
 

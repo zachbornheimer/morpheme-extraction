@@ -15,12 +15,20 @@
 #include "structs.h"
 #include "ngram_structs.h"
 
-int add_ngram_element(struct word_t_array **at, int index)
+int add_ngram_element(struct ngram_t *ng, int bf, int index)
 {
-	at[index]->elems = realloc(at[index]->elems, sizeof(struct word_t) * (++(at[index]->count) + 1));
-	if (at[index]->elems == NULL)
+	if (bf == 0) {
+	// before
+	} else {
+	// after
+	}
+	ng->before.at[index] = realloc(ng->before.at[index], (sizeof(unsigned int) + (sizeof(struct word_t) * (ng->before.at[index]->count++))));
+	ng->before.at[index]->elems = realloc(ng->before.at[index]->elems, sizeof(struct word_t) * ng->before.at[index]->count);
+	if (ng->before.at[index] == NULL || ng->before.at[index]->elems == NULL) {
+		printf("FAILED TO REALLOC\n");
 		exit(E_REALLOC);
-	return at[index]->count; 
+	}
+	return ng->before.at[index]->count; 
 }
 
 struct ngram_t new_ngram(void)
@@ -29,12 +37,12 @@ struct ngram_t new_ngram(void)
 	
 	int index;
 	
-	for (index = 0; index < ((NGRAM_SIZE/2) + 1); ++index) {
+	for (index = 0; index < (NGRAM_SIZE/2); ++index) {
 		ng.before.at[index] = malloc(sizeof(struct word_t_array));
 		ng.after.at[index]  = malloc(sizeof(struct word_t_array));
 
-		ng.before.at[index]->count = -1;
-		ng.after.at[index]->count  = -1;
+		ng.before.at[index]->count = 0;
+		ng.after.at[index]->count  = 0;
 
 		ng.before.at[index]->elems = malloc(sizeof(struct word_t) * ++(ng.before.at[index]->count));
 		ng.after.at[index]->elems  = malloc(sizeof(struct word_t) * ++(ng.after.at[index]->count));
