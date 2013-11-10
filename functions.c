@@ -21,7 +21,7 @@ char* append(char*, char*);
 void expand(char**);
 int in_array(const int, char**);
 int uniq(char**, char**);
-int explode_sansnull(char***, char*, char);
+int explode_sansnull(char***, char*, char*);
 int explode_sansnull_str(char***, char*, char**);
 
 char* permute(char **string, int *i);
@@ -46,9 +46,9 @@ void expand(char **ptr)
 int in_array(const int c, char **uniq)
 {
 	int i;
-	if (strcmp(*uniq, "") || strlen(*uniq) == 0)
-		return 0;
-	for (i = 0; i <= (int) strlen(*uniq); ++i)
+//	if (strcmp(*uniq, "") || (*uniq)[0] == 0 || (*uniq)[0] == 0)
+//		return 0;
+	for (i = 0; i < strlen(*uniq); ++i)
 		if (c == (*uniq)[i])
 			return 1;
 	return 0;
@@ -59,12 +59,14 @@ int uniq(char **f, char **ret)
 	if (f == NULL || *f == NULL)
 		return -1;
 	int len = strlen(*f);
-	char *u = malloc((len+1) * sizeof(char));
+	char *u = malloc((len+2) * sizeof(char));
 	int i = 0, j=0;
 	for (j = 0; j <= len; ++j)
-		if ((*f) != NULL)
-			if (j==0 || !in_array((*f)[j], &u))
+		if ((*f)[j] != 0) {
+			if (i == 0 || !in_array((*f)[j], &u))
 				u[i++] = (*f)[j];
+		}
+	strcat(u, "\0");
 	*ret = u;
 	return i-1;
 }
@@ -72,8 +74,10 @@ int uniq(char **f, char **ret)
 int explode_sansnull_str(char ***arr_ptr, char *str, char **delimiter)
 {
 	int i, size = -1, len = strlen(*delimiter);
-	for (i = 0; i < len; i++)
-		size = explode_sansnull(arr_ptr, str, (*delimiter)[i]);
+	for (i = 0; i < len; i++) {
+		char *c = {delimiter[i], '\0'};
+		size = explode_sansnull(arr_ptr, str, c);
+	}
 	return size;
 }
 
@@ -83,39 +87,51 @@ int explode_sansnull_str(char ***arr_ptr, char *str, char **delimiter)
  *   used from public domain and modified by Z. Bornheimer
  */
 
-int explode_sansnull(char ***arr_ptr, char *str, char delimiter)
+int explode_sansnull(char ***a, char *str, char *delimiter)
 {
-	char *src = str, *end, *dst;
-	char **arr;
-	int size = 1, i, j = 0;
+	int wc, size = strlen(str) + 1;
+	int count = 0, char_count = 0, i = 0, j;
+	char *token;
 
-	while ((end = strchr(src, delimiter)) != NULL) {
-		++size;
-		src = end + 1;
+	char *s = strdup(str);
+	char *t = strdup(delimiter);
+
+	for (j = 0; str[j] != '\0'; (str[j++] == *delimiter) ? ++(count) : 0);
+	wc = count+1;
+	count = 0;
+
+	token = strtok(s, t);
+
+	int malloc_size = (sizeof(char*) * wc) + size + wc;
+	//printf("%d\n", malloc_size);
+	char **arr = malloc(malloc_size);
+	
+	while (token != NULL) {
+		char_count += strlen(token)+1;
+		//arr[i] = malloc(sizeof(char) * strlen(token)+1);
+		arr[i++] = token;
+		token = strtok(NULL, t);
+		++count;
 	}
 
-	arr = malloc(size * sizeof(char *) + (strlen(str) + 1) * sizeof(char));
-
-	src = str;
-	dst = (char *) arr + size * sizeof(char *);
-	for (i = 0; i < size; ++i) {
-		if ((end = strchr(src, delimiter)) == NULL)
-			end = src + strlen(src);
-		if ((end-src) > 0)
-			arr[j++] = dst;
-		strncpy(dst, src, end - src);
-		dst[end - src] = '\0';
-		dst += end - src + 1;
-		src = end + 1;
-	}
-	arr = realloc(arr, j * sizeof(char *) + (strlen(str) + 1) * sizeof(char));
-
-	if (arr == NULL)
-		exit(-1);
-	*arr_ptr = arr;
-
-	return j;
+	*a = arr;
+	return i-1;
 }
+/*
+int main()
+{
+	int count;
+       	char *str, del, **arr;
+//	del = malloc(sizeof(char) * (strlen("test")+1));
+	del = '-';
+	str = "This-is-an-interesting-example-of-strtok.";
+	explode(&count, &arr, str, &del);
+	printf("'%s'\n", *arr);
+	printf("Words: %d, Sentence: %s\n", count, arr[0]);
+	free(*arr);
+	free(arr);
+	return 0;
+}*/
 
 int move_char(int *index, char **in)
 {

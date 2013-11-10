@@ -29,30 +29,45 @@ char* find_word_delimiter(char **f)
 {
 	char *ret, **arr;
 	int j, i = uniq(f, &ret);
+	if (i == -1) {
+		errno = E_UNIQ;
+		return "";
+	}
 	struct char_doubleton wd[i];
 	for (j = 0; j <= i; ++j) {
-		int freq = explode_sansnull(&arr, *f, ret[j]);
+		char c[2] = {ret[j], '\0'};
+		int freq = explode_sansnull(&arr, *f, c);
 		wd[j].c = ret[j];
 		wd[j].freq = freq;
+		//free(*arr);
 		free(arr);
 	}
 	free(ret);
 
-	char *wd_real = malloc(sizeof(char) + 1);
 	int max_size = 0, index = 0;
+	char *wd_real = malloc(sizeof(char) + index+1);
 
 	for (j = 0; j <= i; ++j) {
 		if (wd[j].freq > max_size) {
 			free(wd_real);
-			wd_real = malloc(sizeof(char) + 1);
-			wd_real[0] = wd[j].c;
-			wd_real[1] = '\0';
+			index = 0;
+			wd_real = malloc(sizeof(char) + 2);
+			wd_real[index] = wd[j].c;
+			wd_real[++index] = '\0';
 			max_size = wd[j].freq;
 		} 
-		else if (wd[j].freq == max_size) {
-			wd_real[index++] = wd[j].c;
-			wd_real[index] = '\0';
-			wd_real = realloc(wd_real, sizeof(char) * index+1);
+		else if (wd[j].freq == max_size && !in_array((wd[j].c), &wd_real)) {
+			wd_real[index] = wd[j].c;
+			wd_real[++index] = '\0';
+			wd_real = realloc(wd_real, sizeof(char) * index+2);
+			if (wd_real == NULL) {
+				printf("ERROR, DID NOT REALLOC\n");
+				exit(E_REALLOC);
+			}
+			char *uniqd;
+			uniq(&wd_real, &uniqd);
+			free(wd_real);
+			wd_real = uniqd;
 		}
 	}
 

@@ -1,5 +1,6 @@
 CC=cc
-CFLAGS=-c -g -Wall
+#CFLAGS=-c -g -Wall
+CFLAGS=-c -Wall -O
 LDFLAGS=
 SOURCES=functions.c file.c directory.c word_t.c alphabet.c ngram_t.c nlp.c
 OBJECTS=$(SOURCES:.c=.o)
