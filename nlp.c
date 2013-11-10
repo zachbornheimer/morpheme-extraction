@@ -68,30 +68,5 @@ void build_ngrams(char *wd, char *f)
 
 	for (; i >= 0; --i)
 		free_ngram(ng[i]);
-/*
- * Example Implementation:
- *
- * int main()
- *  {
- * 	char* word_elem = "word";
- * 	int index = 0;
- * 	
- * 	struct ngram_t ng;
- * 	ng = new_ngram();
- * 	setword(&ng.word, word_elem);
- * 
- * 	int elem_id = add_ngram_element(&(ng.before.at[index]), index);
- * 
- * 	setword(&ng.before.at[index]->elems[elem_id], "context");
- * 	++ng.before.at[index]->elems[elem_id].freq;
- * 
- * 	printf("%s", ng.before.at[index]->elems[elem_id].word);
- * 	free_ngram(&ng);
- * 	
- * 	return 0;
- * }
- *
- */
-
 
 }
