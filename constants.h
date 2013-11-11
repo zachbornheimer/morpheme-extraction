@@ -16,8 +16,14 @@
 #define BEFORE 0
 #define AFTER 0
 
+#define ON 1
+#define OFF 0
+
 #define E_OVERRULED -748
 #define E_REALLOC -749
 #define E_UNIQ -750
+
+#include "externs.h"
+#include "macros.h"
 
 #endif

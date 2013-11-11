@@ -58,14 +58,22 @@ int uniq(char **f, char **ret)
 {
 	if (f == NULL || *f == NULL)
 		return -1;
+	V_PRINT("Calculating strlen of file");
 	int len = strlen(*f);
 	char *u = malloc((len+2) * sizeof(char));
 	int i = 0, j=0;
-	for (j = 0; j <= len; ++j)
-		if ((*f)[j] != 0) {
-			if (i == 0 || !in_array((*f)[j], &u))
-				u[i++] = (*f)[j];
+	for (j = 0; j <= len; ++j) {
+		if (verbose_mode == ON) {
+			double p = ((double) j / (double) len) * (double) 100.00;
+			printf("Creating Uniq Array %f%s Complete\r", p, "%");
 		}
+		if ((*f)[j] != 0) {
+			if (i == 0 || !in_array((*f)[j], &u)) {
+
+				u[i++] = (*f)[j];
+			}
+		}
+	}
 	strcat(u, "\0");
 	*ret = u;
 	return i-1;

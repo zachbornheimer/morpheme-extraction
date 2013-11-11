@@ -28,13 +28,17 @@ char* find_word_delimiter(char**);
 char* find_word_delimiter(char **f)
 {
 	char *ret, **arr;
+	V_PRINT("Creating List of Uniq Chars.");
 	int j, i = uniq(f, &ret);
 	if (i == -1) {
 		errno = E_UNIQ;
 		return "";
 	}
+	V_PRINT("Constructing Word Delimiter Structures.");
 	struct char_doubleton wd[i];
 	for (j = 0; j <= i; ++j) {
+		if (verbose_mode == ON)
+			printf("Working on character %d/%d...\r", j, i);
 		char c[2] = {ret[j], '\0'};
 		int freq = explode_sansnull(&arr, *f, c);
 		wd[j].c = ret[j];
@@ -43,6 +47,7 @@ char* find_word_delimiter(char **f)
 		free(arr);
 	}
 	free(ret);
+	V_PRINT("Initial Word Delimiter Structures Constructed.");
 
 	int max_size = 0, index = 0;
 	char *wd_real = malloc(sizeof(char) + index+1);
@@ -70,6 +75,7 @@ char* find_word_delimiter(char **f)
 			wd_real = uniqd;
 		}
 	}
+	V_PRINT("Word Delimiter Candidates Identified.");
 
 	char *wd_final;
 	char *wd_permuted = malloc(strlen(wd_real) * sizeof(char) + 1);

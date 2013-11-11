@@ -14,19 +14,36 @@
 #include "structs.h"
 #include "ngram_structs.h"
 
-void build_ngrams(char*, char*);
+int verbose_mode;
 
-int main(void)
+void build_ngrams(char*, char*);
+int nlp(void);
+
+int main(int argc, char *argv[])
+{
+	int i;
+	verbose_mode = OFF;
+	for (i = 0; i < argc; ++i) {
+		if (!strcmp(argv[i], "--verbose"))
+			verbose_mode = ON;
+	}
+
+	return nlp();
+}	
+
+int nlp(void)
 {
 	char *f;
 	int index = 0;
 	char *wd;
 	while((f = getfiles(&index))) {
 		if (f != NULL && strlen(f) > 2) {
+			V_PRINT("Looking for Word Delimiter...");
 			wd = find_word_delimiter(&f);
+			V_PRINT("Found Word Delimiter");
 			if (wd != NULL && wd != 0 && errno != E_OVERRULED) {
+				V_PRINT("Building NGRAMS");
 				build_ngrams(wd, f);
-				free(f);
 			}
 		}
 	}
@@ -42,6 +59,7 @@ void build_ngrams(char *wd, char *f)
 
 	struct ngram_t **ng;
 	ng = malloc(sizeof(struct ngram_t) * word_count);
+	V_PRINT("Setting NGRAM elements");
 	for (i = 0; i <= word_count; ++i) {
 		struct ngram_t ngram = new_ngram();
 		if (strlen(arr[i]) > 0) {
@@ -57,6 +75,7 @@ void build_ngrams(char *wd, char *f)
 
 					elem_id = add_ngram_element(&(ngram.after.at[j]), j);
 					setword(&(ngram.after.at[j]->elems[elem_id]), arr[(index)]);
+					printf("%s\n", arr[index]);
 
 				}
 			}
