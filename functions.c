@@ -83,7 +83,9 @@ int explode_sansnull_str(char ***arr_ptr, char *str, char **delimiter)
 {
 	int i, size = -1, len = strlen(*delimiter);
 	for (i = 0; i < len; i++) {
-		char *c = {delimiter[i], '\0'};
+		char *c = malloc(sizeof(char) * 2);
+		strcat(c, delimiter[i]);
+		strcat(c, "\0");
 		size = explode_sansnull(arr_ptr, str, c);
 	}
 	return size;

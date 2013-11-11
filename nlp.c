@@ -83,7 +83,6 @@ void build_ngrams(char *wd, char *f)
 		}
 	}
 
-
 	for (; i >= 0; --i)
 		free_ngram(ng[i]);
 

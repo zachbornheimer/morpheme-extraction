@@ -14,5 +14,6 @@ nytprof.out
 pm_to_blib
 a.out
 nlp
+nlp.debug
 *.o
 alphabet
