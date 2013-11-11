@@ -75,7 +75,6 @@ void build_ngrams(char *wd, char *f)
 
 					elem_id = add_ngram_element(&(ngram.after.at[j]), j);
 					setword(&(ngram.after.at[j]->elems[elem_id]), arr[(index)]);
-					printf("%s\n", arr[index]);
 
 				}
 			}
