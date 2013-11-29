@@ -56,12 +56,12 @@ char* find_word_delimiter(char **f)
 		if (wd[j].freq > max_size) {
 			free(wd_real);
 			index = 0;
-			wd_real = malloc(sizeof(char) + 2);
+			wd_real = malloc(sizeof(char)+1);
 			wd_real[index] = wd[j].c;
 			wd_real[++index] = '\0';
 			max_size = wd[j].freq;
 		} 
-		else if (wd[j].freq == max_size && !in_array((wd[j].c), &wd_real)) {
+		else if (wd[j].freq == max_size && !in_array((wd[j].c), &wd_real, index)) {
 			wd_real[index] = wd[j].c;
 			wd_real[++index] = '\0';
 			wd_real = realloc(wd_real, sizeof(char) * index+2);

@@ -17,7 +17,7 @@
 void setword(struct word_t *word, char *w)
 {
 	word->i = strlen(w);
-	word->freq = 0; /* initialized */
+	word->freq = 1; /* initialized */
 	/*word->word = malloc(sizeof(char) * word->i);*/
 	word->word = w;
 	strcat(word->word, "\0");

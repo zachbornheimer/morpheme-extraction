@@ -15,22 +15,12 @@
 #include <string.h>
 
 #include "constants.h"
-
-/* general functions */
-char* append(char*, char*);
-void expand(char**);
-int in_array(const int, char**);
-int uniq(char**, char**);
-int explode_sansnull(char***, char*, char*);
-int explode_sansnull_str(char***, char*, char**);
-
-char* permute(char **string, int *i);
-int move_char(int *index, char **in);
+#include "prototypes.h"
 
 /* append two to the end of one */
 char* append(char* one, char* two)
 {
-	char *temp = malloc(sizeof(char) * (strlen(one) + 2 + strlen(two)));
+	char *temp = malloc(sizeof(char) * (strlen(one) + 1 + strlen(two)));
 	if (temp == NULL)
 		return "ERROR IN MALLOC";
 	strcpy(temp, one);
@@ -43,17 +33,27 @@ void expand(char **ptr)
 	*ptr = realloc(*ptr, sizeof(char) * (strlen(*ptr) + 2));
 }
 
-int in_array(const int c, char **uniq)
+int in_array(const int c, char **uniq, int size)
 {
 	int i;
 //	if (strcmp(*uniq, "") || (*uniq)[0] == 0 || (*uniq)[0] == 0)
 //		return 0;
-	for (i = 0; i < strlen(*uniq); ++i)
+	for (i = 0; i < size; ++i)
 		if (c == (*uniq)[i])
-			return 1;
-	return 0;
+			return i;
+	return -1;
 }
 
+int in_char_array(const char *w, char *uniq[], const int size)
+{
+	int i;
+	for (i = 0; i < size; ++i)
+		if (strcmp(w, uniq[i]) == 0)
+			return i;
+	return -1;
+}
+
+/* returns base 0 */
 int uniq(char **f, char **ret)
 {
 	if (f == NULL || *f == NULL)
@@ -68,7 +68,7 @@ int uniq(char **f, char **ret)
 			printf("Creating Uniq Array %f%s Complete\r", p, "%");
 		}
 		if ((*f)[j] != 0) {
-			if (i == 0 || !in_array((*f)[j], &u)) {
+			if (i == 0 || in_array((*f)[j], &u, i)==-1) {
 
 				u[i++] = (*f)[j];
 			}
@@ -79,14 +79,33 @@ int uniq(char **f, char **ret)
 	return i-1;
 }
 
+/* returns base 0 */
+int uniq_words(char **arr, int size)
+{
+	char **u = malloc(sizeof(char*) * size);
+	int i = 0, j=0;
+	for (j = 0; j < size; ++j) {
+		/*if (verbose_mode == ON) {
+			double p = ((double) j / (double) size) * (double) 100.00;
+			printf("Creating Uniq Array %f%s Complete\r", p, "%");
+		}*/
+		if (i == 0 || in_char_array(arr[j], u, i)==-1)
+			u[i++] = arr[j];
+	}
+	free(u);
+	return i-1;
+}
+
+
+
 int explode_sansnull_str(char ***arr_ptr, char *str, char **delimiter)
 {
 	int i, size = -1, len = strlen(*delimiter);
 	for (i = 0; i < len; i++) {
-		char *c = malloc(sizeof(char) * 2);
-		strcat(c, delimiter[i]);
-		strcat(c, "\0");
-		size = explode_sansnull(arr_ptr, str, c);
+		/*char *c = malloc(sizeof(char)*2);
+		c[0] = delimiter[i];
+		c[1] = '\0';*/
+		size = explode_sansnull(arr_ptr, str, *delimiter);
 	}
 	return size;
 }
@@ -112,14 +131,16 @@ int explode_sansnull(char ***a, char *str, char *delimiter)
 
 	token = strtok(s, t);
 
-	int malloc_size = (sizeof(char*) * wc) + size + wc;
+	int malloc_size = (sizeof(char*) * (wc-1)) + size + wc;
 	//printf("%d\n", malloc_size);
 	char **arr = malloc(malloc_size);
 	
 	while (token != NULL) {
 		char_count += strlen(token)+1;
 		//arr[i] = malloc(sizeof(char) * strlen(token)+1);
-		arr[i++] = token;
+		if (token != NULL)
+			arr[i++] = token;
+		//printf("token: %s\n\n", token);
 		token = strtok(NULL, t);
 		++count;
 	}
@@ -171,38 +192,5 @@ char* permute(char **string, int *i)
 
 	return *string;
 }
-
-/*
-
-#include "prototypes.h"
-#include "morphemes.h"
-
-void assemble_structures()
-{
-printf("%s", "Assemble Structures\n");
-}
-
-void alphabet_identification()
-{
-printf("%s", "Alphabet Identification\n");
-}
-
-
-void lexical_category_identification()
-{
-printf("%s", "Lexical Category Identification\n");
-}
-
-void syntax_model_creation()
-{
-printf("%s", "Syntax Model Creation\n");
-}
-
-void meaning_map_generation()
-{
-printf("%s", "Meaning Map Generation\n");
-}
-
-*/
 
 #endif
