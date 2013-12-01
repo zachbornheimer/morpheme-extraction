@@ -14,11 +14,9 @@
 #include <errno.h>
 
 #include "constants.h"
-#include "prototypes.h"
-
-/* for alphabet extraction */
-char* __gf(char[], int*, int*);
-char* getfiles(int*);
+#include "functions.h"
+#include "file.h"
+#include "directory.h"
 
 char* getfiles(int *index)
 {

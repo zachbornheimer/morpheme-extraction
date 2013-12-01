@@ -10,12 +10,17 @@
 #include <errno.h>
 
 #include "constants.h"
-#include "prototypes.h"
+#include "directory.h"
+#include "functions.h"
+#include "alphabet.h"
 #include "structs.h"
+#include "ngram_t.h"
+#include "word_t.h"
+#include "file.h"
 
 int verbose_mode;
 
-//struct lexical_categories_t* find_morphemes(struct ngram_t**, int);
+struct lexical_categories_t* find_morphemes(struct ngram_t**, int);
 struct ngram_t** build_ngram_relationships(char*, char*, int*);
 int nlp(void);
 
@@ -38,7 +43,7 @@ int nlp(void)
 	char *wd;
 	int ngram_length = 0;
 	struct ngram_t **ng;
-//	struct lexical_categories_t *morphemes;
+	struct lexical_categories_t *morphemes;
 	/*struct ngram_t **ng_to_merge;*/
 	while((f = getfiles(&index))) {
 		if (f != NULL && strlen(f) > 2) {
@@ -50,8 +55,8 @@ int nlp(void)
 				ng = build_ngram_relationships(wd, f, &ngram_length);
 				if (errno == E_OVERRULED)
 					continue;
-				/*V_PRINT("Extracting Morphemes and Building Lexical Categories.");
-				morphemes = find_morphemes(ng, ngram_length);*/
+				V_PRINT("Extracting Morphemes and Building Lexical Categories.");
+				morphemes = find_morphemes(ng, ngram_length);
 				/*V_PRINT("Appending Current File n-gram with previous");
 				ngram_append(&ng_to_merge, &ng);*/
 			}
@@ -163,33 +168,35 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 
 }
 
-/*
-   struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_length)
-   {
-   struct lexical_categories_t *lex;
-   struct morpheme_t *morphemes;
-   int elem_count = 0;
+struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_length)
+{
+	struct lexical_categories_t *lex = malloc(sizeof(struct lexical_categories_t));
+	struct morpheme_t *morphemes;
+	int elem_count = 0;
 
-   for (int i = 0; i <= ngram_length; ++i) {
-   struct ngram_t ngram = ng[i];
-   for (int j = 0; j < ngram.rel_count; ++j) {
-   struct ngram_t target = ngram.rel[j];
-   struct morpheme_t forward = find_longest_match(ngram.word.word, target.word.word);
-   struct morpheme_t backward = find_longest_match(reverse(ngram.word.word), reverse(target.word.word));
-   struct morpheme_t *internal = find_internal_morphemes(ngram.word.word, target.word.word);
-   merge_morpheme_list(&morphemes, forward, backward, internal, &elem_count);
-   }
-   }
-   for (int j = 0; j < elem_count; ++j) {
-   regexify(&morphemes[j]);
-   }
-   uniq_morpheme_t(&morphemes);
+	int i, j;
+	for (i = 0; i <= ngram_length; ++i) {
+		struct ngram_t ngram = *ng[i];
+		for (j = 0; j < ngram.refs_count; ++j) {
+		/*	struct ngram_t target = *ngram.refs[j];
+			struct morpheme_t forward = find_longest_match(ngram->word, target->word);
+			struct morpheme_t backward = find_longest_match(reverse_word(ngram->word), reverse_word(target->word));
+			backward.regex[0] = '$';
+			backward.regex = reverse(backward.regex);
+			struct morpheme_t *internal = find_internal_morphemes(ngram->word, target->word);
+			*/
+			//merge_morpheme_list(&morphemes, forward, backward, internal, &elem_count);
+		}
+	}
+/*	for (int j = 0; j < elem_count; ++j) {
+		regexify(&morphemes[j]);
+	}
+	uniq_morpheme_t(&morphemes);
 
-   identify_true_morphemes(&morphemes, &lex)
-   store_morphemes(&lex);
+	identify_true_morphemes(&morphemes, &lex)
+		store_morphemes(&lex);
+*/
 
 
-
-   return lex;
-   }
-   */
+	return lex;
+}

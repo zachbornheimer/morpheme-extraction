@@ -35,9 +35,24 @@ struct ngram_t {
 	struct ngram_half_array before;
 	struct ngram_half_array after;
 	int refs_count;
-	struct ngram_t** refs; 
+	struct ngram_t **refs; 
 };
 
 /* end ngram structs */
+
+/* lexical_categories_t struct */
+
+struct morpheme_t {
+	char *regex;
+	int freq;
+};
+
+struct lexical_categories_t {
+	struct morpheme_t morpheme;
+	int ref_count;
+	struct ngram_t **refs;
+};
+
+/* end lexical_categories_t def. */
 
 #endif

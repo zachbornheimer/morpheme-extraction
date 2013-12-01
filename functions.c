@@ -15,7 +15,7 @@
 #include <string.h>
 
 #include "constants.h"
-#include "prototypes.h"
+#include "functions.h"
 
 /* append two to the end of one */
 char* append(char* one, char* two)

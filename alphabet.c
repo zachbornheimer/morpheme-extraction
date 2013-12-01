@@ -20,8 +20,9 @@
 #include <errno.h>
 #include <string.h>
 
+#include "structs.h"
 #include "constants.h"
-#include "prototypes.h"
+#include "functions.h"
 
 char* find_word_delimiter(char**);
 

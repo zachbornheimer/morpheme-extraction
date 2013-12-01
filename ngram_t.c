@@ -13,7 +13,7 @@
 
 #include "constants.h"
 #include "structs.h"
-#include "prototypes.h"
+#include "functions.h"
 
 /*
 #include "word_t.c"

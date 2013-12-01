@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "prototypes.h"
+#include "file.h"
 
 /* adds a character to a file (char *array) type */
 void read_by_char(const int c, char **buffer, int *charCount, int *bytes)
@@ -54,7 +54,7 @@ char* read_file(const char *filename)
 }
 
 /* user prompt for filename */
-char *ask_for_file()
+char* ask_for_file(void)
 {
 	int c, charCount = 0, bytes = 1;
 	char *filename;
