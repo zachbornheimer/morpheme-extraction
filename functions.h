@@ -15,7 +15,8 @@ int uniq(char**, char**);
 int uniq_words(char**, int);
 int explode_sansnull_str(char***, char*, char**);
 int explode_sansnull(char***, char*, char*);
-int move_char(int *index, char **in);
-char* permute(char **string, int *i);
+int move_char(int*, char**);
+char* permute(char**, int*);
+char* reverse(char*);
 
 #endif

@@ -10,8 +10,8 @@
 
 #define CORPUS_DIR "corpus/corpus"
 #define ZEDRAM_OUTPUT "languageModel.zdrm"
-//#define DEFAULT_PATH "./corpus/nlp-corpus/dev/normalizers/normalized/"
-#define DEFAULT_PATH "./test-corpus/"
+#define DEFAULT_PATH "./corpus/nlp-corpus/dev/normalizers/normalized/"
+//#define DEFAULT_PATH "./test-corpus/"
 #define NGRAM_SIZE 9
 
 #define BEFORE 0

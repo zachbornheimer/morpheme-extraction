@@ -44,7 +44,13 @@ struct ngram_t {
 
 struct morpheme_t {
 	char *regex;
+	char *morpheme;
 	int freq;
+};
+
+struct morpheme_list_t {
+	struct morpheme_t *list;
+	int count;
 };
 
 struct lexical_categories_t {

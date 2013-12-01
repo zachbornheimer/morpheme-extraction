@@ -36,4 +36,15 @@ struct word_t word(char *w)
 	return a;
 }
 
+
+struct word_t reverse_word(struct word_t w)
+{
+	struct word_t temp;
+	temp.i = w.i;
+	temp.freq = w.freq;
+	temp.word = reverse(w.word);
+
+	return temp;
+}
+
 #endif

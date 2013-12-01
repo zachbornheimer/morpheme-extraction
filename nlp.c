@@ -9,6 +9,8 @@
 #include <string.h>
 #include <errno.h>
 
+/* orderd by visual aesthetic :) */
+#include "morpheme_t.h"
 #include "constants.h"
 #include "directory.h"
 #include "functions.h"
@@ -165,7 +167,6 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 	}
 
 	return ng;
-
 }
 
 struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_length)
@@ -176,14 +177,21 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 
 	int i, j;
 	for (i = 0; i <= ngram_length; ++i) {
-		struct ngram_t ngram = *ng[i];
+		struct ngram_t ngram = *(ng[i]);
 		for (j = 0; j < ngram.refs_count; ++j) {
-		/*	struct ngram_t target = *ngram.refs[j];
-			struct morpheme_t forward = find_longest_match(ngram->word, target->word);
-			struct morpheme_t backward = find_longest_match(reverse_word(ngram->word), reverse_word(target->word));
+			if (verbose_mode == ON)
+				printf(" Processing Ngram %d/%d:%d/%d, ", i,ngram_length, j, ngram.refs_count);
+			struct ngram_t target = *ngram.refs[j];
+			struct morpheme_t forward = find_longest_match(ngram.word, target.word);
+			if (verbose_mode == ON)
+				printf(" ...forward, done. ");
+			struct morpheme_t backward = find_longest_match(reverse_word(ngram.word), reverse_word(target.word));
+			if (verbose_mode == ON)
+				printf(" ...backward, done. ");
 			backward.regex[0] = '$';
 			backward.regex = reverse(backward.regex);
-			struct morpheme_t *internal = find_internal_morphemes(ngram->word, target->word);
+			/*
+			struct morpheme_list_t internal = find_internal_morphemes(ngram.word, target.word);
 			*/
 			//merge_morpheme_list(&morphemes, forward, backward, internal, &elem_count);
 		}

@@ -193,4 +193,24 @@ char* permute(char **string, int *i)
 	return *string;
 }
 
+char* reverse(char* string)
+{
+	char temp;
+	int i = 0, len = strlen(string);
+
+	if (len < 2)
+		return string;
+
+	char *str = strdup(string);
+
+	while (i < (len-i)) {
+		temp = str[i];
+		str[i] = str[len-i];
+		str[len-i] = temp;
+		++i;
+	}
+
+	return str;
+}
+
 #endif
