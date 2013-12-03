@@ -33,11 +33,9 @@ void expand(char **ptr)
 	*ptr = realloc(*ptr, sizeof(char) * (strlen(*ptr) + 2));
 }
 
-int in_array(const int c, char **uniq, int size)
+int in_array(const int c, char **uniq, const int size)
 {
 	int i;
-//	if (strcmp(*uniq, "") || (*uniq)[0] == 0 || (*uniq)[0] == 0)
-//		return 0;
 	for (i = 0; i < size; ++i)
 		if (c == (*uniq)[i])
 			return i;
@@ -87,10 +85,12 @@ int uniq_words(char **arr, int size)
 	for (j = 0; j < size; ++j) {
 		/*if (verbose_mode == ON) {
 			double p = ((double) j / (double) size) * (double) 100.00;
-			printf("Creating Uniq Array %f%s Complete\r", p, "%");
+			printf("Creating Uniq Word Array %f%s Complete\r", p, "%");
 		}*/
-		if (i == 0 || in_char_array(arr[j], u, i)==-1)
-			u[i++] = arr[j];
+		if (i == 0 || in_char_array(arr[j], u, i)==-1) {
+			u[i] = arr[j];
+			++i;
+		}
 	}
 	free(u);
 	return i-1;
@@ -118,12 +118,14 @@ int explode_sansnull_str(char ***arr_ptr, char *str, char **delimiter)
 
 int explode_sansnull(char ***a, char *str, char *delimiter)
 {
-	int wc, size = strlen(str) + 1;
+	int wc, size = strlen(str)+1;
 	int count = 0, char_count = 0, i = 0, j;
 	char *token;
 
 	char *s = strdup(str);
 	char *t = strdup(delimiter);
+	if (t == NULL)
+		exit(E_REALLOC);
 
 	for (j = 0; str[j] != '\0'; (str[j++] == *delimiter) ? ++(count) : 0);
 	wc = count+1;
@@ -132,7 +134,6 @@ int explode_sansnull(char ***a, char *str, char *delimiter)
 	token = strtok(s, t);
 
 	int malloc_size = (sizeof(char*) * (wc-1)) + size + wc;
-	//printf("%d\n", malloc_size);
 	char **arr = malloc(malloc_size);
 	
 	while (token != NULL) {
@@ -140,29 +141,14 @@ int explode_sansnull(char ***a, char *str, char *delimiter)
 		//arr[i] = malloc(sizeof(char) * strlen(token)+1);
 		if (token != NULL)
 			arr[i++] = token;
-		//printf("token: %s\n\n", token);
 		token = strtok(NULL, t);
 		++count;
 	}
 
+	free(t);
 	*a = arr;
 	return i-1;
 }
-/*
-int main()
-{
-	int count;
-       	char *str, del, **arr;
-//	del = malloc(sizeof(char) * (strlen("test")+1));
-	del = '-';
-	str = "This-is-an-interesting-example-of-strtok.";
-	explode(&count, &arr, str, &del);
-	printf("'%s'\n", *arr);
-	printf("Words: %d, Sentence: %s\n", count, arr[0]);
-	free(*arr);
-	free(arr);
-	return 0;
-}*/
 
 int move_char(int *index, char **in)
 {
@@ -196,12 +182,12 @@ char* permute(char **string, int *i)
 char* reverse(char* string)
 {
 	char temp;
-	int i = 0, len = strlen(string);
+	int i = 0, len = strlen(string)-1;
 
 	if (len < 2)
 		return string;
 
-	char *str = strdup(string);
+	char *str = string;
 
 	while (i < (len-i)) {
 		temp = str[i];

@@ -12,6 +12,8 @@
 #include <string.h>
 
 #include "structs.h"
+#include "functions.h"
+#include "word_t.h"
 
 /* allows for setting of the word */
 void setword(struct word_t *word, char *w)
@@ -25,8 +27,8 @@ void setword(struct word_t *word, char *w)
 		printf("malloc failed.\n");
 		exit(1);
 	}
-
 }
+
 
 /* constructs a new word */
 struct word_t word(char *w)
@@ -45,6 +47,22 @@ struct word_t reverse_word(struct word_t w)
 	temp.word = reverse(w.word);
 
 	return temp;
+}
+
+
+void remove_first_char(struct word_t *w)
+{
+	char *finalized = reverse(w->word);
+	finalized[strlen(finalized)-1] = '\0';
+	w->word = reverse(finalized);
+}
+
+struct word_t word_t_dup(struct word_t word)
+{
+	const int size = sizeof(struct word_t) + strlen(word.word) + 1;
+	struct word_t new_word;
+	memcpy(&new_word, &word, size);
+	return new_word;
 }
 
 #endif

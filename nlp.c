@@ -10,6 +10,7 @@
 #include <errno.h>
 
 /* orderd by visual aesthetic :) */
+#include "morpheme_list_t.h"
 #include "morpheme_t.h"
 #include "constants.h"
 #include "directory.h"
@@ -135,9 +136,9 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 	}
 	*ngram_length += ngram_count;
 
-/*	V_PRINT("Uniqifying each ngram");
+	V_PRINT("Uniqifying each ngram");
 
-	for (q = 0; q <= word_count; q++) {
+	/*for (q = 0; q <= word_count; q++) {
 		if (verbose_mode == ON)
 			printf("  Uniqifying ngram: %d/%d\r", q, word_count);
 		if (q < (NGRAM_SIZE/2)) {
@@ -146,11 +147,10 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 		if (word_count - q > NGRAM_SIZE)
 			uniqify(&ng[q]->after);
 	}
-*/
+	*/
 
 
 	int k;
-	V_PRINT("Processing Similar Ngrams...");
 	for (k = 0; k <= *ngram_length; ++k) {
 		struct word_t w = ng[k]->word;
 		for (j = 0; j <= *ngram_length; ++j) {
@@ -180,19 +180,37 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 		struct ngram_t ngram = *(ng[i]);
 		for (j = 0; j < ngram.refs_count; ++j) {
 			if (verbose_mode == ON)
-				printf(" Processing Ngram %d/%d:%d/%d, ", i,ngram_length, j, ngram.refs_count);
+				printf(" Processing Ngram %d/%d:%d/%d           \r", i,ngram_length-1, j, ngram.refs_count-1);
 			struct ngram_t target = *ngram.refs[j];
 			struct morpheme_t forward = find_longest_match(ngram.word, target.word);
-			if (verbose_mode == ON)
-				printf(" ...forward, done. ");
-			struct morpheme_t backward = find_longest_match(reverse_word(ngram.word), reverse_word(target.word));
-			if (verbose_mode == ON)
-				printf(" ...backward, done. ");
+			forward.regex = malloc(sizeof(char) * (strlen(forward.morpheme)+2));
+			forward.regex[0] = '^';
+			forward.regex[1] = '\0';
+			forward.regex = strcat(forward.regex, forward.morpheme);
+			//printf("Forwards: %s, %s\n", ngram.word.word, target.word.word);
+			reverse_word(ngram.word);
+			reverse_word(target.word);
+			struct morpheme_t backward = find_longest_match(ngram.word, target.word);
+			backward.regex = malloc(sizeof(char) * strlen(backward.morpheme)+2);
 			backward.regex[0] = '$';
+			backward.regex[1] = '\0';
+			backward.regex = strcat(backward.regex, backward.morpheme);
 			backward.regex = reverse(backward.regex);
-			/*
-			struct morpheme_list_t internal = find_internal_morphemes(ngram.word, target.word);
+			backward.morpheme = reverse(backward.morpheme);
+
+			reverse_word(ngram.word);
+			reverse_word(target.word);
+
+		/*	struct morpheme_list_t internal = find_internal_morphemes(&ngram.word, &target.word);
+			printf("Backward: %s, %s\n", ngram.word.word, target.word.word);
+			int rq = 0;
+			for (rq = 0; rq < internal.count; ++rq) {
+				printf("Morpheme: %s, %d\n", internal.list[rq], internal.count);
+				exit(1);
+			}
+			printf("Backward: %s:%d, %s:%d\n", ngram.word.word, ngram.word.freq, target.word.word, target.word.freq);
 			*/
+			
 			//merge_morpheme_list(&morphemes, forward, backward, internal, &elem_count);
 		}
 	}
@@ -204,6 +222,8 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 	identify_true_morphemes(&morphemes, &lex)
 		store_morphemes(&lex);
 */
+
+	V_PRINT("\n");
 
 
 	return lex;

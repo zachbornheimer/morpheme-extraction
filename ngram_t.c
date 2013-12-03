@@ -195,11 +195,12 @@ int ngrams_similar(struct ngram_t a, struct ngram_t b)
 		for (j = 0; j < b.after.at[i]->count; ++j)
 			if (strcmp(b.after.at[i]->elems[j].word, "") != 0)
 				arr[arr_count++] = b.after.at[i]->elems[j].word;
-
        	count = uniq_words(arr, elems_count);
+	free(arr);
 
 	arr_count -= 1;
 	percent_similar = (double) 100.00 * (((double)arr_count - (double)count)/(double)arr_count);
+
 
 	if (percent_similar >= THRESHOLD_SIMILAR_NGRAMS)
 		return 1;
@@ -210,7 +211,7 @@ int ngrams_similar(struct ngram_t a, struct ngram_t b)
 void add_similar_ngram_ref(struct ngram_t **ngram, struct ngram_t **ngram_ref)
 {
 	int num_refs = (*ngram)->refs_count;
-	int memsize = (sizeof(struct ngram**) * (num_refs + 1));
+	int memsize = (sizeof(struct ngram**) * (num_refs+1));
 
 	if (num_refs == 0) {
 		(*ngram)->refs = malloc(memsize);
@@ -220,7 +221,8 @@ void add_similar_ngram_ref(struct ngram_t **ngram, struct ngram_t **ngram_ref)
 			exit(E_REALLOC);
 	}
 
-	(*ngram)->refs[((*ngram)->refs_count)++] = *ngram_ref;
+	(*ngram)->refs[(*ngram)->refs_count] = *ngram_ref;
+	++(*ngram)->refs_count;
 
 }
 
