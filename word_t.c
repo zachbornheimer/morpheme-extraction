@@ -50,11 +50,12 @@ struct word_t reverse_word(struct word_t w)
 }
 
 
-void remove_first_char(struct word_t *w)
+char* remove_first_char(struct word_t w)
 {
-	char *finalized = reverse(w->word);
+	char *word = strdup(w.word);
+	char *finalized = reverse(word);
 	finalized[strlen(finalized)-1] = '\0';
-	w->word = reverse(finalized);
+	return reverse(finalized);
 }
 
 struct word_t word_t_dup(struct word_t word)

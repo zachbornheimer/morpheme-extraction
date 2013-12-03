@@ -30,7 +30,6 @@ struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 	}
 	str[real_length] = '\0';
 	
-	printf("%s | w1: %s, w2: %s\n", str, one.word, two.word);
 	/*if (real_length == 0)
 		printf("ZERO!, w1: %s, w2: %s\n", shortest.word, longest.word);*/
 

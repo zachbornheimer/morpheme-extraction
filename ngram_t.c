@@ -186,7 +186,6 @@ int ngrams_similar(struct ngram_t a, struct ngram_t b)
 		for (j = 0; j < a.after.at[i]->count; ++j)
 			if (strcmp(a.after.at[i]->elems[j].word, "") != 0)
 				arr[arr_count++] = a.after.at[i]->elems[j].word;
-
 	for (i = 0; i < (NGRAM_SIZE/2); ++i)
 		for (j = 0; j < b.before.at[i]->count; ++j)
 			if (strcmp(b.before.at[i]->elems[j].word, "") != 0)

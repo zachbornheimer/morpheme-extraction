@@ -52,7 +52,7 @@ char* __gf(char dirpath[], int *index, int *count)
 		 * as to not pollute the working *path
 		 */
 		while ((d = readdir(currdir)) != NULL)
-			if (d->d_type == DT_REG && d->d_name[0] != '.') {
+			if ((d->d_type == DT_REG || d->d_type == DT_UNKNOWN) && d->d_name[0] != '.') {
 				char *curfile = append(path, d->d_name);
 				if ((*count)++ >= *index) {
 					++(*index);

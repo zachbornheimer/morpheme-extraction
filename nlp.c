@@ -77,32 +77,34 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 {
 	char **arr;
 	int word_count = explode_sansnull_str(&arr, f, &wd);
-	
+
 	int i, q, j;
 	int hash_elem = -1;
 	int hash_index = -1;
 	int ngram_count = word_count;
 	int make_new = 1;
+	int add_loc = 0;
 
 	struct ngram_t **ng;
 	struct word_t *w_freq = malloc(sizeof(struct word_t) * (word_count+1));
-	
+
 	ng = malloc(sizeof(struct ngram_t) * (word_count+1));
 	V_PRINT("Setting NGRAM elements");
 	for (i = 0; i <= word_count; ++i) {
 		struct ngram_t ngram;
 		if (arr[i] == NULL || strcmp(arr[i], "") == 0 || strlen(arr[i]) == 0)
 			continue;
-		if (i != 0) {
-			for (q = 0; q < i; ++q) {
-				if (ng[q]->word.word != NULL && strcmp(ng[q]->word.word, arr[i]) == 0) {
+
+		if (i != 0)
+			for (q = 0; q < add_loc; ++q)
+				if (strcmp(ng[q]->word.word, arr[i]) == 0) {
 					ngram = *ng[q];
 					--ngram_count;
 					make_new = 0;
 					break;
+				} else {
+					make_new = 1;
 				}
-			}
-		}
 		if (make_new == 1) {
 			ngram = new_ngram();
 			if (strlen(arr[i]) > 0)
@@ -110,7 +112,7 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 		}
 
 		if (verbose_mode == ON)
-			printf("  Processing Word: %d:%d\r", i, word_count);
+			printf("  Processing Word: %d:%d     \r", i, word_count);
 		if (strlen(arr[i]) > 0) {
 			++ngram.word.freq;
 
@@ -131,38 +133,48 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 			}
 
 		}
-		ng[i] = malloc(sizeof(struct ngram_t));
-		*ng[i] = ngram;
-	}
-	*ngram_length += ngram_count;
-
-	V_PRINT("Uniqifying each ngram");
-
-	/*for (q = 0; q <= word_count; q++) {
-		if (verbose_mode == ON)
-			printf("  Uniqifying ngram: %d/%d\r", q, word_count);
-		if (q < (NGRAM_SIZE/2)) {
-			uniqify(&ng[q]->before);
+		if (make_new == 1) {
+			ng[add_loc] = malloc(sizeof(struct ngram_t));
+			*ng[add_loc] = ngram;
+			++add_loc;
+		} else {
+			free(ng[q]);
+			ng[q] = malloc(sizeof(struct ngram_t));
+			*ng[q] = ngram;
 		}
-		if (word_count - q > NGRAM_SIZE)
-			uniqify(&ng[q]->after);
 	}
-	*/
+	i = add_loc-1;
+	*ngram_length += add_loc - 1;
+
+	/*
+	   V_PRINT("Uniqifying each ngram");
+
+	   for (q = 0; q <= word_count; q++) {
+	   if (verbose_mode == ON)
+	   printf("  Uniqifying ngram: %d/%d\r", q, word_count);
+	   if (q < (NGRAM_SIZE/2)) {
+	   uniqify(&ng[q]->before);
+	   }
+	   if (word_count - q > NGRAM_SIZE)
+	   uniqify(&ng[q]->after);
+	   }
+	   */
 
 
 	int k;
 	for (k = 0; k <= *ngram_length; ++k) {
 		struct word_t w = ng[k]->word;
-		for (j = 0; j <= *ngram_length; ++j) {
+		for (j = k; j <= *ngram_length; ++j) {
 			if (verbose_mode == ON)
-				printf("Processing Similar Ngrams: Target: %d/%d| Similar: %d/%d\r", k, *ngram_length, j, *ngram_length);
-			if (j - k < NGRAM_SIZE)
-				continue;
+				printf("Processing Similar Ngrams: Target: %d/%d| Similar: %d/%d     \r     ", k, *ngram_length, j, *ngram_length);
+			//if (j - k < NGRAM_SIZE)
+			//	continue;
 			struct word_t a = ng[j]->word;
 			struct ngram_t one = *ng[k];
 			struct ngram_t two = *ng[j];
-			if (a.word != NULL && w.word != NULL && strcmp(a.word, w.word) != 0 && ngrams_similar(one, two))
+			if (a.word != NULL && w.word != NULL && strcmp(a.word, w.word) != 0 && ngrams_similar(one, two)) {
 				add_similar_ngram_ref(&ng[k], &ng[j]);
+			}
 		}
 	}
 
@@ -177,17 +189,20 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 
 	int i, j;
 	for (i = 0; i <= ngram_length; ++i) {
+		printf("I: %d\n", i);
 		struct ngram_t ngram = *(ng[i]);
 		for (j = 0; j < ngram.refs_count; ++j) {
 			if (verbose_mode == ON)
 				printf(" Processing Ngram %d/%d:%d/%d           \r", i,ngram_length-1, j, ngram.refs_count-1);
 			struct ngram_t target = *ngram.refs[j];
+			char *w1 = strdup(ngram.word.word);
+			char *w2 = strdup(target.word.word);
+
 			struct morpheme_t forward = find_longest_match(ngram.word, target.word);
 			forward.regex = malloc(sizeof(char) * (strlen(forward.morpheme)+2));
 			forward.regex[0] = '^';
 			forward.regex[1] = '\0';
 			forward.regex = strcat(forward.regex, forward.morpheme);
-			//printf("Forwards: %s, %s\n", ngram.word.word, target.word.word);
 			reverse_word(ngram.word);
 			reverse_word(target.word);
 			struct morpheme_t backward = find_longest_match(ngram.word, target.word);
@@ -201,27 +216,27 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 			reverse_word(ngram.word);
 			reverse_word(target.word);
 
-		/*	struct morpheme_list_t internal = find_internal_morphemes(&ngram.word, &target.word);
-			printf("Backward: %s, %s\n", ngram.word.word, target.word.word);
+			struct morpheme_list_t internal = find_internal_morphemes(ngram.word, target.word);
+			ngram.word.word = w1;
+			target.word.word = w2;
 			int rq = 0;
 			for (rq = 0; rq < internal.count; ++rq) {
-				printf("Morpheme: %s, %d\n", internal.list[rq], internal.count);
-				exit(1);
+				if (strlen(internal.list[rq].morpheme) > 2)
+					printf("Morpheme: %s, %d\n", internal.list[rq].morpheme, internal.count);
 			}
-			printf("Backward: %s:%d, %s:%d\n", ngram.word.word, ngram.word.freq, target.word.word, target.word.freq);
-			*/
-			
+
+
 			//merge_morpheme_list(&morphemes, forward, backward, internal, &elem_count);
 		}
 	}
-/*	for (int j = 0; j < elem_count; ++j) {
+	/*	for (int j = 0; j < elem_count; ++j) {
 		regexify(&morphemes[j]);
-	}
-	uniq_morpheme_t(&morphemes);
+		}
+		uniq_morpheme_t(&morphemes);
 
-	identify_true_morphemes(&morphemes, &lex)
+		identify_true_morphemes(&morphemes, &lex)
 		store_morphemes(&lex);
-*/
+		*/
 
 	V_PRINT("\n");
 
