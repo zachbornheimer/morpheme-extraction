@@ -184,7 +184,7 @@ char* reverse(char* string)
 	char temp;
 	int i = 0, len = strlen(string)-1;
 
-	if (len < 2)
+	if (len < 1)
 		return string;
 
 	char *str = string;

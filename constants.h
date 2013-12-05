@@ -10,8 +10,8 @@
 
 #define CORPUS_DIR "corpus/corpus"
 #define ZEDRAM_OUTPUT "languageModel.zdrm"
-//#define DEFAULT_PATH "./corpus/nlp-corpus/dev/normalizers/normalized/"
-#define DEFAULT_PATH "./test-corpus/"
+#define DEFAULT_PATH "./corpus/nlp-corpus/dev/normalizers/normalized/"
+//#define DEFAULT_PATH "./test-corpus/"
 #define NGRAM_SIZE 9
 
 #define BEFORE 0
@@ -30,6 +30,13 @@
 
 /* thresholds */
 #define THRESHOLD_SIMILAR_NGRAMS 0
+
+/* Morpheme Types */
+#define PREFIX    0
+#define SUFFIX    1
+#define CIRCUMFIX 2
+#define INFIX     3
+#define STEM      4
 
 
 #include "externs.h"

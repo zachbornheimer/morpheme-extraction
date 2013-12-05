@@ -189,7 +189,6 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 
 	int i, j;
 	for (i = 0; i <= ngram_length; ++i) {
-		printf("I: %d\n", i);
 		struct ngram_t ngram = *(ng[i]);
 		for (j = 0; j < ngram.refs_count; ++j) {
 			if (verbose_mode == ON)
@@ -203,6 +202,11 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 			forward.regex[0] = '^';
 			forward.regex[1] = '\0';
 			forward.regex = strcat(forward.regex, forward.morpheme);
+			forward.words_count = 0;
+			forward.words = malloc(0);
+			add_word(&forward, ngram.word);
+			add_word(&forward, target.word);
+
 			reverse_word(ngram.word);
 			reverse_word(target.word);
 			struct morpheme_t backward = find_longest_match(ngram.word, target.word);
@@ -212,16 +216,22 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 			backward.regex = strcat(backward.regex, backward.morpheme);
 			backward.regex = reverse(backward.regex);
 			backward.morpheme = reverse(backward.morpheme);
-
+			backward.words_count = 0;
+			backward.words = malloc(0);
 			reverse_word(ngram.word);
 			reverse_word(target.word);
+			add_word(&backward, ngram.word);
+			add_word(&backward, target.word);
 
 			struct morpheme_list_t internal = find_internal_morphemes(ngram.word, target.word);
+			add_morpheme(&internal, forward);
+			add_morpheme(&internal, backward);
+
 			ngram.word.word = w1;
 			target.word.word = w2;
 			int rq = 0;
 			for (rq = 0; rq < internal.count; ++rq) {
-				if (strlen(internal.list[rq].morpheme) > 2)
+				if (strlen(internal.list[rq].morpheme) > 2 && verbose_mode == ON)
 					printf("Morpheme: %s, %d\n", internal.list[rq].morpheme, internal.count);
 			}
 

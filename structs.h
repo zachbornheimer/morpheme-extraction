@@ -46,6 +46,9 @@ struct morpheme_t {
 	char *regex;
 	char *morpheme;
 	int freq;
+	int words_count;
+	struct word_t *words;
+	int type;
 };
 
 struct morpheme_list_t {
