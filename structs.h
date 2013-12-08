@@ -49,6 +49,12 @@ struct morpheme_t {
 	int words_count;
 	struct word_t *words;
 	int type;
+	char *front_regex;
+	char **front_regex_arr;
+	char *back_regex;
+	char **back_regex_arr;
+	int front_regex_arr_index;
+	int back_regex_arr_index;
 };
 
 struct morpheme_list_t {

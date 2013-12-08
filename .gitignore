@@ -17,3 +17,4 @@ nlp
 nlp.debug
 *.o
 alphabet
+gmon.out

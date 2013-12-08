@@ -184,6 +184,8 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_length)
 {
 	struct lexical_categories_t *lex = malloc(sizeof(struct lexical_categories_t));
+	struct morpheme_list_t internal = {.count = 0};
+	internal.list = malloc(0);
 	struct morpheme_t *morphemes;
 	int elem_count = 0;
 
@@ -202,8 +204,13 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 			forward.regex[0] = '^';
 			forward.regex[1] = '\0';
 			forward.regex = strcat(forward.regex, forward.morpheme);
+			forward.front_regex = "^\0";
+			forward.back_regex = "\0";
 			forward.words_count = 0;
 			forward.words = malloc(0);
+			forward.front_regex_arr_index = -1; 
+			forward.back_regex_arr_index = -1; 
+			forward.type = UNDEF;
 			add_word(&forward, ngram.word);
 			add_word(&forward, target.word);
 
@@ -218,27 +225,29 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 			backward.morpheme = reverse(backward.morpheme);
 			backward.words_count = 0;
 			backward.words = malloc(0);
+			backward.front_regex = "\0";
+			backward.back_regex = "$\0";
+			backward.front_regex_arr_index = -1; 
+			backward.back_regex_arr_index = -1; 
+			backward.type = UNDEF;
 			reverse_word(ngram.word);
 			reverse_word(target.word);
 			add_word(&backward, ngram.word);
 			add_word(&backward, target.word);
 
-			struct morpheme_list_t internal = find_internal_morphemes(ngram.word, target.word);
+			find_internal_morphemes(ngram.word, target.word, &internal);
 			add_morpheme(&internal, forward);
 			add_morpheme(&internal, backward);
 
 			ngram.word.word = w1;
 			target.word.word = w2;
-			int rq = 0;
-			for (rq = 0; rq < internal.count; ++rq) {
-				if (strlen(internal.list[rq].morpheme) > 2 && verbose_mode == ON)
-					printf("Morpheme: %s, %d\n", internal.list[rq].morpheme, internal.count);
-			}
 
 
 			//merge_morpheme_list(&morphemes, forward, backward, internal, &elem_count);
 		}
 	}
+	struct morpheme_list_t morpheme_list = fuse_regex(internal);
+//	free(internal);
 	/*	for (int j = 0; j < elem_count; ++j) {
 		regexify(&morphemes[j]);
 		}

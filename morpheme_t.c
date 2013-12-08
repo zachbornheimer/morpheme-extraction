@@ -44,8 +44,6 @@ struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 	if (real_length == 0)
 		return empty;
 
-
-
 	str = realloc(str, (sizeof(char) * real_length+1));
 	if (str == NULL)
 		exit(E_REALLOC);
@@ -86,12 +84,15 @@ void gen_regex(char *one, char *two, int place_one, int place_two, struct morphe
 		return;
 
 	/* Step 1.5, If Either Word = Morpheme, the morpheme->morpheme is a stem */
+
+	morpheme->type = UNDEF;
+
 	if (strcmp(one, morpheme->morpheme) == 0 || strcmp(two, morpheme->morpheme) == 0) {
 		morpheme->regex = malloc(sizeof(morpheme->morpheme) + 3);
 		morpheme->regex[0] = '^';
 		morpheme->regex[1] = '\0';
 		strcat(morpheme->regex, morpheme->morpheme);
-		strcat(morpheme->regex, "$\0");
+		strcat(morpheme->regex, "$");
 		morpheme->type = STEM;
 		return;
 	}
@@ -121,24 +122,26 @@ void gen_regex(char *one, char *two, int place_one, int place_two, struct morphe
 	for (i = (place_two + strlen(morpheme->morpheme)); i <= strlen(two); ++i)
 		second_half2[i - (place_two + strlen(morpheme->morpheme))] = two[i];
 	second_half2[i - (place_two + strlen(morpheme->morpheme))] = '\0';
-	if (verbose_mode == ON)
-		printf("Word: %s, First Half: %s, Second Half: %s, Morpheme: %s\n", one, first_half1, second_half1, morpheme->morpheme);
 
 	/* Step 3, Generate Regex for Each Side */
-	int front_size = sizeof(char) * (4+(strlen(first_half1) + strlen(first_half2)));
+	int front_size = sizeof(char) * (strlen(first_half1) + strlen(first_half2));
 	if (strlen(first_half1) > strlen(first_half2))
-		front_size += sizeof(char) * (strlen(first_half1) * 2);
+		front_size += sizeof(char) * ((strlen(first_half1) * 3) + 3);
 	else
-		front_size += sizeof(char) * (strlen(first_half2) * 2);
+		front_size += sizeof(char) * ((strlen(first_half2) * 3) + 3);
 	
-	int back_size = sizeof(char) * (4 + strlen(second_half1) + strlen(second_half2));
+	int back_size = sizeof(char) * (strlen(second_half1) + strlen(second_half2));
 	if (strlen(second_half1) > strlen(second_half2))
-		back_size += sizeof(char) * (strlen(second_half1) * 2);
+		back_size += sizeof(char) * ((strlen(second_half1) * 3) + 3);
 	else
-		back_size += sizeof(char) * (strlen(second_half2) * 2);
+		back_size += sizeof(char) * ((strlen(second_half2) * 3) + 3);
+
+	front_size += 1+2; /* \0 + () */
+	back_size += 1+2;
 	
 	char *front = malloc(front_size*2);
 	char *back = malloc(back_size*2);
+
 
 	front[0] = ')';
 	front[1] = '\0';
@@ -146,23 +149,34 @@ void gen_regex(char *one, char *two, int place_one, int place_two, struct morphe
 	back[1] = '\0';
 	i = 0;
 
-	char *work = malloc(sizeof(char) * 2);
+	char *work = malloc(sizeof(char) * 3);
 	work[0] = '\0';
 	work[1] = '\0';
 	first_half1 = reverse(first_half1);
 	first_half2 = reverse(first_half2);
+	morpheme->front_regex_arr = malloc(front_size*2);
+	morpheme->front_regex_arr_index = -1;
 	while (1) {
-		if (i >= strlen(first_half1) && i >= strlen(first_half2))
+		if (i >= strlen(first_half1) && i >= (strlen(first_half2)))
 			break;
+		morpheme->front_regex_arr[i] = malloc(sizeof(char) * 3);
+		morpheme->front_regex_arr[i][0] = '\0';
 		strcat(front, "]\0");
+
 		if (i < strlen(first_half2)) {
 			work[0] = first_half2[i];
 			strcat(front, work);
+			strcat(morpheme->front_regex_arr[i], work);
 		}
+
 		if (i < strlen(first_half1)) {
 			work[0] = first_half1[i];
 			strcat(front, work);
+			strcat(morpheme->front_regex_arr[i], work);
 		}
+
+		morpheme->front_regex_arr_index = i;
+
 		strcat(front, "[\0");
 		++i;
 	}
@@ -176,32 +190,126 @@ void gen_regex(char *one, char *two, int place_one, int place_two, struct morphe
 	second_half1 = reverse(second_half1);
 	second_half2 = reverse(second_half2);
 	i = 0;
+	morpheme->back_regex_arr = malloc(back_size*4);
+	
+	morpheme->back_regex_arr_index = -1;
 	while (1) {
 		if (i >= strlen(second_half1) && i >= strlen(second_half2))
 			break;
 		strcat(back, "]\0");
-
+		morpheme->back_regex_arr[i] = malloc(sizeof(char) * 3);
+		morpheme->back_regex_arr[i][0] = '\0';
 		if (i < strlen(second_half1)) {
 			work[0] = second_half1[i];
 			strcat(back, work);
+			strcat(morpheme->back_regex_arr[i], work);
 		}
 		if (i < strlen(second_half2)) {
 			work[0] = second_half2[i];
 			strcat(back, work);
+			strcat(morpheme->back_regex_arr[i], work);
 		}
+		morpheme->back_regex_arr_index = i;
 		strcat(back, "[\0");
 		++i;
 	}
 	second_half1 = reverse(second_half1);
 	second_half2 = reverse(second_half2);
-	strcat(back, "\0");
+	strcat(back, "(\0");
 	back = reverse(back);
 
 	/* Step 4, Store Regex */
 
-	morpheme->regex = malloc(sizeof(char) * (strlen(front) + strlen(back) + strlen(morpheme->morpheme) + 1));
+	morpheme->regex = malloc(sizeof(char) * (strlen(front) + strlen(back) + strlen(morpheme->morpheme) + 8));
 	morpheme->regex[0] = '\0';
+	morpheme->front_regex = malloc(sizeof(char) * (strlen(front) + 2));
+	morpheme->front_regex[0] = '\0';
+	morpheme->back_regex = malloc(sizeof(char) * (strlen(back) + 2));
+	morpheme->back_regex[0] = '\0';
+	front = realloc(front, sizeof(char) * (strlen(front) + 1));
+	if (front == NULL)
+		exit(E_REALLOC);
+	back = realloc(back, sizeof(char) * (strlen(back) + 1));
+	if (back == NULL)
+		exit(E_REALLOC);
 	strcat(morpheme->regex, front);
 	strcat(morpheme->regex, morpheme->morpheme);
 	strcat(morpheme->regex, back);
+	strcat(morpheme->front_regex, front);
+	strcat(morpheme->back_regex, back);
+}
+
+void merge_rules(struct morpheme_t *morpheme)
+{
+	int i = 0, front_size = 0, back_size = 0;
+	for (i = 0; i <= morpheme->front_regex_arr_index; ++i)
+		if (strlen(morpheme->front_regex_arr[i]) != NULL)
+			front_size += strlen(morpheme->front_regex_arr[i]);
+	++front_size;
+	for (i = 0; i <= morpheme->back_regex_arr_index; ++i)
+		if (strlen(morpheme->back_regex_arr[i]) != NULL)
+			back_size += strlen(morpheme->back_regex_arr[i]);
+	++back_size;
+	char *front = malloc(front_size * 3);
+	char *back = malloc(back_size * 3);
+	front[0] = ')';
+	front[1] = '\0';
+	back[0] = ')';
+	back[1] = '\0';
+	i = 0;
+	while (1) {
+		if (i > morpheme->front_regex_arr_index)
+			break;
+		strcat(front, "]");
+		char *arr;
+		uniq(&(morpheme->front_regex_arr[i]), &arr);
+		morpheme->front_regex_arr[i] = arr;
+		strcat(front, morpheme->front_regex_arr[i]);
+		strcat(front, "[");
+		++i;
+	}
+	strcat(front, "(");
+	front = reverse(front);
+
+	i = 0;
+	int back_index = 0;
+
+	i = 0;
+	while (1) {
+		if (i > morpheme->back_regex_arr_index)
+			break;
+		strcat(back, "]");
+		char *arr;
+		uniq(&(morpheme->back_regex_arr[i]), &arr);
+		morpheme->back_regex_arr[i] = arr;
+		strcat(back, morpheme->back_regex_arr[i]);
+		strcat(back, "[");
+		++i;
+	}
+	strcat(back, "(");
+	back = reverse(back);
+
+
+	int size = 3;
+	size += (int) strlen(front) + (int) strlen(back) + (int) strlen(morpheme->morpheme);
+	morpheme->regex = malloc(sizeof(char) * size);
+	morpheme->regex[0] = '\0';
+	if (strcmp(morpheme->front_regex, "^") != 0) {
+		morpheme->front_regex = malloc(sizeof(char) * (strlen(front) + 2));
+		morpheme->front_regex[0] = '\0';
+		strcat(morpheme->regex, front);
+		strcat(morpheme->front_regex, front);
+	} else {
+		strcat(morpheme->regex, morpheme->front_regex);
+	}
+	strcat(morpheme->regex, morpheme->morpheme);
+	if (strcmp(morpheme->back_regex, "$") != 0) {
+		morpheme->back_regex = malloc(sizeof(char) * (strlen(back) + 2));
+		morpheme->back_regex[0] = '\0';
+		strcat(morpheme->regex, back);
+		strcat(morpheme->back_regex, back);
+	} else {
+		strcat(morpheme->regex, morpheme->back_regex);
+	}
+
 }

@@ -67,12 +67,12 @@ int uniq(char **f, char **ret)
 		}
 		if ((*f)[j] != 0) {
 			if (i == 0 || in_array((*f)[j], &u, i)==-1) {
-
 				u[i++] = (*f)[j];
 			}
+		} else {
+			break;
 		}
 	}
-	strcat(u, "\0");
 	*ret = u;
 	return i-1;
 }
