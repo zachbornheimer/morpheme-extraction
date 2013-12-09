@@ -24,7 +24,7 @@
 int verbose_mode;
 
 struct lexical_categories_t* find_morphemes(struct ngram_t**, int);
-struct ngram_t** build_ngram_relationships(char*, char*, int*);
+void build_ngram_relationships(char*, char*, int*, struct ngram_t***);
 int nlp(void);
 
 int main(int argc, char *argv[])
@@ -55,16 +55,16 @@ int nlp(void)
 			V_PRINT("Found Word Delimiter");
 			if (wd != NULL && wd != 0 && errno != E_OVERRULED) {
 				V_PRINT("Building NGRAMS");
-				ng = build_ngram_relationships(wd, f, &ngram_length);
+				build_ngram_relationships(wd, f, &ngram_length, &ng);
 				if (errno == E_OVERRULED)
 					continue;
-				V_PRINT("Extracting Morphemes and Building Lexical Categories.");
-				morphemes = find_morphemes(ng, ngram_length);
-				/*V_PRINT("Appending Current File n-gram with previous");
-				ngram_append(&ng_to_merge, &ng);*/
 			}
 		}
+
 	}
+
+				V_PRINT("Extracting Morphemes and Building Lexical Categories.");
+				morphemes = find_morphemes(ng, ngram_length);
 
 	for (; ngram_length >= 0; --ngram_length)
 		free_ngram(ng[ngram_length]);
@@ -73,7 +73,7 @@ int nlp(void)
 	return 0;
 }
 
-struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
+void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngram_t ***ngram_full)
 {
 	char **arr;
 	int word_count = explode_sansnull_str(&arr, f, &wd);
@@ -83,12 +83,13 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 	int hash_index = -1;
 	int ngram_count = word_count;
 	int make_new = 1;
-	int add_loc = 0;
+	int add_loc = *ngram_length;
 
-	struct ngram_t **ng;
+	struct ngram_t **ng = *ngram_full;
 	struct word_t *w_freq = malloc(sizeof(struct word_t) * (word_count+1));
 
-	ng = malloc(sizeof(struct ngram_t) * (word_count+1));
+	if (add_loc == 0)
+		ng = malloc(sizeof(struct ngram_t) * (word_count+1));
 	V_PRINT("Setting NGRAM elements");
 	for (i = 0; i <= word_count; ++i) {
 		struct ngram_t ngram;
@@ -144,41 +145,25 @@ struct ngram_t** build_ngram_relationships(char *wd, char *f, int *ngram_length)
 		}
 	}
 	i = add_loc-1;
-	*ngram_length += add_loc - 1;
-
-	/*
-	   V_PRINT("Uniqifying each ngram");
-
-	   for (q = 0; q <= word_count; q++) {
-	   if (verbose_mode == ON)
-	   printf("  Uniqifying ngram: %d/%d\r", q, word_count);
-	   if (q < (NGRAM_SIZE/2)) {
-	   uniqify(&ng[q]->before);
-	   }
-	   if (word_count - q > NGRAM_SIZE)
-	   uniqify(&ng[q]->after);
-	   }
-	   */
-
+	*ngram_length = add_loc;
 
 	int k;
-	for (k = 0; k <= *ngram_length; ++k) {
+	for (k = 0; k < *ngram_length; ++k) {
 		struct word_t w = ng[k]->word;
-		for (j = k; j <= *ngram_length; ++j) {
+		for (j = k; j < *ngram_length; ++j) {
 			if (verbose_mode == ON)
 				printf("Processing Similar Ngrams: Target: %d/%d| Similar: %d/%d     \r     ", k, *ngram_length, j, *ngram_length);
-			//if (j - k < NGRAM_SIZE)
-			//	continue;
+			if (j - k < NGRAM_SIZE)
+				continue;
 			struct word_t a = ng[j]->word;
 			struct ngram_t one = *ng[k];
 			struct ngram_t two = *ng[j];
-			if (a.word != NULL && w.word != NULL && strcmp(a.word, w.word) != 0 && ngrams_similar(one, two)) {
+			if (a.word != NULL && w.word != NULL && strcmp(a.word, w.word) != 0 && ngrams_similar(one, two))
 				add_similar_ngram_ref(&ng[k], &ng[j]);
-			}
 		}
 	}
 
-	return ng;
+	*ngram_full = ng;
 }
 
 struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_length)
@@ -190,7 +175,7 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 	int elem_count = 0;
 
 	int i, j;
-	for (i = 0; i <= ngram_length; ++i) {
+	for (i = 0; i < ngram_length; ++i) {
 		struct ngram_t ngram = *(ng[i]);
 		for (j = 0; j < ngram.refs_count; ++j) {
 			if (verbose_mode == ON)
