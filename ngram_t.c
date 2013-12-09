@@ -195,7 +195,6 @@ int ngrams_similar(struct ngram_t a, struct ngram_t b)
 			if (strcmp(b.after.at[i]->elems[j].word, "") != 0)
 				arr[arr_count++] = b.after.at[i]->elems[j].word;
        	count = uniq_words(arr, elems_count);
-	free(arr);
 
 	arr_count -= 1;
 	percent_similar = (double) 100.00 * (((double)arr_count - (double)count)/(double)arr_count);
