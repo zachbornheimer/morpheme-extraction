@@ -21,8 +21,7 @@ void setword(struct word_t *word, char *w)
 	word->i = strlen(w);
 	word->freq = 1; /* initialized */
 	/*word->word = malloc(sizeof(char) * word->i);*/
-	word->word = w;
-	strcat(word->word, "\0");
+	word->word = strdup(w);
 	if (word->word == NULL) {
 		printf("malloc failed.\n");
 		exit(1);
