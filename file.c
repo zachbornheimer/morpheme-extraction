@@ -14,6 +14,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "file.h"
 #include "morpheme_t.h"
@@ -68,22 +69,26 @@ char* ask_for_file(void)
 	return filename;
 }
 
-void write_to_file(char *filename, struct lexical_categories_t *lex, int count)
+void write_to_file(char *filename, struct lexical_categories_t *lex, int count, char* header)
 {
-	V_PRINT("Writing Data To File");
 
 	FILE *output;
 
+	printf("Writing data to file: %s\n", filename);
 
-	output = fopen(filename, "w");
+	output = fopen(filename, "a");
 	if (output == NULL) {
 		printf("Could not open file, %s, instead writing to %s\n", filename, ZEDRAM_OUTPUT);
-		output = fopen(ZEDRAM_OUTPUT, "w");
+		output = fopen(ZEDRAM_OUTPUT, "a");
 		if (output == NULL)
 			printf("Something catastrophic occurred.  Run again -- maybe redirect the oputput?\n");
 	}
 
 	int i = 0;
+	fprintf(output, "\n%s\n", header);
+	for (i = 0; i < strlen(header); ++i)
+		fprintf(output, "=");
+	fprintf(output, "\n");
 	for (i = 0; i < count; ++i)
 		if (lex[i].morpheme.type != UNDEF)
 			fprintf(output, "%s: %s\n", strtype(lex[i].morpheme.type), lex[i].morpheme.morpheme);

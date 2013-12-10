@@ -18,15 +18,15 @@
 #include "file.h"
 #include "directory.h"
 
-char* getfiles(int *index)
+char* getfiles(int *index, char **header)
 {
 	/* index is how many files it should parse to catch up to where it was in the previous run */
 	/* count is the current index num */
 	int count = 0;
-	return __gf(DEFAULT_PATH, index, &count);
+	return __gf(DEFAULT_PATH, index, &count, header);
 }
 
-char* __gf(char dirpath[], int *index, int *count)
+char* __gf(char dirpath[], int *index, int *count, char **header)
 {
 	DIR *currdir;
 	char *path;
@@ -59,6 +59,7 @@ char* __gf(char dirpath[], int *index, int *count)
 					f = read_file(curfile);
 					if (f != NULL) {
 						printf("Reading: %s\n", curfile);
+						*header = strdup(curfile);
 						if (curfile != NULL)
 							free(curfile);
 						

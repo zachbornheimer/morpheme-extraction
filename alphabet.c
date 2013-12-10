@@ -22,9 +22,8 @@
 
 #include "structs.h"
 #include "constants.h"
-#include "functions.h"
+#include "alphabet.h"
 
-char* find_word_delimiter(char**);
 
 char* find_word_delimiter(char **f)
 {

@@ -22,9 +22,10 @@
 #include "file.h"
 
 int verbose_mode;
+int process_sequentially;
 char *output_filename = ZEDRAM_OUTPUT;
 
-struct lexical_categories_t* find_morphemes(struct ngram_t**, int);
+struct lexical_categories_t* find_morphemes(struct ngram_t**, int, char*);
 void build_ngram_relationships(char*, char*, int*, struct ngram_t***);
 int nlp(void);
 
@@ -32,12 +33,20 @@ int main(int argc, char *argv[])
 {
 	int i;
 	verbose_mode = OFF;
+	process_sequentially = OFF;
 	for (i = 0; i < argc; ++i)
 		if (!strcmp(argv[i], "--verbose"))
 			verbose_mode = ON;
+		else if (!strcmp(argv[i], "--process-sequentially"))
+			process_sequentially = ON;
+		else if (!strcmp(argv[i], "--serial"))
+			process_sequentially = ON;
+		else if (!strcmp(argv[i], "--sequential"))
+			process_sequentially = ON;
 		else if (!strcmp(argv[i], "--output-file"))
 			if (i+1 < argc)
 				output_filename = argv[i+1];
+
 	return nlp();
 }	
 
@@ -49,8 +58,9 @@ int nlp(void)
 	int ngram_length = 0;
 	struct ngram_t **ng;
 	struct lexical_categories_t *morphemes;
+	char *header;
 	/*struct ngram_t **ng_to_merge;*/
-	while((f = getfiles(&index))) {
+	while((f = getfiles(&index, &header))) {
 		if (f != NULL && strlen(f) > 2) {
 			V_PRINT("Looking for Word Delimiter...");
 			wd = find_word_delimiter(&f);
@@ -60,13 +70,21 @@ int nlp(void)
 				build_ngram_relationships(wd, f, &ngram_length, &ng);
 				if (errno == E_OVERRULED)
 					continue;
+				if (process_sequentially == ON) {
+					V_PRINT("\nPROCESSING SEQUENTIALLY!");
+					V_PRINT("Extracting Morphemes and Building Lexical Categories.");
+					morphemes = find_morphemes(ng, ngram_length, header);
+				}
 			}
 		}
-
+		free(header);
 	}
 
-				V_PRINT("Extracting Morphemes and Building Lexical Categories.");
-				morphemes = find_morphemes(ng, ngram_length);
+	if (process_sequentially == OFF) {
+		V_PRINT("PROCESSING SIMULATNEOUSLY!");
+		V_PRINT("Extracting Morphemes and Building Lexical Categories.");
+		morphemes = find_morphemes(ng, ngram_length, &header);
+	}
 
 	for (ngram_length -= 1; ngram_length >= 0; --ngram_length)
 		free_ngram(ng[ngram_length]);
@@ -165,10 +183,11 @@ void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngra
 		}
 	}
 
+	V_PRINT("");
 	*ngram_full = ng;
 }
 
-struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_length)
+struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_length, char *header)
 {
 	struct morpheme_list_t internal = {.count = 0};
 	internal.list = malloc(0);
@@ -227,17 +246,13 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 
 			ngram.word.word = w1;
 			target.word.word = w2;
-
-			//merge_morpheme_list(&morphemes, forward, backward, internal, &elem_count);
 		}
 	}
+	V_PRINT("");
 	struct morpheme_list_t morpheme_list = fuse_regex(internal);
 	struct lexical_categories_t *lex = malloc(sizeof(struct lexical_categories_t) * morpheme_list.count);
 	identify_true_morphemes(&morpheme_list, &lex);
-	write_to_file(output_filename, lex, morpheme_list.count);
-
-	V_PRINT("\n");
-
+	write_to_file(output_filename, lex, morpheme_list.count, header);
 
 	return lex;
 }

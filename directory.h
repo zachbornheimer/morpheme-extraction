@@ -4,6 +4,6 @@
  */
 
 /* for alphabet extraction */
-char* __gf(char[], int*, int*);
-char* getfiles(int*);
+char* __gf(char[], int*, int*, char**);
+char* getfiles(int*, char**);
 

@@ -38,9 +38,6 @@ struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 	}
 	str[real_length] = '\0';
 	
-	/*if (real_length == 0)
-		printf("ZERO!, w1: %s, w2: %s\n", shortest.word, longest.word);*/
-
 	if (real_length == 0)
 		return empty;
 
@@ -57,13 +54,6 @@ struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 	return longest_match;
 
 }
-
-void free_morpheme(struct morpheme_t *morpheme)
-{
-	free(morpheme->regex);
-	free(morpheme);
-}
-
 
 void gen_regex(char *one, char *two, int place_one, int place_two, struct morpheme_t *morpheme)
 {
