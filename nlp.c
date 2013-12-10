@@ -22,6 +22,7 @@
 #include "file.h"
 
 int verbose_mode;
+char *output_filename = ZEDRAM_OUTPUT;
 
 struct lexical_categories_t* find_morphemes(struct ngram_t**, int);
 void build_ngram_relationships(char*, char*, int*, struct ngram_t***);
@@ -31,11 +32,12 @@ int main(int argc, char *argv[])
 {
 	int i;
 	verbose_mode = OFF;
-	for (i = 0; i < argc; ++i) {
+	for (i = 0; i < argc; ++i)
 		if (!strcmp(argv[i], "--verbose"))
 			verbose_mode = ON;
-	}
-
+		else if (!strcmp(argv[i], "--output-file"))
+			if (i+1 < argc)
+				output_filename = argv[i+1];
 	return nlp();
 }	
 
@@ -66,7 +68,7 @@ int nlp(void)
 				V_PRINT("Extracting Morphemes and Building Lexical Categories.");
 				morphemes = find_morphemes(ng, ngram_length);
 
-	for (; ngram_length >= 0; --ngram_length)
+	for (ngram_length -= 1; ngram_length >= 0; --ngram_length)
 		free_ngram(ng[ngram_length]);
 
 
@@ -168,7 +170,6 @@ void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngra
 
 struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_length)
 {
-	struct lexical_categories_t *lex = malloc(sizeof(struct lexical_categories_t));
 	struct morpheme_list_t internal = {.count = 0};
 	internal.list = malloc(0);
 	struct morpheme_t *morphemes;
@@ -227,20 +228,13 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 			ngram.word.word = w1;
 			target.word.word = w2;
 
-
 			//merge_morpheme_list(&morphemes, forward, backward, internal, &elem_count);
 		}
 	}
 	struct morpheme_list_t morpheme_list = fuse_regex(internal);
-//	free(internal);
-	/*	for (int j = 0; j < elem_count; ++j) {
-		regexify(&morphemes[j]);
-		}
-		uniq_morpheme_t(&morphemes);
-
-		identify_true_morphemes(&morphemes, &lex)
-		store_morphemes(&lex);
-		*/
+	struct lexical_categories_t *lex = malloc(sizeof(struct lexical_categories_t) * morpheme_list.count);
+	identify_true_morphemes(&morpheme_list, &lex);
+	write_to_file(output_filename, lex, morpheme_list.count);
 
 	V_PRINT("\n");
 

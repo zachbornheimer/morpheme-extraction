@@ -92,7 +92,7 @@ int uniq_words(char **arr, int size)
 			++i;
 		}
 	}
-	free(u);
+	//free(u);
 	return i-1;
 }
 

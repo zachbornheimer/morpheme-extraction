@@ -313,3 +313,21 @@ void merge_rules(struct morpheme_t *morpheme)
 	}
 
 }
+
+char* strtype(const int code)
+{
+	if (code == UNDEF)
+		return "UNDEF";
+	else if (code == PREFIX)
+		return "PREFIX";
+	else if (code == SUFFIX)
+		return "SUFFIX";
+	else if (code == CIRCUMFIX)
+		return "CIRCUMFIX";
+	else if (code == INFIX)
+		return "INFIX";
+	else if (code == STEM)
+		return "STEM";
+	else
+		return "UNKNOWN!";
+}

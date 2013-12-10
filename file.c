@@ -16,6 +16,7 @@
 #include <stdio.h>
 
 #include "file.h"
+#include "morpheme_t.h"
 
 /* adds a character to a file (char *array) type */
 void read_by_char(const int c, char **buffer, int *charCount, int *bytes)
@@ -65,6 +66,29 @@ char* ask_for_file(void)
 		read_by_char(c, &filename, &charCount, &bytes);
 
 	return filename;
+}
+
+void write_to_file(char *filename, struct lexical_categories_t *lex, int count)
+{
+	V_PRINT("Writing Data To File");
+
+	FILE *output;
+
+
+	output = fopen(filename, "w");
+	if (output == NULL) {
+		printf("Could not open file, %s, instead writing to %s\n", filename, ZEDRAM_OUTPUT);
+		output = fopen(ZEDRAM_OUTPUT, "w");
+		if (output == NULL)
+			printf("Something catastrophic occurred.  Run again -- maybe redirect the oputput?\n");
+	}
+
+	int i = 0;
+	for (i = 0; i < count; ++i)
+		if (lex[i].morpheme.type != UNDEF)
+			fprintf(output, "%s: %s\n", strtype(lex[i].morpheme.type), lex[i].morpheme.morpheme);
+
+	fclose(output);
 }
 
 #endif

@@ -29,7 +29,7 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 		while (two.word[0] != '\0') {
 			two.word = remove_first_char(two);
 			++iteration2;
-			if (strlen(two.word) == NULL || strlen(two.word) < 2)
+			if (strlen(two.word) < 2)
 				break;
 			struct morpheme_t lm = find_longest_match(one, two);
 			lm.words_count = 0;
@@ -45,7 +45,7 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 						if (test[strlen(test)-lookback] != 0)
 							test[strlen(test)-lookback] = '\0';
 					test = reverse(test);
-					if (strcmp(find_longest_match(current, previous).morpheme, lm.morpheme) != 0)
+					if (strcmp(find_longest_match(current, previous).morpheme, lm.morpheme) != 0) {
 						if (strcmp(test, current.word) != 0) {
 							add_word(&lm, one_orig);
 							add_word(&lm, two_orig);
@@ -57,6 +57,7 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 							++lookback;
 							free(lm.words);
 						}
+					}
 				} else {
 					gen_regex(word1, word2, iteration1, iteration2, &lm);
 					if (lm.regex != NULL)
@@ -131,18 +132,16 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 			struct morpheme_t working = new.list[current_index];
 			/* Step One, Extract Parenthetical Sections */
 			char *dup_regex = dup.regex;
-			char *dup_front = dup.front_regex;
-			char *dup_back = dup.back_regex;
 			char *orig_regex = orig.regex;
-			char *orig_front = orig.front_regex;
-			char *orig_back = orig.back_regex;
 			int orig_front_index = orig.front_regex_arr_index;
 			int dup_front_index = dup.front_regex_arr_index;
 			int orig_back_index = orig.back_regex_arr_index;
 			int dup_back_index = dup.back_regex_arr_index;
 
-			if (strcmp(orig_regex, dup_regex) == 0)
+			if (strcmp(orig_regex, dup_regex) == 0) {
+				++new.list[current_index].freq;
 				continue;
+			}
 
 			regex_front = malloc(sizeof(char*) * ((dup_front_index + 1) + (orig_front_index + 1) + 1));
 			regex_back = malloc(sizeof(char*) * ((dup_back_index + 1) + (orig_back_index + 1) + 1));
@@ -154,7 +153,7 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 			 * If I modify each of those arrays, I can then reconstruct.
 			 */
 			int j = 0;
-			
+
 			while(1) {
 				int size = 2;
 				int longest = (dup_front_index > orig_front_index? dup_front_index : orig_front_index);
@@ -164,7 +163,7 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 						size += (int) strlen(orig.front_regex_arr[j]);
 
 				if (j <= dup_front_index)
-					if (dup.front_regex_arr[j] != NULL && strlen(dup.front_regex_arr[j]) != NULL)
+					if (dup.front_regex_arr[j] != 0 && strlen(dup.front_regex_arr[j]) != 0)
 						size += (int) strlen(dup.front_regex_arr[j]);
 
 				regex_front[j] = malloc(sizeof(char) * size);
@@ -193,7 +192,7 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 					if (orig.back_regex_arr[j][0] > 0)
 						size += (int) strlen(orig.back_regex_arr[j]);
 				if (j <= dup_back_index)
-					if (dup.back_regex_arr[j] != NULL && strlen(dup.back_regex_arr[j]) != NULL)
+					if (dup.back_regex_arr[j] != 0 && strlen(dup.back_regex_arr[j]) != 0)
 						size += (int) strlen(dup.back_regex_arr[j]);
 
 				regex_back[j] = malloc(sizeof(char) * size);
@@ -213,9 +212,8 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 
 			/* Step Three, Reconstruct and restore */
 
-			printf("Before %s - ", working.regex);
 			merge_rules(&working);
-			printf("After %s\n", working.regex);
+			++working.freq;
 			new.list[current_index] = working;
 
 		} else {
@@ -230,4 +228,92 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 	//for (i = 0; i < morpheme_list_count; ++i)
 	//	free(morpheme_list[i]);
 	//	free(morpheme_list);
+}
+
+void identify_true_morphemes(struct morpheme_list_t *list, struct lexical_categories_t **lex)
+{
+	int i = 0;
+	for (i = 0; i < list->count; ++i) {
+		const struct morpheme_t morpheme = list->list[i];
+		if (morpheme.freq <= 1 && morpheme.type != STEM)
+			continue;
+
+		if (morpheme.type != STEM) {
+
+			/* Prefix Identification */
+			if (strlen(morpheme.back_regex) == 0 || strcmp(morpheme.back_regex, "()") == 0) {
+				if (strcmp(morpheme.front_regex, "^") == 0)
+					list->list[i].type = PREFIX;
+			} else {
+				if (strcmp(morpheme.front_regex, "()") == 0)
+					list->list[i].type = PREFIX;
+			}
+
+			/* Suffix Identification */
+			if (strlen(morpheme.front_regex) == 0 || strcmp(morpheme.front_regex, "()") == 0) {
+				if (strcmp(morpheme.back_regex, "$") == 0)
+					list->list[i].type = SUFFIX;
+			} else {
+				if (strcmp(morpheme.back_regex, "()") == 0)
+					list->list[i].type = SUFFIX;
+			}
+
+			/* Circumfix Identification */
+			int j = 0, k = 0;
+			for (j = 0; j < i; ++j) {
+				int combined = -1;
+				if ((list->list[i].type == SUFFIX || list->list[i].type == PREFIX))
+					break;
+				if (!((list->list[i].type == SUFFIX && list->list[j].type == PREFIX) || (list->list[i].type == PREFIX && list->list[j].type == SUFFIX)))
+					continue;
+				if (list->list[j].freq == list->list[i].freq) {
+					char **list_combined = malloc(sizeof(char*) * (list->list[i].words_count + list->list[j].words_count));
+					for (k = 0; k < list->list[j].words_count; ++k)
+						list_combined[++combined] = list->list[j].words[k].word;
+					for (k = 0; k < list->list[i].words_count; ++k)
+						list_combined[++combined] = list->list[i].words[k].word;
+
+					int count = uniq_words(list_combined, combined);
+					int percent_similar = (double) 100.00 * (((double)combined - (double)count)/(double)combined);
+					if (percent_similar >= THRESHOLD_CIRCUMFIX) {
+						list->list[i].type = CIRCUMFIX;
+						list->list[j].type = CIRCUMFIX;
+						if (list->list[i].type == PREFIX) {
+							list->list[i].front_regex = list->list[i].regex;
+							list->list[i].back_regex = list->list[j].regex;
+							list->list[j].front_regex = list->list[i].regex;
+							list->list[j].back_regex = list->list[j].regex;
+							char *grapheme = malloc(sizeof(char) * ((strlen(list->list[i].morpheme) + strlen(list->list[j].morpheme)) + 5));
+							grapheme[0] = '\0';
+							strcat(grapheme, list->list[i].morpheme);
+							strcat(grapheme, "(.*)");
+							strcat(grapheme, list->list[j].morpheme);
+							list->list[i].morpheme = grapheme;
+							list->list[j].morpheme = grapheme;
+
+						} else {
+							list->list[i].front_regex = list->list[j].regex;
+							list->list[i].back_regex = list->list[i].regex;
+							list->list[j].front_regex = list->list[j].regex;
+							list->list[j].back_regex = list->list[i].regex;
+							char *grapheme = malloc(sizeof(char) * ((strlen(list->list[i].morpheme) + strlen(list->list[j].morpheme)) + 5));
+							grapheme[0] = '\0';
+							strcat(grapheme, list->list[j].morpheme);
+							strcat(grapheme, "(.*)");
+							strcat(grapheme, list->list[i].morpheme);
+							list->list[i].morpheme = grapheme;
+							list->list[j].morpheme = grapheme;
+
+						}
+					}
+				}
+			}
+		}
+
+		/* Infix Identification */
+		if (list->list[i].type == UNDEF)
+			list->list[i].type = INFIX;
+
+		(*lex)[i].morpheme = list->list[i];
+	}
 }

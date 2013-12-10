@@ -31,6 +31,7 @@
 
 /* thresholds */
 #define THRESHOLD_SIMILAR_NGRAMS 0
+#define THRESHOLD_CIRCUMFIX 100
 
 /* Morpheme Types */
 #define UNDEF     0
@@ -39,11 +40,6 @@
 #define CIRCUMFIX 3
 #define INFIX     4
 #define STEM      5
-
-
-
-
-
 
 
 #include "externs.h"

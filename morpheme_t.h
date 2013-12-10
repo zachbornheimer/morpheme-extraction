@@ -13,5 +13,6 @@ struct morpheme_t find_longest_match(struct word_t, struct word_t);
 void free_morpheme(struct morpheme_t*);
 void gen_regex(char *, char *, int, int, struct morpheme_t*);
 void merge_rules(struct morpheme_t*);
+char* strtype(const int);
 
 #endif
