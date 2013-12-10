@@ -159,7 +159,7 @@ void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngra
 			*ng[add_loc] = ngram;
 			++add_loc;
 		} else {
-			free(ng[q]);
+			//free(ng[q]);
 			ng[q] = malloc(sizeof(struct ngram_t));
 			*ng[q] = ngram;
 		}
