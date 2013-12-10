@@ -25,7 +25,7 @@ int verbose_mode;
 int process_sequentially;
 char *output_filename = ZEDRAM_OUTPUT;
 
-struct lexical_categories_t* find_morphemes(struct ngram_t**, int, char*);
+int find_morphemes(struct ngram_t**, int, char*, struct lexical_categories_t**);
 void build_ngram_relationships(char*, char*, int*, struct ngram_t***);
 int nlp(void);
 
@@ -57,9 +57,9 @@ int nlp(void)
 	char *wd;
 	int ngram_length = 0;
 	struct ngram_t **ng;
-	struct lexical_categories_t *morphemes;
 	char *header;
-	/*struct ngram_t **ng_to_merge;*/
+	struct lexical_categories_t *morphemes;
+	int lex_count = 0;
 	while((f = getfiles(&index, &header))) {
 		if (f != NULL && strlen(f) > 2) {
 			V_PRINT("Looking for Word Delimiter...");
@@ -73,9 +73,10 @@ int nlp(void)
 				if (process_sequentially == ON) {
 					V_PRINT("\nPROCESSING SEQUENTIALLY!");
 					V_PRINT("Extracting Morphemes and Building Lexical Categories.");
-					morphemes = find_morphemes(ng, ngram_length, header);
+					lex_count = find_morphemes(ng, ngram_length, header, &morphemes);
 				}
 			}
+			free(wd);
 		}
 		free(header);
 	}
@@ -84,7 +85,13 @@ int nlp(void)
 		header = "All Processed Files";
 		V_PRINT("PROCESSING SIMULATNEOUSLY!");
 		V_PRINT("Extracting Morphemes and Building Lexical Categories.");
-		morphemes = find_morphemes(ng, ngram_length, header);
+		lex_count = find_morphemes(ng, ngram_length, header, &morphemes);
+	}
+
+	for (lex_count -= 1; lex_count >= 0; --lex_count) {
+		struct lexical_categories_t grapheme = morphemes[lex_count];
+		free(grapheme.morpheme.morpheme);
+		free(grapheme.morpheme.regex);
 	}
 
 	for (ngram_length -= 1; ngram_length >= 0; --ngram_length)
@@ -100,14 +107,11 @@ void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngra
 	int word_count = explode_sansnull_str(&arr, f, &wd);
 
 	int i, q, j;
-	int hash_elem = -1;
-	int hash_index = -1;
 	int ngram_count = word_count;
 	int make_new = 1;
 	int add_loc = *ngram_length;
 
 	struct ngram_t **ng = *ngram_full;
-	struct word_t *w_freq = malloc(sizeof(struct word_t) * (word_count+1));
 
 	if (add_loc == 0)
 		ng = malloc(sizeof(struct ngram_t) * (word_count+1));
@@ -188,12 +192,10 @@ void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngra
 	*ngram_full = ng;
 }
 
-struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_length, char *header)
+int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct lexical_categories_t **lex_map)
 {
 	struct morpheme_list_t internal = {.count = 0};
 	internal.list = malloc(0);
-	struct morpheme_t *morphemes;
-	int elem_count = 0;
 
 	int i, j;
 	for (i = 0; i < ngram_length; ++i) {
@@ -255,5 +257,10 @@ struct lexical_categories_t* find_morphemes(struct ngram_t **ng, int ngram_lengt
 	identify_true_morphemes(&morpheme_list, &lex);
 	write_to_file(output_filename, lex, morpheme_list.count, header);
 
-	return lex;
+//	for (i = 0; i < morpheme_list.count; ++i)
+//		free(morpheme_list.list[i].morpheme);
+
+	*lex_map = lex;
+
+	return morpheme_list.count;
 }

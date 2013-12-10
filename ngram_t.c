@@ -53,13 +53,13 @@ struct ngram_t new_ngram(void)
 
 void free_ngram(struct ngram_t *ng)
 {
-	int index;
+	/*int index;
 	for (index = ((NGRAM_SIZE/2) - 1); index >= 0; --index) {
-		/*free(ng->after.at[index]->elems);
+		free(ng->after.at[index]->elems);
 		free(ng->before.at[index]->elems);
 		free(ng->after.at[index]);
-		free(ng->before.at[index]);*/
-	}
+		free(ng->before.at[index]);
+	}*/
 	free(ng);
 }
 

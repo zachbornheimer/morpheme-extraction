@@ -17,6 +17,11 @@ void add_word(struct morpheme_t *morpheme, struct word_t w)
 	morpheme->words[morpheme->words_count-1] = w;
 }
 
+void free_morpheme(struct morpheme_t *morpheme)
+{
+//	free(morpheme);
+}
+
 struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 {
 	struct word_t longest, shortest;
@@ -233,11 +238,11 @@ void merge_rules(struct morpheme_t *morpheme)
 {
 	int i = 0, front_size = 0, back_size = 0;
 	for (i = 0; i <= morpheme->front_regex_arr_index; ++i)
-		if (strlen(morpheme->front_regex_arr[i]) != NULL)
+		if (strlen(morpheme->front_regex_arr[i]) != 0)
 			front_size += strlen(morpheme->front_regex_arr[i]);
 	++front_size;
 	for (i = 0; i <= morpheme->back_regex_arr_index; ++i)
-		if (strlen(morpheme->back_regex_arr[i]) != NULL)
+		if (strlen(morpheme->back_regex_arr[i]) != 0)
 			back_size += strlen(morpheme->back_regex_arr[i]);
 	++back_size;
 	char *front = malloc(front_size * 3);
@@ -260,9 +265,6 @@ void merge_rules(struct morpheme_t *morpheme)
 	}
 	strcat(front, "(");
 	front = reverse(front);
-
-	i = 0;
-	int back_index = 0;
 
 	i = 0;
 	while (1) {

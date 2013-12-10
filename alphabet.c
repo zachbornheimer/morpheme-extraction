@@ -22,6 +22,7 @@
 
 #include "structs.h"
 #include "constants.h"
+#include "functions.h"
 #include "alphabet.h"
 
 
@@ -50,7 +51,7 @@ char* find_word_delimiter(char **f)
 	V_PRINT("Initial Word Delimiter Structures Constructed.");
 
 	int max_size = 0, index = 0;
-	char *wd_real = malloc(sizeof(char) + index+1);
+	char *wd_real = malloc(sizeof(char) * 2);
 
 	for (j = 0; j <= i; ++j) {
 		if (wd[j].freq > max_size) {
@@ -65,10 +66,8 @@ char* find_word_delimiter(char **f)
 			wd_real[index] = wd[j].c;
 			wd_real[++index] = '\0';
 			wd_real = realloc(wd_real, sizeof(char) * index+2);
-			if (wd_real == NULL) {
-				printf("ERROR, DID NOT REALLOC\n");
+			if (wd_real == NULL)
 				exit(E_REALLOC);
-			}
 			char *uniqd;
 			uniq(&wd_real, &uniqd);
 			free(wd_real);
