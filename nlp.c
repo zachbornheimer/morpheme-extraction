@@ -81,6 +81,7 @@ int nlp(void)
 	}
 
 	if (process_sequentially == OFF) {
+		header = "All Processed Files";
 		V_PRINT("PROCESSING SIMULATNEOUSLY!");
 		V_PRINT("Extracting Morphemes and Building Lexical Categories.");
 		morphemes = find_morphemes(ng, ngram_length, header);

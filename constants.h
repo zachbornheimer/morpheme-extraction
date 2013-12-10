@@ -32,6 +32,7 @@
 /* thresholds */
 #define THRESHOLD_SIMILAR_NGRAMS 0
 #define THRESHOLD_CIRCUMFIX 100
+#define THRESHOLD_CONFIRMATION 10
 
 /* Morpheme Types */
 #define UNDEF     0

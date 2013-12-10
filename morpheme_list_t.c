@@ -235,7 +235,8 @@ void identify_true_morphemes(struct morpheme_list_t *list, struct lexical_catego
 	int i = 0;
 	for (i = 0; i < list->count; ++i) {
 		const struct morpheme_t morpheme = list->list[i];
-		if (morpheme.freq <= 1 && morpheme.type != STEM)
+		int freq_thresh = (double) list->count * (double) (THRESHOLD_CONFIRMATION/100);
+		if (morpheme.freq <= freq_thresh && morpheme.type != STEM)
 			continue;
 
 		if (morpheme.type != STEM) {
