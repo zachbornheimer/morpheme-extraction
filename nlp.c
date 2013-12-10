@@ -83,7 +83,7 @@ int nlp(void)
 	if (process_sequentially == OFF) {
 		V_PRINT("PROCESSING SIMULATNEOUSLY!");
 		V_PRINT("Extracting Morphemes and Building Lexical Categories.");
-		morphemes = find_morphemes(ng, ngram_length, &header);
+		morphemes = find_morphemes(ng, ngram_length, header);
 	}
 
 	for (ngram_length -= 1; ngram_length >= 0; --ngram_length)
