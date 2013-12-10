@@ -121,7 +121,7 @@ void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngra
 		if (arr[i] == NULL || strcmp(arr[i], "") == 0 || strlen(arr[i]) == 0)
 			continue;
 
-		if (i != 0)
+		if (i != 0) {
 			for (q = 0; q < add_loc; ++q)
 				if (strcmp(ng[q]->word.word, arr[i]) == 0) {
 					ngram = *ng[q];
@@ -131,6 +131,7 @@ void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngra
 				} else {
 					make_new = 1;
 				}
+		}
 		if (make_new == 1) {
 			ngram = new_ngram();
 			if (strlen(arr[i]) > 0)
