@@ -20,16 +20,14 @@
 #include "ngram_t.h"
 #include "word_t.h"
 #include "file.h"
+#include "nlp.h"
 
 int verbose_mode;
 int process_sequentially;
 char *output_filename = ZEDRAM_OUTPUT;
 
-int find_morphemes(struct ngram_t**, int, char*, struct lexical_categories_t**);
-void build_ngram_relationships(char*, char*, int*, struct ngram_t***);
-int nlp(void);
-
-int main(int argc, char *argv[])
+/* gets/sets command line arguments */
+int main(const int argc, char *argv[])
 {
 	int i;
 	verbose_mode = OFF;
@@ -50,16 +48,15 @@ int main(int argc, char *argv[])
 	return nlp();
 }	
 
+/* runs the nlp proc */
 int nlp(void)
 {
-	char *f;
-	int index = 0;
-	char *wd;
-	int ngram_length = 0;
-	struct ngram_t **ng;
+	char *f, *wd;
+	int index = 0, ngram_length = 0, lex_count = 0;
 	char *header;
+	struct ngram_t **ng;
 	struct lexical_categories_t *morphemes;
-	int lex_count = 0;
+
 	while((f = getfiles(&index, &header))) {
 		if (f != NULL && strlen(f) > 2) {
 			V_PRINT("Looking for Word Delimiter...");

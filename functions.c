@@ -28,11 +28,6 @@ char* append(char* one, char* two)
 	return temp;
 }
 
-void expand(char **ptr)
-{
-	*ptr = realloc(*ptr, sizeof(char) * (strlen(*ptr) + 2));
-}
-
 int in_array(const int c, char **uniq, const int size)
 {
 	int i;
@@ -66,9 +61,8 @@ int uniq(char **f, char **ret)
 			printf("Creating Uniq Array %f%s Complete\r", p, "%");
 		}
 		if ((*f)[j] != 0) {
-			if (i == 0 || in_array((*f)[j], &u, i)==-1) {
+			if (i == 0 || in_array((*f)[j], &u, i)==-1)
 				u[i++] = (*f)[j];
-			}
 		} else {
 			break;
 		}
@@ -83,16 +77,11 @@ int uniq_words(char **arr, int size)
 	char **u = malloc(sizeof(char*) * size);
 	int i = 0, j=0;
 	for (j = 0; j < size; ++j) {
-		/*if (verbose_mode == ON) {
-			double p = ((double) j / (double) size) * (double) 100.00;
-			printf("Creating Uniq Word Array %f%s Complete\r", p, "%");
-		}*/
 		if (i == 0 || in_char_array(arr[j], u, i)==-1) {
 			u[i] = arr[j];
 			++i;
 		}
 	}
-	//free(u);
 	return i-1;
 }
 
@@ -138,7 +127,6 @@ int explode_sansnull(char ***a, char *str, char *delimiter)
 	
 	while (token != NULL) {
 		char_count += strlen(token)+1;
-		//arr[i] = malloc(sizeof(char) * strlen(token)+1);
 		if (token != NULL)
 			arr[i++] = token;
 		token = strtok(NULL, t);
@@ -162,7 +150,6 @@ int move_char(int *index, char **in)
 	temp[j+1] = (*in)[j];
 	for (j = j+2; j <= (int) strlen(*in); ++j)
 		temp[j] = (*in)[j];
-	//temp[j] = '\0';
 	strcpy(*in,temp);
 	++(*index);
 	return 1;
@@ -179,7 +166,7 @@ char* permute(char **string, int *i)
 	return *string;
 }
 
-char* reverse(char* string)
+char* reverse(char *string)
 {
 	char temp;
 	int i = 0, len = strlen(string)-1;
