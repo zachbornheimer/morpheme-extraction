@@ -54,9 +54,7 @@ char* find_word_delimiter(char **f)
 
 	for (j = 0; j <= i; ++j) {
 		if (wd[j].freq > max_size) {
-			//free(wd_real);
 			index = 0;
-			//wd_real = malloc(sizeof(char)+1);
 			wd_real[index] = wd[j].c;
 			wd_real[++index] = '\0';
 			max_size = wd[j].freq;
@@ -85,7 +83,7 @@ char* find_word_delimiter(char **f)
 			if ((size = explode_sansnull_str(&arr, *f, &wd_testing)) > wd_final_freq) {
 				size = wd_final_freq;
 				wd_final = wd_permuted; 
-			}  else if (size == wd_final_freq) {
+			}  else if (size == wd_final_freq && size != 0) {
 				printf("This implementation is not designed to handle multiple word delimiters.\nSkipping this file...\n");
 				errno = E_OVERRULED;
 			}
