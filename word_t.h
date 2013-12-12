@@ -12,6 +12,5 @@
 void setword(struct word_t*, char*);
 struct word_t reverse_word(struct word_t);
 char* remove_first_char(struct word_t);
-struct word_t word_t_dup(struct word_t);
 
 #endif

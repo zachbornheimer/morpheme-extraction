@@ -23,8 +23,7 @@ int add_ngram_element(struct word_t_array **at_index, int index)
 {
 	unsigned int size = sizeof(struct word_t) * (++((*at_index)->count) + 1);
 	(*at_index)->elems = realloc((*at_index)->elems, size);
-	if ((*at_index)->elems == NULL)
-		exit(E_REALLOC);
+	REALLOC_CHECK((*at_index)->elems);
 	return (*at_index)->count - 1; 
 }
 
@@ -53,49 +52,17 @@ struct ngram_t new_ngram(void)
 
 void free_ngram(struct ngram_t *ng)
 {
-	/*int index;
+	int index;
 	for (index = ((NGRAM_SIZE/2) - 1); index >= 0; --index) {
 		free(ng->after.at[index]->elems);
 		free(ng->before.at[index]->elems);
 		free(ng->after.at[index]);
 		free(ng->before.at[index]);
-	}*/
+	}
 	free(ng);
 }
 
 
-
-void quicksort_ngram_array(struct ngram_t ***ng_real, int ngram_size, int type)
-{
-	struct ngram_t **ng = *ng_real;
-	int i = 0, k = 0;
-	for (k = 0; k < ngram_size; ++k) {
-		int condition, mark = k;
-		for (i = 0; i < mark; ++i) {
-			if (type == ASCENDING)
-				condition = (ng[i]->word.freq > ng[mark]->word.freq);
-			else
-				condition = (ng[i]->word.freq < ng[mark]->word.freq);
-				if (condition) {
-					struct ngram_t marked = (*ng)[mark];
-					(*ng)[mark] = (*ng)[i];
-					(*ng)[i] = marked;
-				}
-			}
-		for (i = ngram_size-1; i > mark; --i) {
-			if (type == ASCENDING)
-				condition = (ng[i]->word.freq < ng[mark]->word.freq);
-			else
-				condition = (ng[i]->word.freq > ng[mark]->word.freq);
-			if (condition) {
-				struct ngram_t marked = (*ng)[mark];
-				(*ng)[mark] = (*ng)[i];
-				(*ng)[i] = marked;
-			}
-		}
-	}
-	*ng_real = ng;
-}
 
 void uniqify(struct ngram_half_array *bora)
 {
@@ -195,6 +162,7 @@ int ngrams_similar(struct ngram_t a, struct ngram_t b)
 			if (strcmp(b.after.at[i]->elems[j].word, "") != 0)
 				arr[arr_count++] = b.after.at[i]->elems[j].word;
        	count = uniq_words(arr, elems_count);
+	free(arr);
 
 	arr_count -= 1;
 	percent_similar = (double) 100.00 * (((double)arr_count - (double)count)/(double)arr_count);
@@ -215,8 +183,7 @@ void add_similar_ngram_ref(struct ngram_t **ngram, struct ngram_t **ngram_ref)
 		(*ngram)->refs = malloc(memsize);
 	} else {
 		(*ngram)->refs = realloc((*ngram)->refs, memsize);
-		if ((*ngram)->refs == NULL)
-			exit(E_REALLOC);
+		REALLOC_CHECK((*ngram)->refs);
 	}
 
 	(*ngram)->refs[(*ngram)->refs_count] = *ngram_ref;

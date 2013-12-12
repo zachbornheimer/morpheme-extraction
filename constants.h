@@ -14,25 +14,20 @@
 #define DEFAULT_PATH "./test-corpus/"
 #define NGRAM_SIZE 9
 
-#define BEFORE 0
-#define AFTER 0
-
-#define ON 1
+/* for switches */
+#define ON  1
 #define OFF 0
 
 #define E_OVERRULED 8
-#define E_REALLOC 9
-#define E_MALLOC 10
-#define E_UNIQ 6
+#define E_REALLOC   9
+#define E_MALLOC   10
+#define E_UNIQ      6
+#define E_ASSERT    7
 
-/* quicksort */
-#define DESCENDING 0
-#define ASCENDING 1
-
-/* thresholds */
-#define THRESHOLD_SIMILAR_NGRAMS 0
-#define THRESHOLD_CIRCUMFIX 100
-#define THRESHOLD_CONFIRMATION 10
+/* thresholds - percents */
+#define THRESHOLD_SIMILAR_NGRAMS 12.5
+#define THRESHOLD_CIRCUMFIX       100
+#define THRESHOLD_CONFIRMATION     10
 
 /* Morpheme Types */
 #define UNDEF     0

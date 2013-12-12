@@ -14,9 +14,11 @@
 
 void add_morpheme(struct morpheme_list_t *morphemes, struct morpheme_t morpheme)
 {
-	int size = sizeof(struct morpheme_t) * ++(morphemes->count);
+	int size = sizeof(struct morpheme_t) * (morphemes->count+1);
 	morphemes->list = realloc(morphemes->list, size);
-	morphemes->list[morphemes->count-1] = morpheme;
+	REALLOC_CHECK(morphemes->list);
+	morphemes->list[morphemes->count] = morpheme;
+	++morphemes->count;
 }
 
 void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, struct morpheme_list_t *internal)
@@ -57,6 +59,8 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 							++lookback;
 							free(lm.words);
 						}
+					} else {
+						free(lm.words);
 					}
 				} else {
 					gen_regex(word1, word2, iteration1, iteration2, &lm);
@@ -74,13 +78,15 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 		++iteration1;
 		iteration2 = 0;
 	}
-	one.word = strdup(word1);
+	/*one.word = strdup(word1);
 	two.word = strdup(word2);
 	one_orig.word = strdup(word1);
-	two_orig.word = strdup(word2);
+	two_orig.word = strdup(word2);*/
 
 	free(word1);
 	free(word2);
+	free(two.word);
+	free(one.word);
 }
 
 struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
@@ -225,9 +231,12 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 		//current_index = -1;
 	}
 	return new;
-	//for (i = 0; i < morpheme_list_count; ++i)
-	//	free(morpheme_list[i]);
-	//	free(morpheme_list);
+	for (i = 0; i < morpheme_list_count; ++i) {
+		free(original.list[i].words);
+		free(morpheme_list[i]);
+	}
+	free(original.list);
+	free(morpheme_list);
 }
 
 void identify_true_morphemes(struct morpheme_list_t *list, struct lexical_categories_t **lex)
@@ -275,7 +284,7 @@ void identify_true_morphemes(struct morpheme_list_t *list, struct lexical_catego
 						list_combined[++combined] = list->list[i].words[k].word;
 
 					int count = uniq_words(list_combined, combined);
-					int percent_similar = (double) 100.00 * (((double)combined - (double)count)/(double)combined);
+					int percent_similar = (double) 100.00 * ((double) (combined - count)/(double) combined);
 					if (percent_similar >= THRESHOLD_CIRCUMFIX) {
 						list->list[i].type = CIRCUMFIX;
 						list->list[j].type = CIRCUMFIX;

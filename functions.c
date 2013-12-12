@@ -82,12 +82,13 @@ int uniq_words(char **arr, int size)
 			++i;
 		}
 	}
+	free(u);
 	return i-1;
 }
 
 
 
-int explode_sansnull_str(char ***arr_ptr, char *str, char **delimiter)
+int explode_sansnull_str(char ***arr_ptr, const char *str, const char **delimiter)
 {
 	int i, size = -1, len = strlen(*delimiter);
 	for (i = 0; i < len; i++) {
@@ -105,7 +106,7 @@ int explode_sansnull_str(char ***arr_ptr, char *str, char **delimiter)
  *   used from public domain and modified by Z. Bornheimer
  */
 
-int explode_sansnull(char ***a, char *str, char *delimiter)
+int explode_sansnull(char ***a, const char *str, const char *delimiter)
 {
 	int wc, size = strlen(str)+1;
 	int count = 0, char_count = 0, i = 0, j;
@@ -113,8 +114,6 @@ int explode_sansnull(char ***a, char *str, char *delimiter)
 
 	char *s = strdup(str);
 	char *t = strdup(delimiter);
-	if (t == NULL)
-		exit(E_REALLOC);
 
 	for (j = 0; str[j] != '\0'; (str[j++] == *delimiter) ? ++(count) : 0);
 	wc = count+1;

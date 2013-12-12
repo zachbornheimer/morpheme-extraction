@@ -47,8 +47,7 @@ struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 		return empty;
 
 	str = realloc(str, (sizeof(char) * real_length+1));
-	if (str == NULL)
-		exit(E_REALLOC);
+	REALLOC_CHECK(str);
 
 	struct morpheme_t longest_match;
 
@@ -81,6 +80,8 @@ void gen_regex(char *one, char *two, int place_one, int place_two, struct morphe
 	/* Step 1.5, If Either Word = Morpheme, the morpheme->morpheme is a stem */
 
 	morpheme->type = UNDEF;
+	free(word1);
+	free(word2);
 
 	if (strcmp(one, morpheme->morpheme) == 0 || strcmp(two, morpheme->morpheme) == 0) {
 		morpheme->regex = malloc(sizeof(morpheme->morpheme) + 3);
@@ -222,11 +223,9 @@ void gen_regex(char *one, char *two, int place_one, int place_two, struct morphe
 	morpheme->back_regex = malloc(sizeof(char) * (strlen(back) + 2));
 	morpheme->back_regex[0] = '\0';
 	front = realloc(front, sizeof(char) * (strlen(front) + 1));
-	if (front == NULL)
-		exit(E_REALLOC);
+	REALLOC_CHECK(front);
 	back = realloc(back, sizeof(char) * (strlen(back) + 1));
-	if (back == NULL)
-		exit(E_REALLOC);
+	REALLOC_CHECK(back);
 	strcat(morpheme->regex, front);
 	strcat(morpheme->regex, morpheme->morpheme);
 	strcat(morpheme->regex, back);

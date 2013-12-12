@@ -40,11 +40,10 @@ char* find_word_delimiter(char **f)
 	for (j = 0; j <= i; ++j) {
 		if (verbose_mode == ON)
 			printf("Working on character %d/%d...\r", j, i);
-		char c[2] = {ret[j], '\0'};
+		const char c[2] = {ret[j], '\0'};
 		int freq = explode_sansnull(&arr, *f, c);
 		wd[j].c = ret[j];
 		wd[j].freq = freq;
-		//free(*arr);
 		free(arr);
 	}
 	free(ret);
@@ -66,8 +65,7 @@ char* find_word_delimiter(char **f)
 			wd_real[index] = wd[j].c;
 			wd_real[++index] = '\0';
 			wd_real = realloc(wd_real, sizeof(char) * index+2);
-			if (wd_real == NULL)
-				exit(E_REALLOC);
+			REALLOC_CHECK(wd_real);
 			char *uniqd;
 			uniq(&wd_real, &uniqd);
 			free(wd_real);
@@ -83,7 +81,8 @@ char* find_word_delimiter(char **f)
 	i = 0;
 	if(strlen(wd_real) > 1)
 		while(strcmp(wd_real, permute(&wd_permuted, &i)) != 0) {
-			if ((size = explode_sansnull_str(&arr, *f, &wd_permuted)) > wd_final_freq) {
+			const char *wd_testing = wd_permuted;
+			if ((size = explode_sansnull_str(&arr, *f, &wd_testing)) > wd_final_freq) {
 				size = wd_final_freq;
 				wd_final = wd_permuted; 
 			}  else if (size == wd_final_freq) {

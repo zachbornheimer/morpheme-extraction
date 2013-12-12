@@ -70,6 +70,9 @@ char* __gf(char dirpath[], int *index, int *count, char **header)
 					}
 					if (curfile != NULL)
 						free(curfile);
+				} else {
+					if (curfile != NULL)
+						free(curfile);
 				}
 			}
 		closedir(currdir);

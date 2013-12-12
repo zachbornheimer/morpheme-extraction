@@ -98,12 +98,12 @@ int nlp(void)
 	return 0;
 }
 
-void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngram_t ***ngram_full)
+void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struct ngram_t ***ngram_full)
 {
 	char **arr;
 	int word_count = explode_sansnull_str(&arr, f, &wd);
 
-	int i, q, j;
+	int i = 0, q = 0, j = 0;
 	int ngram_count = word_count;
 	int make_new = 1;
 	int add_loc = *ngram_length;
@@ -162,7 +162,6 @@ void build_ngram_relationships(char *wd, char *f, int *ngram_length, struct ngra
 			*ng[add_loc] = ngram;
 			++add_loc;
 		} else {
-			//free(ng[q]);
 			ng[q] = malloc(sizeof(struct ngram_t));
 			*ng[q] = ngram;
 		}
@@ -241,9 +240,9 @@ int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct l
 			add_word(&backward, ngram.word);
 			add_word(&backward, target.word);
 
-			find_internal_morphemes(ngram.word, target.word, &internal);
 			add_morpheme(&internal, forward);
 			add_morpheme(&internal, backward);
+			find_internal_morphemes(ngram.word, target.word, &internal);
 
 			ngram.word.word = w1;
 			target.word.word = w2;
@@ -255,8 +254,9 @@ int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct l
 	identify_true_morphemes(&morpheme_list, &lex);
 	write_to_file(output_filename, lex, morpheme_list.count, header);
 
-//	for (i = 0; i < morpheme_list.count; ++i)
-//		free(morpheme_list.list[i].morpheme);
+	for (i = 0; i < morpheme_list.count; ++i)
+		free(morpheme_list.list[i].words);
+	free(morpheme_list.list);
 
 	*lex_map = lex;
 

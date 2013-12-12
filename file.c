@@ -25,11 +25,7 @@ void read_by_char(const int c, char **buffer, int *charCount, int *bytes)
 	if (*bytes <= *charCount + 1) {
 		*bytes = *charCount + 2; 
 		*buffer = realloc(*buffer, sizeof(char) * *bytes);
-		if(buffer == NULL) {
-			--(*charCount);
-			printf("Cannot realloc memory for reading file!\n");
-			exit(1);
-		}
+		REALLOC_CHECK(*buffer);
 	}
 	(*buffer)[(*charCount)++] = c;
 	(*buffer)[(*charCount)] = '\0';

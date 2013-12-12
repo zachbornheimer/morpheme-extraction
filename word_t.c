@@ -20,12 +20,7 @@ void setword(struct word_t *word, char *w)
 {
 	word->i = strlen(w);
 	word->freq = 1; /* initialized */
-	/*word->word = malloc(sizeof(char) * word->i);*/
 	word->word = strdup(w);
-	if (word->word == NULL) {
-		printf("malloc failed.\n");
-		exit(1);
-	}
 }
 
 
@@ -55,14 +50,6 @@ char* remove_first_char(struct word_t w)
 	char *finalized = reverse(word);
 	finalized[strlen(finalized)-1] = '\0';
 	return reverse(finalized);
-}
-
-struct word_t word_t_dup(struct word_t word)
-{
-	const int size = sizeof(struct word_t) + strlen(word.word) + 1;
-	struct word_t new_word;
-	memcpy(&new_word, &word, size);
-	return new_word;
 }
 
 #endif
