@@ -13,17 +13,20 @@
 #include <dirent.h>
 #include <errno.h>
 
+#include "externs.h"
 #include "constants.h"
 #include "functions.h"
 #include "file.h"
 #include "directory.h"
+
+char *corpus_dir;
 
 char* getfiles(int *index, char **header)
 {
 	/* index is how many files it should parse to catch up to where it was in the previous run */
 	/* count is the current index num */
 	int count = 0;
-	return __gf(DEFAULT_PATH, index, &count, header);
+	return __gf(corpus_dir, index, &count, header);
 }
 
 char* __gf(char dirpath[], int *index, int *count, char **header)
@@ -77,6 +80,7 @@ char* __gf(char dirpath[], int *index, int *count, char **header)
 			}
 		closedir(currdir);
 	} else {
+		printf("Could not open dir: %s\n", path);
 		return NULL;
 	}
 	free(path);
