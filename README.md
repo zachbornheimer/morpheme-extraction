@@ -1,31 +1,31 @@
-Computerized Human Language Acquisition System
-==============================================
+Morpheme Extraction System
+==========================
 
-This software is an implementation of the spec I wrote entitled "Computerized Human Language Acquisition System and Associated Processes" a programatic spec of which is still in development.
+This software allows for the programmatic extraction of morphemes
+from a corpus into a defined morpheme-list location.
 
-I am also currently working on determing the morality/ethical implications of this software and if it is necessary to impose a n undeniable truth upon the software (a universal moral or ethic).
+Command-line Arguments:
 
-This software is currently NON-FREE Software.  This is private software.  If you have received this somehow and are not in direct contact with me, Zach Bornheimer, contact me immediately.
+Verbose Mode:      --verbose
+Serial Processing: --serial or --sequential --process-sequentially
+Full Processing:   --process
+Output File:       --output-file REL-FILE-PATH
+Corpus Dir:        --corpus-dir  REL-CORPUS-PATH
 
-Because of the implications of this system, it must remain non-free until I can determine how to best release it and minimize the dangerous aspects of it.
+where REL-FILE-PATH and REL-CORPUS-PATH are relative paths to a
+desired filename and/or corpus directory.
 
-If you code in Perl6, PLEASE follow the style Zysys Perl6 Style Guide <http://zysys.org/wiki/index.php/Perl6_Style_Guide> and don't hesitate to look at the style of nlp.pl6 if you want to see how the style is implemented.
+Verbose Mode gives more visual output, however it impacts speed.
 
-Main Program:
-Implementation of Morpheme Extraction:  nlp.pl6
-                    OO Implementation:  nlp.oo.pl6
+Serial Processing yields data results for each file process as
+    opposed to a conglomorate data processing experience :)
 
-Documentation:<br />
-[all coming soon]<br />
-Provisional Patent Application with English Explainations of the System Details<br />
-Flowcharts illustrating the steps
+Full Processing yields serial and sequential results as if you
+    were to have run the program with --serial the first time
+    and then a second time without that flag.
 
-Submodules:<br />
-[Zedram](https://github.com/zachbornheimer/zedram)<br />
-[nlp-corpus](https://github.com/zachbornheimer/nlp-corpus)<br />
+Output File is the place in which data results are appended
+    (it won't overwrite existing data).
 
-Future Implementation
-=====================
-
-The goal will be to write each feature in modules that way they can be called simply.<br />
-The creation of an OO interface for this will be a beautiful thing :O)
+Corpus Dir is the place where all the files that need to be
+    processed reside.

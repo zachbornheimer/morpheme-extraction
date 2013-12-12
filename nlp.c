@@ -24,7 +24,9 @@
 
 int verbose_mode;
 int process_sequentially;
-char *output_filename = ZEDRAM_OUTPUT;
+int process_full;
+char *output_filename;
+char *corpus_dir;
 
 /* gets/sets command line arguments */
 int main(const int argc, char *argv[])
@@ -32,18 +34,27 @@ int main(const int argc, char *argv[])
 	int i;
 	verbose_mode = OFF;
 	process_sequentially = OFF;
+	process_full = OFF;
+	output_filename = ZEDRAM_OUTPUT;
+	corpus_dir = DEFAULT_PATH;
 	for (i = 0; i < argc; ++i)
-		if (!strcmp(argv[i], "--verbose"))
+		if (!strcmp(argv[i], "--verbose")) {
 			verbose_mode = ON;
-		else if (!strcmp(argv[i], "--process-sequentially"))
+		} else if (!strcmp(argv[i], "--process-sequentially")) {
 			process_sequentially = ON;
-		else if (!strcmp(argv[i], "--serial"))
+		} else if (!strcmp(argv[i], "--serial")) {
 			process_sequentially = ON;
-		else if (!strcmp(argv[i], "--sequential"))
+		} else if (!strcmp(argv[i], "--sequential")) {
 			process_sequentially = ON;
-		else if (!strcmp(argv[i], "--output-file"))
+		} else if (!strcmp(argv[i], "--process")) {
+			process_full = ON;
+		} else if (!strcmp(argv[i], "--output-file")) {
 			if (i+1 < argc)
 				output_filename = argv[i+1];
+		} else if (!strcmp(argv[i], "--corpus-dir")) {
+			if (i+1 < argc)
+				corpus_dir = argv[i+1];
+		}
 
 	return nlp();
 }	
@@ -67,7 +78,7 @@ int nlp(void)
 				build_ngram_relationships(wd, f, &ngram_length, &ng);
 				if (errno == E_OVERRULED)
 					continue;
-				if (process_sequentially == ON) {
+				if (process_full == ON || process_sequentially == ON) {
 					V_PRINT("\nPROCESSING SEQUENTIALLY!");
 					V_PRINT("Extracting Morphemes and Building Lexical Categories.");
 					lex_count = find_morphemes(ng, ngram_length, header, &morphemes);
@@ -78,7 +89,7 @@ int nlp(void)
 		free(header);
 	}
 
-	if (process_sequentially == OFF) {
+	if (process_full == ON || process_sequentially == OFF) {
 		header = "All Processed Files";
 		V_PRINT("PROCESSING SIMULATNEOUSLY!");
 		V_PRINT("Extracting Morphemes and Building Lexical Categories.");
