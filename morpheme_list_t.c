@@ -4,8 +4,8 @@
  */
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+#include <stdio.h>
 #include "structs.h"
 #include "morpheme_list_t.h"
 #include "morpheme_t.h"
@@ -41,24 +41,27 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 					struct word_t current, previous;
 					setword(&current, lm.morpheme);
 					setword(&previous, (*internal).list[(*internal).count-1].morpheme);
-					char *test = strdup(previous.word);
-					test = reverse(test);
-					if (((int)strlen(test)-lookback) >= 1)
-						if (test[strlen(test)-lookback] != 0)
-							test[strlen(test)-lookback] = '\0';
-					test = reverse(test);
 					if (strcmp(find_longest_match(current, previous).morpheme, lm.morpheme) != 0) {
+						char *test = strdup(previous.word);
+						test = reverse(test);
+						if (((int)strlen(test)-lookback) >= 1) {
+							if (test[strlen(test)-lookback] != 0)
+								test[strlen(test)-lookback] = '\0';
+						} else {
+							continue;
+						}
+						test = reverse(test);
 						if (strcmp(test, current.word) != 0) {
 							add_word(&lm, one_orig);
 							add_word(&lm, two_orig);
 							gen_regex(word1, word2, iteration1, iteration2, &lm);
 							if (lm.regex != NULL)
 								add_morpheme(internal, lm);
-							lookback = 1;
+							lookback = strlen(lm.morpheme);
 						} else {
-							++lookback;
 							free(lm.words);
 						}
+						free(test);
 					} else {
 						free(lm.words);
 					}
@@ -66,9 +69,10 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 					gen_regex(word1, word2, iteration1, iteration2, &lm);
 					if (lm.regex != NULL)
 						add_morpheme(internal, lm);
-					lookback = 1;
+					lookback = strlen(lm.morpheme);
 				}
 			} else {
+				lookback = 1;
 				free(lm.words);
 			}
 		}
@@ -126,16 +130,18 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 			struct morpheme_t dup = original.list[i];
 			struct morpheme_t orig = new.list[current_index];
 
-			if (orig.type == STEM)
-				continue;
 			if (dup.type == STEM) {
 				orig = dup;
+				++orig.freq;
+				continue;
+			}
+			if (orig.type == STEM) {
+				++orig.freq;
 				continue;
 			}
 
-
-			struct morpheme_t working = new.list[current_index];
 			/* Step One, Extract Parenthetical Sections */
+			struct morpheme_t working = new.list[current_index];
 			char *dup_regex = dup.regex;
 			char *orig_regex = orig.regex;
 			int orig_front_index = orig.front_regex_arr_index;
@@ -163,13 +169,11 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 				int size = 2;
 				int longest = (dup_front_index > orig_front_index? dup_front_index : orig_front_index);
 
-				if (j <= orig_front_index)
-					if (orig.front_regex_arr[j][0] > 0)
-						size += (int) strlen(orig.front_regex_arr[j]);
+				if (j-(longest-orig_front_index) >= 0 && j-(longest-orig_front_index) <= orig_front_index)
+					size += (int) strlen(orig.front_regex_arr[j-(longest-orig_front_index)]);
 
-				if (j <= dup_front_index)
-					if (dup.front_regex_arr[j] != 0 && strlen(dup.front_regex_arr[j]) != 0)
-						size += (int) strlen(dup.front_regex_arr[j]);
+				if (j-(longest-dup_front_index) >= 0 && j-(longest-dup_front_index) <= dup_front_index)
+					size += (int) strlen(dup.front_regex_arr[j-(longest-dup_front_index)]);
 
 				regex_front[j] = malloc(sizeof(char) * size);
 				regex_front[j][0] = '\0';
@@ -178,10 +182,10 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 					break;
 				if (j >= longest-orig_front_index)
 					if (orig_front_index != -1)
-						strcat(regex_front[j], orig.front_regex_arr[longest-j]);
+						strcat(regex_front[j], orig.front_regex_arr[j-(longest-orig_front_index)]);
 				if (j >= longest-dup_front_index)
 					if (dup_front_index != -1)
-						strcat(regex_front[j], dup.front_regex_arr[longest-j]);
+						strcat(regex_front[j], dup.front_regex_arr[j-(longest-dup_front_index)]);
 				++j;
 
 			}
@@ -193,12 +197,10 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 				int size = 2;
 				int longest = (dup_back_index > orig_back_index? dup_back_index : orig_back_index);
 
-				if (j <= orig_back_index)
-					if (orig.back_regex_arr[j][0] > 0)
-						size += (int) strlen(orig.back_regex_arr[j]);
-				if (j <= dup_back_index)
-					if (dup.back_regex_arr[j] != 0 && strlen(dup.back_regex_arr[j]) != 0)
-						size += (int) strlen(dup.back_regex_arr[j]);
+				if (j-(longest-orig_back_index) >= 0 && j-(longest-orig_back_index) <= orig_back_index)
+					size += (int) strlen(orig.back_regex_arr[j-(longest-orig_back_index)]);
+				if (j-(longest-dup_back_index) >= 0 && j-(longest-dup_back_index) <= dup_back_index)
+					size += (int) strlen(dup.back_regex_arr[j-(longest-dup_back_index)]);
 
 				regex_back[j] = malloc(sizeof(char) * size);
 				regex_back[j][0] = '\0';
@@ -206,10 +208,10 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 					break;
 				if (j >= longest-orig_back_index)
 					if (orig_back_index != -1)
-						strcat(regex_back[j], orig.back_regex_arr[longest-j]);
+						strcat(regex_back[j], orig.back_regex_arr[j-(longest-orig_back_index)]);
 				if (j >= longest-dup_back_index)
 					if (dup_back_index != -1)
-						strcat(regex_back[j], dup.back_regex_arr[longest-j]);
+						strcat(regex_back[j], dup.back_regex_arr[j-(longest-dup_back_index)]);
 				++j;
 			}
 			working.back_regex_arr_index = j-1;
@@ -229,12 +231,6 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 		current_index = -1;
 	}
 	return new;
-	for (i = 0; i < morpheme_list_count; ++i) {
-		free(original.list[i].words);
-		free(morpheme_list[i]);
-	}
-	free(original.list);
-	free(morpheme_list);
 }
 
 void identify_true_morphemes(struct morpheme_list_t *list, struct lexical_categories_t **lex)
@@ -249,20 +245,18 @@ void identify_true_morphemes(struct morpheme_list_t *list, struct lexical_catego
 		if (morpheme.type != STEM) {
 
 			/* Prefix Identification */
-			if (strlen(morpheme.back_regex) == 0 || strcmp(morpheme.back_regex, "()") == 0) {
-				if (strcmp(morpheme.front_regex, "^") == 0)
-					list->list[i].type = PREFIX;
-			} else {
-				if (strcmp(morpheme.front_regex, "()") == 0)
+			if (strcmp(morpheme.front_regex, "^") == 0) {
+				if (strcmp(morpheme.back_regex, "()") == 0 || strcmp(morpheme.back_regex, "$")==0)
+					list->list[i].type = STEM;
+				else
 					list->list[i].type = PREFIX;
 			}
 
 			/* Suffix Identification */
-			if (strlen(morpheme.front_regex) == 0 || strcmp(morpheme.front_regex, "()") == 0) {
-				if (strcmp(morpheme.back_regex, "$") == 0)
-					list->list[i].type = SUFFIX;
-			} else {
-				if (strcmp(morpheme.back_regex, "()") == 0)
+			if (strcmp(morpheme.back_regex, "$") == 0) {
+				if (morpheme.type == PREFIX || strcmp(morpheme.front_regex, "()") == 0)
+					list->list[i].type = STEM;
+				else
 					list->list[i].type = SUFFIX;
 			}
 

@@ -216,36 +216,34 @@ int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct l
 			char *w2 = strdup(target.word.word);
 
 			struct morpheme_t forward = find_longest_match(ngram.word, target.word);
-			forward.regex = malloc(sizeof(char) * (strlen(forward.morpheme)+2));
-			forward.regex[0] = '^';
-			forward.regex[1] = '\0';
-			forward.regex = strcat(forward.regex, forward.morpheme);
-			forward.front_regex = "^\0";
-			forward.back_regex = "\0";
 			forward.words_count = 0;
 			forward.words = malloc(0);
-			forward.front_regex_arr_index = -1; 
-			forward.back_regex_arr_index = -1; 
-			forward.type = UNDEF;
+			gen_regex(ngram.word.word, target.word.word, 0, 0, &forward);
 			add_word(&forward, ngram.word);
 			add_word(&forward, target.word);
 
 			reverse_word(ngram.word);
 			reverse_word(target.word);
 			struct morpheme_t backward = find_longest_match(ngram.word, target.word);
-			backward.regex = malloc(sizeof(char) * strlen(backward.morpheme)+2);
-			backward.regex[0] = '$';
-			backward.regex[1] = '\0';
-			backward.regex = strcat(backward.regex, backward.morpheme);
-			backward.regex = reverse(backward.regex);
-			backward.morpheme = reverse(backward.morpheme);
 			backward.words_count = 0;
 			backward.words = malloc(0);
-			backward.front_regex = "\0";
-			backward.back_regex = "$\0";
-			backward.front_regex_arr_index = -1; 
-			backward.back_regex_arr_index = -1; 
-			backward.type = UNDEF;
+			gen_regex(ngram.word.word, target.word.word, 0, 0, &backward);
+			if ((int)strlen(backward.morpheme) > 1) {
+				int p = 0;
+				if (backward.regex[0] == '^' && backward.regex[strlen(backward.regex)-1] == '$') {
+					backward.regex = reverse(backward.regex);
+					backward.regex[0] = '^';
+					backward.regex[strlen(backward.regex)-1] = '$';
+					backward.morpheme = reverse(backward.morpheme);
+				} else {
+					for (p = 0; p < backward.front_regex_arr_index; ++p)
+						backward.front_regex_arr[p] = reverse(backward.front_regex_arr[p]);
+					for (p = 0; p < backward.back_regex_arr_index; ++p)
+						backward.back_regex_arr[p] = reverse(backward.back_regex_arr[p]);
+					backward.morpheme = reverse(backward.morpheme);
+					merge_rules(&backward);
+				}
+			}
 			reverse_word(ngram.word);
 			reverse_word(target.word);
 			add_word(&backward, ngram.word);
@@ -261,6 +259,7 @@ int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct l
 	}
 	V_PRINT("");
 	struct morpheme_list_t morpheme_list = fuse_regex(internal);
+	i = 0;
 	struct lexical_categories_t *lex = malloc(sizeof(struct lexical_categories_t) * morpheme_list.count);
 	identify_true_morphemes(&morpheme_list, &lex);
 	write_to_file(output_filename, lex, morpheme_list.count, header);
