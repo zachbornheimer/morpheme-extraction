@@ -1,0 +1,3 @@
+[submodule "corpus"]
+	path = corpus
+	url = git://zysys.org/nlp-corpus.git
