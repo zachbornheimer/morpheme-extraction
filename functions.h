@@ -17,5 +17,6 @@ int explode_sansnull(char***, const char*, const char*);
 int move_char(int*, char**);
 char* permute(char**, int*);
 char* reverse(char*);
+void swap_mem(void*,void*);
 
 #endif

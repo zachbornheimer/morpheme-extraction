@@ -180,6 +180,7 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 
 				regex_front[j] = malloc(sizeof(char) * size);
 				regex_front[j][0] = '\0';
+				char *arr;
 
 				if (size == 2)
 					break;
@@ -189,6 +190,8 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 				if (j >= longest-dup_front_index)
 					if (dup_front_index != -1)
 						strcat(regex_front[j], dup.front_regex_arr[j-(longest-dup_front_index)]);
+				uniq(&regex_front[j], &arr);
+				regex_front[j] = arr;
 				++j;
 
 			}
@@ -207,6 +210,7 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 
 				regex_back[j] = malloc(sizeof(char) * size);
 				regex_back[j][0] = '\0';
+				char *arr;
 				if (size == 2)
 					break;
 				if (j >= longest-orig_back_index)
@@ -215,6 +219,8 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 				if (j >= longest-dup_back_index)
 					if (dup_back_index != -1)
 						strcat(regex_back[j], dup.back_regex_arr[j-(longest-dup_back_index)]);
+				uniq(&regex_back[j], &arr);
+				regex_back[j] = arr;
 				++j;
 			}
 			working.back_regex_arr_index = j-1;
@@ -248,16 +254,16 @@ void identify_true_morphemes(struct morpheme_list_t *list, struct lexical_catego
 		if (morpheme.type != STEM) {
 
 			/* Prefix Identification */
-			if (strcmp(morpheme.front_regex, "^") == 0) {
-				if (strcmp(morpheme.back_regex, "()") == 0 || strcmp(morpheme.back_regex, "$")==0)
+			if (strcmp(morpheme.front_regex, "^") == 0 || strcmp(morpheme.front_regex, "()") == 0 ) {
+				if (strcmp(morpheme.back_regex, "$")==0)
 					list->list[i].type = STEM;
 				else
 					list->list[i].type = PREFIX;
 			}
 
 			/* Suffix Identification */
-			if (strcmp(morpheme.back_regex, "$") == 0) {
-				if (morpheme.type == PREFIX || strcmp(morpheme.front_regex, "()") == 0)
+			if (strcmp(morpheme.back_regex, "$") == 0 || strcmp(morpheme.back_regex, "()") == 0) {
+				if (morpheme.type == PREFIX)
 					list->list[i].type = STEM;
 				else
 					list->list[i].type = SUFFIX;

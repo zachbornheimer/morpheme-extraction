@@ -185,4 +185,11 @@ char* reverse(char *string)
 	return str;
 }
 
+void swap_mem(void *one, void *two)
+{
+	void *temp = one;
+	one = two;
+	two = temp;
+}
+
 #endif

@@ -87,7 +87,7 @@ void write_to_file(char *filename, struct lexical_categories_t *lex, int count, 
 	fprintf(output, "\n");
 	for (i = 0; i < count; ++i)
 		if (lex[i].morpheme.type != UNDEF)
-			fprintf(output, "%s: %s\n", strtype(lex[i].morpheme.type), lex[i].morpheme.morpheme);
+			fprintf(output, "%s: %s \n", strtype(lex[i].morpheme.type), lex[i].morpheme.morpheme);
 
 	fclose(output);
 }

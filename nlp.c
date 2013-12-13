@@ -222,35 +222,7 @@ int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct l
 			add_word(&forward, ngram.word);
 			add_word(&forward, target.word);
 
-			reverse_word(ngram.word);
-			reverse_word(target.word);
-			struct morpheme_t backward = find_longest_match(ngram.word, target.word);
-			backward.words_count = 0;
-			backward.words = malloc(0);
-			gen_regex(ngram.word.word, target.word.word, 0, 0, &backward);
-			if ((int)strlen(backward.morpheme) > 1) {
-				int p = 0;
-				if (backward.regex[0] == '^' && backward.regex[strlen(backward.regex)-1] == '$') {
-					backward.regex = reverse(backward.regex);
-					backward.regex[0] = '^';
-					backward.regex[strlen(backward.regex)-1] = '$';
-					backward.morpheme = reverse(backward.morpheme);
-				} else {
-					for (p = 0; p < backward.front_regex_arr_index; ++p)
-						backward.front_regex_arr[p] = reverse(backward.front_regex_arr[p]);
-					for (p = 0; p < backward.back_regex_arr_index; ++p)
-						backward.back_regex_arr[p] = reverse(backward.back_regex_arr[p]);
-					backward.morpheme = reverse(backward.morpheme);
-					merge_rules(&backward);
-				}
-			}
-			reverse_word(ngram.word);
-			reverse_word(target.word);
-			add_word(&backward, ngram.word);
-			add_word(&backward, target.word);
-
 			add_morpheme(&internal, forward);
-			add_morpheme(&internal, backward);
 			find_internal_morphemes(ngram.word, target.word, &internal);
 
 			ngram.word.word = w1;
