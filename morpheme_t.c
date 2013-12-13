@@ -62,7 +62,7 @@ struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 void gen_regex(char *one, char *two, int place_one, int place_two, struct morpheme_t *morpheme)
 {
 	/* Step 1, Confirm Morpheme Placement */
-	if (!(strlen(morpheme->morpheme) <= strlen(one) && strlen(morpheme->morpheme) <= strlen(two)))
+	if (morpheme->morpheme == NULL || strlen(morpheme->morpheme) == 0 || !(strlen(morpheme->morpheme) <= strlen(one) && strlen(morpheme->morpheme) <= strlen(two)))
 		return;
 
 	int i = 0;
@@ -84,7 +84,7 @@ void gen_regex(char *one, char *two, int place_one, int place_two, struct morphe
 	free(word2);
 
 	if (strcmp(one, morpheme->morpheme) == 0 || strcmp(two, morpheme->morpheme) == 0) {
-		morpheme->regex = malloc(sizeof(morpheme->morpheme) + 3);
+		morpheme->regex = malloc(strlen(morpheme->morpheme) + 3);
 		morpheme->regex[0] = '^';
 		morpheme->regex[1] = '\0';
 		strcat(morpheme->regex, morpheme->morpheme);
@@ -255,9 +255,9 @@ void merge_rules(struct morpheme_t *morpheme)
 		if (i > morpheme->front_regex_arr_index)
 			break;
 		strcat(front, "]");
-		char *arr;
+		/*char *arr;
 		uniq(&(morpheme->front_regex_arr[i]), &arr);
-		morpheme->front_regex_arr[i] = arr;
+		morpheme->front_regex_arr[i] = arr;*/
 		strcat(front, morpheme->front_regex_arr[i]);
 		strcat(front, "[");
 		++i;
@@ -270,9 +270,9 @@ void merge_rules(struct morpheme_t *morpheme)
 		if (i > morpheme->back_regex_arr_index)
 			break;
 		strcat(back, "]");
-		char *arr;
+		/*char *arr;
 		uniq(&(morpheme->back_regex_arr[i]), &arr);
-		morpheme->back_regex_arr[i] = arr;
+		morpheme->back_regex_arr[i] = arr;*/
 		strcat(back, morpheme->back_regex_arr[i]);
 		strcat(back, "[");
 		++i;
