@@ -8,13 +8,13 @@ DEBUG_OBJECTS=$(SOURCES:.c=.debug.o)
 DEBUG_EXE=nlp.debug
 PRODUCTION_EXE=nlp
 
+optimized: EXECUTABLE=$(PRODUCTION_EXE)
+optimized: $(SOURCES) $(PRODUCTION_EXE)
+
 debug: EXECUTABLE=$(DEBUG_EXE)
 debug: CFLAGS=$(DEBUG_CFLAGS)
 debug: OBJECTS=$(DEBUG_OBJECTS)
 debug: $(SOURCES) $(DEBUG_EXE)
-
-optimized: EXECUTABLE=$(PRODUCTION_EXE)
-optimized: $(SOURCES) $(PRODUCTION_EXE)
 
 all: debug optimized
 
