@@ -78,10 +78,6 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 		++iteration1;
 		iteration2 = 0;
 	}
-	/*one.word = strdup(word1);
-	two.word = strdup(word2);
-	one_orig.word = strdup(word1);
-	two_orig.word = strdup(word2);*/
 
 	free(word1);
 	free(word2);
@@ -110,7 +106,6 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 
 	int i;
 	char **morpheme_list = malloc(sizeof(char*) * original.count);
-	int *index_lookup = malloc(sizeof(int) * original.count);
 	struct morpheme_list_t new = {.count = 0};
 	new.list = malloc(sizeof(struct morpheme_t) * original.count);
 	int morpheme_list_count = 0;
@@ -123,17 +118,21 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 		if (morpheme_list_count == 0) {
 			morpheme_list[morpheme_list_count] = original.list[i].morpheme;
 			add_morpheme(&new, original.list[i]);
-			index_lookup[morpheme_list_count] = i;
 			++morpheme_list_count;
 			continue;
 		}
 		char *morpheme = original.list[i].morpheme;
 		if ((current_index = in_char_array(morpheme, morpheme_list, morpheme_list_count)) != -1) {
-			struct morpheme_t dup = original.list[index_lookup[current_index]];
+			struct morpheme_t dup = original.list[i];
 			struct morpheme_t orig = new.list[current_index];
 
 			if (orig.type == STEM)
 				continue;
+			if (dup.type == STEM) {
+				orig = dup;
+				continue;
+			}
+
 
 			struct morpheme_t working = new.list[current_index];
 			/* Step One, Extract Parenthetical Sections */
@@ -179,10 +178,10 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 					break;
 				if (j >= longest-orig_front_index)
 					if (orig_front_index != -1)
-						strcat(regex_front[j], orig.front_regex_arr[j]);
+						strcat(regex_front[j], orig.front_regex_arr[longest-j]);
 				if (j >= longest-dup_front_index)
 					if (dup_front_index != -1)
-						strcat(regex_front[j], dup.front_regex_arr[j]);
+						strcat(regex_front[j], dup.front_regex_arr[longest-j]);
 				++j;
 
 			}
@@ -207,10 +206,10 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 					break;
 				if (j >= longest-orig_back_index)
 					if (orig_back_index != -1)
-						strcat(regex_back[j], orig.back_regex_arr[j]);
+						strcat(regex_back[j], orig.back_regex_arr[longest-j]);
 				if (j >= longest-dup_back_index)
 					if (dup_back_index != -1)
-						strcat(regex_back[j], dup.back_regex_arr[j]);
+						strcat(regex_back[j], dup.back_regex_arr[longest-j]);
 				++j;
 			}
 			working.back_regex_arr_index = j-1;
@@ -225,10 +224,9 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 		} else {
 			morpheme_list[morpheme_list_count] = original.list[i].morpheme;
 			add_morpheme(&new, original.list[i]);
-			index_lookup[morpheme_list_count] = i;
 			++morpheme_list_count;
 		}
-		//current_index = -1;
+		current_index = -1;
 	}
 	return new;
 	for (i = 0; i < morpheme_list_count; ++i) {
