@@ -35,7 +35,6 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 				break;
 			struct morpheme_t lm = find_longest_match(one, two);
 			lm.words_count = 0;
-			lm.words = malloc(0);
 			if (lm.morpheme[0] != '\0' && strlen(lm.morpheme) >= 2) {
 				if ((*internal).count > 0) {
 					struct word_t current, previous;
@@ -52,20 +51,25 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 						}
 						test = reverse(test);
 						if (strcmp(test, current.word) != 0) {
+							lm.words = malloc(0);
 							add_word(&lm, one_orig);
 							add_word(&lm, two_orig);
 							gen_regex(word1, word2, iteration1, iteration2, &lm);
 							if (lm.regex != NULL)
 								add_morpheme(internal, lm);
+							else
+								free(lm.words);
 							lookback = strlen(lm.morpheme);
 						} else {
-							free(lm.words);
 						}
 						free(test);
 					} else {
-						free(lm.words);
 					}
 				} else {
+
+					lm.words = malloc(0);
+					add_word(&lm, one_orig);
+					add_word(&lm, two_orig);
 					gen_regex(word1, word2, iteration1, iteration2, &lm);
 					if (lm.regex != NULL)
 						add_morpheme(internal, lm);
@@ -73,7 +77,6 @@ void find_internal_morphemes(struct word_t one_orig, struct word_t two_orig, str
 				}
 			} else {
 				lookback = 1;
-				free(lm.words);
 			}
 		}
 		free(two.word);

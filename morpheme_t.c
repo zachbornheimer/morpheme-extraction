@@ -46,7 +46,7 @@ struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 	if (real_length == 0)
 		return empty;
 
-	str = realloc(str, (sizeof(char) * real_length+1));
+	str = realloc(str, sizeof(char) * (real_length + 1));
 	REALLOC_CHECK(str);
 
 	struct morpheme_t longest_match;
@@ -264,6 +264,8 @@ void merge_rules(struct morpheme_t *morpheme)
 	}
 	strcat(front, "(");
 	front = reverse(front);
+	front = realloc(front, sizeof(char) * (strlen(front) + 1));
+	REALLOC_CHECK(front);
 
 	i = 0;
 	while (1) {
@@ -279,6 +281,8 @@ void merge_rules(struct morpheme_t *morpheme)
 	}
 	strcat(back, "(");
 	back = reverse(back);
+	back = realloc(back, sizeof(char) * (strlen(back) + 1));
+	REALLOC_CHECK(back);
 
 
 	int size = 3;
@@ -302,6 +306,8 @@ void merge_rules(struct morpheme_t *morpheme)
 	} else {
 		strcat(morpheme->regex, morpheme->back_regex);
 	}
+	morpheme->regex = realloc(morpheme->regex, sizeof(char) * (strlen(morpheme->regex)+1));
+	REALLOC_CHECK(morpheme->regex);
 
 }
 
