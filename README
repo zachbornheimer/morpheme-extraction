@@ -13,6 +13,17 @@ me improve in C and will help the project :-)
 
 Research Paper that accompanied this project is coming soon.
 
+Software Required for Functionality:
+    gcc
+    make
+    
+How to install?
+Choose one of the following:
+    make optimized
+    make debug
+    make all
+    
+
 Command-line Arguments:
 
 Verbose Mode:      --verbose
