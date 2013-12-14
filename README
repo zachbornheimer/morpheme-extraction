@@ -1,8 +1,17 @@
 Morpheme Extraction System
 ==========================
 
-This software allows for the programmatic extraction of morphemes
-from a corpus into a defined morpheme-list location.
+This software allows for the programmatic 
+extraction of morpheme candidates from a 
+corpus into a defined morpheme-list location.
+
+Licensed under the GPLv2.
+
+If you change something or get something to 
+work better, please let me know it will help
+me improve in C and will help the project :-)
+
+Research Paper that accompanied this project is coming soon.
 
 Command-line Arguments:
 
@@ -18,7 +27,7 @@ desired filename and/or corpus directory.
 Verbose Mode gives more visual output, however it impacts speed.
 
 Serial Processing yields data results for each file process as
-    opposed to a conglomorate data processing experience :)
+    opposed to a conglomerate data processing experience :)
 
 Full Processing yields serial and sequential results as if you
     were to have run the program with --serial the first time
