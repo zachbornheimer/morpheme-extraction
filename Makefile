@@ -1,5 +1,5 @@
 CC=cc
-DEBUG_CFLAGS=-c -g -Wall
+DEBUG_CFLAGS=-pg -c -g -Wall
 CFLAGS=-c -Wall -O
 LDFLAGS=
 SOURCES=functions.c file.c directory.c word_t.c alphabet.c ngram_t.c nlp.c morpheme_t.c morpheme_list_t.c

@@ -26,11 +26,12 @@
 #include "alphabet.h"
 
 
-char* find_word_delimiter(char **f)
+/* retrieves word delimiter */
+char* find_word_delimiter(char **file)
 {
 	char *ret, **arr;
 	V_PRINT("Creating List of Uniq Chars.");
-	int j, i = uniq(f, &ret);
+	int j, i = uniq(file, &ret);
 	if (i == -1) {
 		errno = E_UNIQ;
 		return "";
@@ -41,7 +42,7 @@ char* find_word_delimiter(char **f)
 		if (verbose_mode == ON)
 			printf("Working on character %d/%d...\r", j, i);
 		const char c[2] = {ret[j], '\0'};
-		int freq = explode_sansnull(&arr, *f, c);
+		int freq = explode_sansnull(&arr, *file, c);
 		wd[j].c = ret[j];
 		wd[j].freq = freq;
 		free(arr);
@@ -80,7 +81,7 @@ char* find_word_delimiter(char **f)
 	if(strlen(wd_real) > 1)
 		while(strcmp(wd_real, permute(&wd_permuted, &i)) != 0) {
 			const char *wd_testing = wd_permuted;
-			if ((size = explode_sansnull_str(&arr, *f, &wd_testing)) > wd_final_freq) {
+			if ((size = explode_sansnull_str(&arr, *file, &wd_testing)) > wd_final_freq) {
 				size = wd_final_freq;
 				wd_final = wd_permuted; 
 			}  else if (size == wd_final_freq && size != 0) {

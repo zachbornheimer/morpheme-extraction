@@ -30,7 +30,7 @@ char* append(char* one, char* two)
 
 int in_array(const int c, char **uniq, const int size)
 {
-	int i;
+	register int i;
 	for (i = 0; i < size; ++i)
 		if (c == (*uniq)[i])
 			return i;
@@ -39,35 +39,32 @@ int in_array(const int c, char **uniq, const int size)
 
 int in_char_array(const char *w, char *uniq[], const int size)
 {
-	int i;
+	register int i;
 	for (i = 0; i < size; ++i)
 		if (strcmp(w, uniq[i]) == 0)
 			return i;
 	return -1;
 }
 
-/* returns base 0 */
-int uniq(char **f, char **ret)
+/* returns a uniq string given a nonunique
+ * char string input and a storage address
+ * returns size count, base 0           */
+int uniq(char **chars, char **ret_addr)
 {
-	if (f == NULL || *f == NULL)
+	if (chars == NULL || *chars == NULL)
 		return -1;
-	V_PRINT("Calculating strlen of file");
-	int len = strlen(*f);
+	register int len = strlen(*chars);
 	char *u = malloc((len+2) * sizeof(char));
-	int i = 0, j=0;
+	register int i = 0, j=0;
 	for (j = 0; j <= len; ++j) {
-		if (verbose_mode == ON) {
-			double p = ((double) j / (double) len) * (double) 100.00;
-			printf("Creating Uniq Array %f%s Complete\r", p, "%");
-		}
-		if ((*f)[j] != 0) {
-			if (i == 0 || in_array((*f)[j], &u, i)==-1)
-				u[i++] = (*f)[j];
+		if ((*chars)[j] != 0) {
+			if (i == 0 || in_array((*chars)[j], &u, i)==-1)
+				u[i++] = (*chars)[j];
 		} else {
 			break;
 		}
 	}
-	*ret = u;
+	*ret_addr = u;
 	return i-1;
 }
 
