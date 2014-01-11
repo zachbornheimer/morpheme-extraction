@@ -128,12 +128,12 @@ void quicksort_ngram(struct ngram_t **ng_real, int type)
 int ngrams_similar(struct ngram_t a, struct ngram_t b)
 {
 
-	int percent_similar = 0;
-	int elems_count = 0;
-	int arr_count = 0;
-	int count = 0;
+	register int percent_similar = 0;
+	register int elems_count = 0;
+	register int arr_count = 0;
+	register int count = 0;
 
-	int i, j;
+	register int i, j;
 	for (i = 0; i < (NGRAM_SIZE/2); ++i)
 		elems_count += a.before.at[i]->count;
 	for (i = 0; i < (NGRAM_SIZE/2); ++i)
@@ -143,7 +143,7 @@ int ngrams_similar(struct ngram_t a, struct ngram_t b)
 	for (i = 0; i < (NGRAM_SIZE/2); ++i)
 		elems_count += b.after.at[i]->count;
 
-	char **arr = malloc(sizeof(char*) * elems_count);
+	register char **arr = malloc(sizeof(char*) * elems_count);
 
 	for (i = 0; i < (NGRAM_SIZE/2); ++i)
 		for (j = 0; j < a.before.at[i]->count; ++j)

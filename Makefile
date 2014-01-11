@@ -1,5 +1,5 @@
 CC=cc
-DEBUG_CFLAGS=-pg -c -g -Wall
+DEBUG_CFLAGS=-pg -g -c -Wall
 CFLAGS=-c -Wall -O
 LDFLAGS=
 SOURCES=functions.c file.c directory.c word_t.c alphabet.c ngram_t.c nlp.c morpheme_t.c morpheme_list_t.c
@@ -22,7 +22,7 @@ $(PRODUCTION_EXE): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
 $(DEBUG_EXE): $(DEBUG_OBJECTS)
-	$(CC) $(LDFLAGS) $(DEBUG_OBJECTS) -o $@
+	$(CC) -pg $(LDFLAGS) $(DEBUG_OBJECTS) -o $@
 
 %.debug.o: %.c
 	$(CC) $(CFLAGS) $< -o $@

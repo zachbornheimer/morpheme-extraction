@@ -9,7 +9,7 @@
 /* general functions */
 char* append(char*, char*);
 int in_array(const int, char**, const int);
-int in_char_array(const char*, char*[], const int);
+inline int in_char_array(const char*, char*[], const int);
 int uniq(char**, char**);
 int uniq_words(char**, int);
 int explode_sansnull_str(char***, const char*, const char**);

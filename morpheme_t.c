@@ -24,9 +24,9 @@ void free_morpheme(struct morpheme_t *morpheme)
 
 struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 {
-	struct word_t longest, shortest;
-	struct morpheme_t empty = {.morpheme = "\0", .freq = 1};
-	int real_length = 0;
+	register struct word_t longest, shortest;
+	register struct morpheme_t empty = {.morpheme = "\0", .freq = 1};
+	register int real_length = 0;
 
 	if (one.i >= two.i) {
 		longest = one;
@@ -36,7 +36,7 @@ struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 		shortest = one;
 	}
 
-	char *str = malloc(sizeof(char) * (shortest.i + 2));
+	register char *str = malloc(sizeof(char) * (shortest.i + 2));
 	while (shortest.word[real_length] != '\0' && shortest.word[real_length] == longest.word[real_length]) {
 		str[real_length] = shortest.word[real_length];
 		++real_length;
@@ -49,7 +49,7 @@ struct morpheme_t find_longest_match(struct word_t one, struct word_t two)
 	str = realloc(str, sizeof(char) * (real_length + 1));
 	REALLOC_CHECK(str);
 
-	struct morpheme_t longest_match;
+	register struct morpheme_t longest_match;
 
 	longest_match.freq = 1;
 	longest_match.morpheme = str;

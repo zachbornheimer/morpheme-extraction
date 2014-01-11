@@ -37,7 +37,7 @@ int in_array(const int c, char **uniq, const int size)
 	return -1;
 }
 
-int in_char_array(const char *w, char *uniq[], const int size)
+inline int in_char_array(register const char *w, register char *uniq[], register const int size)
 {
 	register int i;
 	for (i = 0; i < size; ++i)
@@ -164,13 +164,13 @@ char* permute(char **string, int *i)
 
 char* reverse(char *string)
 {
-	char temp;
-	int i = 0, len = strlen(string)-1;
+	register char temp;
+	register int i = 0, len = strlen(string)-1;
 
 	if (len < 1)
 		return string;
 
-	char *str = string;
+	register char *str = string;
 
 	while (i < (len-i)) {
 		temp = str[i];
