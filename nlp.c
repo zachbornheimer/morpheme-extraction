@@ -111,6 +111,13 @@ int nlp(void)
 
 void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struct ngram_t ***ngram_full)
 {
+	/*
+	 * input is a reference to an array of ngrams
+	 * each ngram is the following structure:
+	 *     [target_word, elements_before, elements_after, related_ngrams]
+	 *     [elements_before] & [elements_after] = arrays of words
+	 *     related_ngrams = array of pointers to other ngrams
+	 */
 	char **arr;
 	int word_count = explode_sansnull_str(&arr, f, &wd);
 
@@ -123,6 +130,7 @@ void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struc
 
 	if (add_loc == 0)
 		ng = malloc(sizeof(struct ngram_t) * (word_count+1));
+
 	V_PRINT("Setting NGRAM elements");
 	for (i = 0; i <= word_count; ++i) {
 		struct ngram_t ngram;
@@ -180,18 +188,15 @@ void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struc
 	i = add_loc-1;
 	*ngram_length = add_loc;
 
+	/* Add linked list elements */
 	int k;
 	for (k = 0; k < *ngram_length; ++k) {
-		struct word_t w = ng[k]->word;
 		for (j = k; j < *ngram_length; ++j) {
 			if (verbose_mode == ON)
 				printf("Processing Similar Ngrams: Target: %d/%d| Similar: %d/%d     \r     ", k, *ngram_length, j, *ngram_length);
 			if (j - k < NGRAM_SIZE)
 				continue;
-			struct word_t a = ng[j]->word;
-			struct ngram_t one = *ng[k];
-			struct ngram_t two = *ng[j];
-			if (a.word != NULL && w.word != NULL && strcmp(a.word, w.word) != 0 && ngrams_similar(one, two))
+			if (ng[j]->word.word != NULL && ng[k]->word.word != NULL && strcmp(ng[j]->word.word, ng[k]->word.word) != 0 && ngrams_similar(*ng[k], *ng[j]))
 				add_similar_ngram_ref(&ng[k], &ng[j]);
 		}
 	}

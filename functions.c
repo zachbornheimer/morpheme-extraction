@@ -37,7 +37,7 @@ int in_array(const int c, char **uniq, const int size)
 	return -1;
 }
 
-inline int in_char_array(register const char *w, register char *uniq[], register const int size)
+int in_char_array(register const char *w, register char *uniq[], register const int size)
 {
 	register int i;
 	for (i = 0; i < size; ++i)
