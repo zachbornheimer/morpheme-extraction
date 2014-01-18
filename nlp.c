@@ -190,18 +190,20 @@ void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struc
 	*ngram_length = add_loc;
 
 	/* Add linked list elements */
-	int k;
-#pragma omp parallel for
+	int k, counter = 0, percent_complete;
+#pragma omp parallel for shared(counter)
 	for (k = 0; k < *ngram_length; ++k) {
+		percent_complete = 100 * (double)counter/(*ngram_length);
 #pragma omp parallel for
 		for (j = k; j < *ngram_length; ++j) {
 			if (verbose_mode == ON)
-				printf("Processing Similar Ngrams in Parallel: Target: %d/%d| Similar: %d/%d     \r     ", k, *ngram_length, j, *ngram_length);
+				printf("Processing Similar Ngrams in Parallel: %d%s complete | Target: %d/%d| Similar: %d/%d     \r     ", percent_complete, "%", k, *ngram_length, j, *ngram_length);
 			if (j - k < NGRAM_SIZE)
 				continue;
 			if (ng[j]->word.word != NULL && ng[k]->word.word != NULL && strcmp(ng[j]->word.word, ng[k]->word.word) != 0 && ngrams_similar(*ng[k], *ng[j]))
 				add_similar_ngram_ref(&ng[k], &ng[j]);
 		}
+		++counter;
 	}
 
 	V_PRINT("");
