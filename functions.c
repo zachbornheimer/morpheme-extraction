@@ -30,16 +30,16 @@ char* append(char* one, char* two)
 
 int in_array(const int c, char **uniq, const int size)
 {
-	register int i;
+	int i;
 	for (i = 0; i < size; ++i)
 		if (c == (*uniq)[i])
 			return i;
 	return -1;
 }
 
-int in_char_array(register const char *w, register char *uniq[], register const int size)
+int in_char_array(const char *w,  char *uniq[], const int size)
 {
-	register int i;
+	int i;
 	for (i = 0; i < size; ++i)
 		if (strcmp(w, uniq[i]) == 0)
 			return i;
@@ -53,9 +53,9 @@ int uniq(char **chars, char **ret_addr)
 {
 	if (chars == NULL || *chars == NULL)
 		return -1;
-	register int len = strlen(*chars);
+	int len = strlen(*chars);
 	char *u = malloc((len+2) * sizeof(char));
-	register int i = 0, j=0;
+	int i = 0, j=0;
 	for (j = 0; j <= len; ++j) {
 		if ((*chars)[j] != 0) {
 			if (i == 0 || in_array((*chars)[j], &u, i)==-1)
@@ -166,13 +166,13 @@ char* permute(char **string, int *i)
 
 char* reverse(char *string)
 {
-	register char temp;
-	register int i = 0, len = strlen(string)-1;
+	char temp;
+	int i = 0, len = strlen(string)-1;
 
 	if (len < 1)
 		return string;
 
-	register char *str = string;
+	char *str = string;
 
 	while (i < (len-i)) {
 		temp = str[i];

@@ -272,6 +272,7 @@ void identify_true_morphemes(struct morpheme_list_t *list, struct lexical_catego
 
 			/* Circumfix Identification */
 			int j = 0, k = 0;
+
 			for (j = 0; j < i; ++j) {
 				int combined = -1;
 				if ((list->list[i].type == SUFFIX || list->list[i].type == PREFIX))
