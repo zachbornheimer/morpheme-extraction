@@ -73,7 +73,6 @@ int uniq_words(char **arr, int size)
 {
 	char **u = malloc(sizeof(char*) * size);
 	int i = 0, j=0;
-#pragma omp parallel for
 	for (j = 0; j < size; ++j) {
 		if (i == 0 || in_char_array(arr[j], u, i)==-1) {
 			u[i] = arr[j];

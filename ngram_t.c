@@ -33,6 +33,7 @@ struct ngram_t new_ngram(void)
 	
 	int index;
 	
+#pragma omp parallel for
 	for (index = 0; index < (NGRAM_SIZE/2); ++index) {
 		int wta_size = sizeof(struct word_t_array);
 		ng.before.at[index] = malloc(wta_size);
@@ -75,6 +76,7 @@ void uniqify(struct ngram_half_array *bora)
 			int elems_count = 0;
 			elems[elems_count++] = bora->at[i]->elems[j];
 			struct word_t elem = elems[elems_count-1];
+#pragma omp parallel for
 			for (k = j+1; k < count - 1; ++k) {
 				struct word_t comp = bora->at[i]->elems[k];
 				if (comp.freq != 1)
@@ -161,6 +163,7 @@ int ngrams_similar(struct ngram_t a, struct ngram_t b)
 		for (j = 0; j < b.after.at[i]->count; ++j)
 			if (strcmp(b.after.at[i]->elems[j].word, "") != 0)
 				arr[arr_count++] = b.after.at[i]->elems[j].word;
+
        	count = uniq_words(arr, elems_count);
 	free(arr);
 

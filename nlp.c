@@ -39,15 +39,15 @@ int main(const int argc, char *argv[])
 	corpus_dir = DEFAULT_PATH;
 #pragma omp parallel for
 	for (i = 0; i < argc; ++i)
-		if (!strcmp(argv[i], "--verbose")) {
+		if (verbose_mode == OFF && !strcmp(argv[i], "--verbose")) {
 			verbose_mode = ON;
-		} else if (!strcmp(argv[i], "--process-sequentially")) {
+		} else if (process_sequentially == OFF && !strcmp(argv[i], "--process-sequentially")) {
 			process_sequentially = ON;
-		} else if (!strcmp(argv[i], "--serial")) {
+		} else if (process_sequentially == OFF && !strcmp(argv[i], "--serial")) {
 			process_sequentially = ON;
-		} else if (!strcmp(argv[i], "--sequential")) {
+		} else if (process_sequentially == OFF && !strcmp(argv[i], "--sequential")) {
 			process_sequentially = ON;
-		} else if (!strcmp(argv[i], "--process")) {
+		} else if (process_full == OFF && !strcmp(argv[i], "--process")) {
 			process_full = ON;
 		} else if (!strcmp(argv[i], "--output-file")) {
 			if (i+1 < argc)
@@ -196,7 +196,7 @@ void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struc
 #pragma omp parallel for
 		for (j = k; j < *ngram_length; ++j) {
 			if (verbose_mode == ON)
-				printf("Processing Similar Ngrams: Target: %d/%d| Similar: %d/%d     \r     ", k, *ngram_length, j, *ngram_length);
+				printf("Parallelized Processing Similar Ngrams: Target: %d/%d| Similar: %d/%d     \r     ", k, *ngram_length, j, *ngram_length);
 			if (j - k < NGRAM_SIZE)
 				continue;
 			if (ng[j]->word.word != NULL && ng[k]->word.word != NULL && strcmp(ng[j]->word.word, ng[k]->word.word) != 0 && ngrams_similar(*ng[k], *ng[j]))
