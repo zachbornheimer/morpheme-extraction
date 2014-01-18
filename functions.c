@@ -73,6 +73,7 @@ int uniq_words(char **arr, int size)
 {
 	char **u = malloc(sizeof(char*) * size);
 	int i = 0, j=0;
+#pragma omp parallel for
 	for (j = 0; j < size; ++j) {
 		if (i == 0 || in_char_array(arr[j], u, i)==-1) {
 			u[i] = arr[j];
@@ -88,6 +89,7 @@ int uniq_words(char **arr, int size)
 int explode_sansnull_str(char ***arr_ptr, const char *str, const char **delimiter)
 {
 	int i, size = -1, len = strlen(*delimiter);
+#pragma omp parallel for
 	for (i = 0; i < len; i++) {
 		/*char *c = malloc(sizeof(char)*2);
 		c[0] = delimiter[i];

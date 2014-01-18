@@ -1,6 +1,6 @@
 CC=cc
-DEBUG_CFLAGS=-pg -g -c -Wall
-CFLAGS=-c -Wall -O
+DEBUG_CFLAGS=-pg -g -fopenmp -c -Wall
+CFLAGS=-c -fopenmp -Wall -O
 LDFLAGS=
 SOURCES=functions.c file.c directory.c word_t.c alphabet.c ngram_t.c nlp.c morpheme_t.c morpheme_list_t.c
 OBJECTS=$(SOURCES:.c=.o)
@@ -19,10 +19,10 @@ debug: $(SOURCES) $(DEBUG_EXE)
 all: debug optimized
 
 $(PRODUCTION_EXE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) -fopenmp $(LDFLAGS) $(OBJECTS) -o $@
 
 $(DEBUG_EXE): $(DEBUG_OBJECTS)
-	$(CC) -pg $(LDFLAGS) $(DEBUG_OBJECTS) -o $@
+	$(CC) -fopenmp -pg $(LDFLAGS) $(DEBUG_OBJECTS) -o $@
 
 %.debug.o: %.c
 	$(CC) $(CFLAGS) $< -o $@

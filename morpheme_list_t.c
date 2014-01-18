@@ -119,6 +119,7 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 	int current_index = -1;
 	char **regex_front;
 	char **regex_back;
+
 	for (i = 0; i < original.count; ++i) {
 		if (strcmp(original.list[i].morpheme, "") == 0)
 			continue;

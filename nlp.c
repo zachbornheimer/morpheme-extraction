@@ -190,7 +190,9 @@ void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struc
 
 	/* Add linked list elements */
 	int k;
+#pragma omp parallel for
 	for (k = 0; k < *ngram_length; ++k) {
+#pragma omp parallel for
 		for (j = k; j < *ngram_length; ++j) {
 			if (verbose_mode == ON)
 				printf("Processing Similar Ngrams: Target: %d/%d| Similar: %d/%d     \r     ", k, *ngram_length, j, *ngram_length);
@@ -211,11 +213,14 @@ int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct l
 	internal.list = malloc(0);
 
 	int i, j;
+
+#pragma omp parallel for
 	for (i = 0; i < ngram_length; ++i) {
 		struct ngram_t ngram = *(ng[i]);
 		for (j = 0; j < ngram.refs_count; ++j) {
 			if (verbose_mode == ON)
 				printf(" Processing Ngram %d/%d:%d/%d           \r", i,ngram_length-1, j, ngram.refs_count-1);
+
 			struct ngram_t target = *ngram.refs[j];
 			char *w1 = strdup(ngram.word.word);
 			char *w2 = strdup(target.word.word);
@@ -234,6 +239,7 @@ int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct l
 			target.word.word = w2;
 		}
 	}
+
 	V_PRINT("");
 	struct morpheme_list_t morpheme_list = fuse_regex(internal);
 	i = 0;
