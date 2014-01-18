@@ -196,7 +196,7 @@ void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struc
 #pragma omp parallel for
 		for (j = k; j < *ngram_length; ++j) {
 			if (verbose_mode == ON)
-				printf("Parallelized Processing Similar Ngrams: Target: %d/%d| Similar: %d/%d     \r     ", k, *ngram_length, j, *ngram_length);
+				printf("Processing Similar Ngrams in Parallel: Target: %d/%d| Similar: %d/%d     \r     ", k, *ngram_length, j, *ngram_length);
 			if (j - k < NGRAM_SIZE)
 				continue;
 			if (ng[j]->word.word != NULL && ng[k]->word.word != NULL && strcmp(ng[j]->word.word, ng[k]->word.word) != 0 && ngrams_similar(*ng[k], *ng[j]))
