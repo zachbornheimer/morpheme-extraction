@@ -37,6 +37,7 @@ int main(const int argc, char *argv[])
 	process_full = OFF;
 	output_filename = ZEDRAM_OUTPUT;
 	corpus_dir = DEFAULT_PATH;
+#pragma omp parallel for
 	for (i = 0; i < argc; ++i)
 		if (!strcmp(argv[i], "--verbose")) {
 			verbose_mode = ON;
@@ -214,7 +215,6 @@ int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct l
 
 	int i, j;
 
-#pragma omp parallel for
 	for (i = 0; i < ngram_length; ++i) {
 		struct ngram_t ngram = *(ng[i]);
 		for (j = 0; j < ngram.refs_count; ++j) {

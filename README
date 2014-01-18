@@ -14,7 +14,7 @@ me improve in C and will help the project :-)
 Research Paper that accompanied this project is coming soon.
 
 Software Required for Functionality:
-    gcc
+    gcc (with OpenMP compatibility enabled)
     make
     
 How to install?
