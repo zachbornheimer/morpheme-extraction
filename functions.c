@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cuda/cuda.h>
+
 #include "constants.h"
 #include "functions.h"
 
@@ -37,12 +39,19 @@ int in_array(const int c, char **uniq, const int size)
 	return -1;
 }
 
-int in_char_array(const char *w,  char *uniq[], const int size)
+__global__ void in_char_array(const char *w,  char *uniq[], const int size, int *pFound)
 {
-	int i;
-	for (i = 0; i < size; ++i)
-		if (strcmp(w, uniq[i]) == 0)
-			return i;
+	int startIndex = blockDim.x*blockIdx.x + threadIdx.x;
+	if (*pfound > startIndex) {
+		int i;
+		int fMatch = 1;
+		for (i = 0; i < size; ++i) {
+			if (strcmp(w, uniq[i]) == 0)
+				fmatch = 0;
+			if (fmatch)
+				atomicMin(pFound, startIndex);
+		}
+	}
 	return -1;
 }
 
