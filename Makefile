@@ -1,6 +1,6 @@
 CC=gcc -fopenmp
 DEBUG_CFLAGS=-pg -g -c -Wall
-CFLAGS=-c -Wall -O
+CFLAGS=-c -Wall -O2
 LDFLAGS=
 SOURCES=functions.c file.c directory.c word_t.c alphabet.c ngram_t.c nlp.c morpheme_t.c morpheme_list_t.c
 OBJECTS=$(SOURCES:.c=.o)
