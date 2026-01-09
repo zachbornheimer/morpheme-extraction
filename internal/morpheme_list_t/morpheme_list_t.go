@@ -19,8 +19,9 @@ func AddMorpheme(morphemes *structs.MorphemeList, morpheme structs.Morpheme) {
 
 // FindInternalMorphemes finds morphemes within words (lines 24-93)
 func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.MorphemeList) {
-	word1 := string(oneOrig.Str)
-	word2 := string(twoOrig.Str)
+	// Use Word.Len to get exact word length (excludes null padding)
+	word1 := string(oneOrig.Str[:oneOrig.Len])
+	word2 := string(twoOrig.Str[:twoOrig.Len])
 	one := oneOrig
 	two := twoOrig
 
@@ -251,13 +252,21 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 
 // IdentifyTrueMorphemes classifies morpheme types (lines 246-332)
 func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCategories) {
+	freqThresh := int(float64(list.Count) * (constants.ThresholdConfirmation / 100))
+	
+	kept := 0
+	filtered := 0
+	
 	for i := 0; i < list.Count; i++ {
 		morpheme := list.List[i]
-		freqThresh := int(float64(list.Count) * (constants.ThresholdConfirmation / 100))
 
 		if morpheme.Freq <= freqThresh && morpheme.Type != constants.STEM {
+			// Mark as UNDEF so WriteToFile skips it (matches C behavior)
+			list.List[i].Type = constants.UNDEF
+			filtered++
 			continue
 		}
+		kept++
 
 		if morpheme.Type != constants.STEM {
 			// Prefix Identification

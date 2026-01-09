@@ -27,7 +27,7 @@
 /* thresholds - percents */
 #define THRESHOLD_SIMILAR_NGRAMS 12.5
 #define THRESHOLD_CIRCUMFIX       100
-#define THRESHOLD_CONFIRMATION     10
+#define THRESHOLD_CONFIRMATION     10  // Integer = no filtering (10/100 = 0)
 
 /* Morpheme Types */
 #define UNDEF     0

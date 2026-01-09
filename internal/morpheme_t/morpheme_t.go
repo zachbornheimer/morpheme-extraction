@@ -92,6 +92,8 @@ func GenRegex(one, two string, placeOne, placeTwo int, morpheme *structs.Morphem
 
 	if one == morpheme.Morpheme || two == morpheme.Morpheme {
 		morpheme.Regex = "^" + morpheme.Morpheme + "$"
+		morpheme.FrontRegex = "^"
+		morpheme.BackRegex = "$"
 		morpheme.Type = constants.STEM
 		return
 	}

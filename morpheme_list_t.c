@@ -246,11 +246,16 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 void identify_true_morphemes(struct morpheme_list_t *list, struct lexical_categories_t **lex)
 {
 	int i = 0;
+	int freq_thresh = (double) list->count * (double) (THRESHOLD_CONFIRMATION/100);
+	int kept = 0, filtered = 0;
+	
 	for (i = 0; i < list->count; ++i) {
 		const struct morpheme_t morpheme = list->list[i];
-		int freq_thresh = (double) list->count * (double) (THRESHOLD_CONFIRMATION/100);
-		if (morpheme.freq <= freq_thresh && morpheme.type != STEM)
+		if (morpheme.freq <= freq_thresh && morpheme.type != STEM) {
+			filtered++;
 			continue;
+		}
+		kept++;
 
 		if (morpheme.type != STEM) {
 
