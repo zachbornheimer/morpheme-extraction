@@ -186,6 +186,9 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 	*ngramLength = addLoc
 
 	// Add linked list elements (similarity detection) - Sequential version
+	// Create comparator once to reuse buffers (avoid allocations in hot path)
+	comparator := ngram_t.NewNGramComparator()
+	
 	for k := 0; k < *ngramLength; k++ {
 		for j := k; j < *ngramLength; j++ {
 			if j-k < constants.NgramSize {
@@ -195,7 +198,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 			if ng[j] != nil && ng[k] != nil &&
 				string(ng[j].Word.Str) != "" && string(ng[k].Word.Str) != "" &&
 				string(ng[j].Word.Str) != string(ng[k].Word.Str) {
-				if ngram_t.NgramsSimilar(*ng[k], *ng[j]) {
+				if comparator.AreSimilar(ng[k], ng[j]) {
 					ngram_t.AddSimilarNgramRef(&ng[k], &ng[j])
 				}
 			}

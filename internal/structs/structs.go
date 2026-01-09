@@ -133,6 +133,23 @@ func (h *NgramHalfArray) CollectWordsInto(arr []string, startIdx int, ngramHalfS
 	return idx - startIdx
 }
 
+// CollectWordsIntoSet collects all words directly into a StringSet
+// This avoids intermediate slice allocations for performance
+func (h *NgramHalfArray) CollectWordsIntoSet(set *StringSet, ngramHalfSize int) {
+	for i := 0; i < ngramHalfSize; i++ {
+		if h.At[i] != nil {
+			for j := 0; j < h.At[i].Count; j++ {
+				if h.At[i].Elems[j] != nil {
+					word := h.At[i].Elems[j].Str
+					if word != "" {
+						set.Add(word)
+					}
+				}
+			}
+		}
+	}
+}
+
 // Ngram represents struct ngram_t (lines 33-39)
 type Ngram struct {
 	Word      Word             // word
@@ -154,6 +171,13 @@ func (ng *Ngram) CollectContextWords(arr []string, ngramHalfSize int) int {
 	count += ng.Before.CollectWordsInto(arr, count, ngramHalfSize)
 	count += ng.After.CollectWordsInto(arr, count, ngramHalfSize)
 	return count
+}
+
+// CollectContextWordsIntoSet collects all context words directly into a StringSet
+// This avoids intermediate slice allocations for performance
+func (ng *Ngram) CollectContextWordsIntoSet(set *StringSet, ngramHalfSize int) {
+	ng.Before.CollectWordsIntoSet(set, ngramHalfSize)
+	ng.After.CollectWordsIntoSet(set, ngramHalfSize)
 }
 
 // Morpheme represents struct morpheme_t (lines 45-58)
@@ -242,5 +266,43 @@ func (s StringSet) AddAll(strs []string) {
 	for _, str := range strs {
 		s.Add(str)
 	}
+}
+
+// Clear removes all elements from the set
+func (s StringSet) Clear() {
+	for k := range s {
+		delete(s, k)
+	}
+}
+
+// SimilarityPercent calculates the percentage of overlap between two sets
+// Returns the percentage of non-unique elements (duplicates between sets)
+// This matches the original C algorithm's calculation
+func (s StringSet) SimilarityPercent(other *StringSet) float64 {
+	// totalCount = total words from both ngrams
+	totalCount := s.Len() + other.Len()
+	
+	if totalCount == 0 {
+		return 0
+	}
+	
+	// uniqueCount = number of distinct words across both sets
+	uniqueCount := s.Len()  // Start with all elements from set A
+	for k := range *other {
+		if !s.Contains(k) {
+			uniqueCount++  // Add unique elements from set B
+		}
+	}
+	
+	// Subtract 1 from total (line 170 in C: arr_count -= 1;)
+	totalCount--
+	
+	if totalCount == 0 {
+		return 0
+	}
+	
+	// Calculate similarity: (total - unique) / total * 100
+	// Line 171 in C: percent_similar = 100.00 * ((arr_count - count) / arr_count)
+	return 100.0 * (float64(totalCount-uniqueCount) / float64(totalCount))
 }
 
