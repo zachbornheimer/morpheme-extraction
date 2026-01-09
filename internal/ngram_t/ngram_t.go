@@ -189,18 +189,9 @@ func NgramsSimilar(a, b structs.Ngram) bool {
 }
 
 // AddSimilarNgramRef adds reference to similar ngram (lines 180-195)
+// Fixed: Use append() instead of manual slice copy for O(1) amortized performance
 func AddSimilarNgramRef(ngram **structs.Ngram, ngramRef **structs.Ngram) {
-	numRefs := (*ngram).RefsCount
-
-	if numRefs == 0 {
-		(*ngram).Refs = make([]*structs.Ngram, 1)
-	} else {
-		newRefs := make([]*structs.Ngram, numRefs+1)
-		copy(newRefs, (*ngram).Refs)
-		(*ngram).Refs = newRefs
-	}
-
-	(*ngram).Refs[(*ngram).RefsCount] = *ngramRef
+	(*ngram).Refs = append((*ngram).Refs, *ngramRef)
 	(*ngram).RefsCount++
 }
 

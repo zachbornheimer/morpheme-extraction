@@ -5,8 +5,6 @@ package nlp
 
 import (
 	"fmt"
-	"runtime"
-	"sync"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/alphabet"
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
@@ -18,24 +16,6 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/ngram_t"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 	"github.com/zachbornheimer/morpheme-extraction/internal/word_t"
-)
-
-// Pools for frequently allocated structures to reduce GC pressure
-var (
-	morphemePool = sync.Pool{
-		New: func() interface{} {
-			return &structs.Morpheme{
-				Words: make([]*structs.Word, 0, 2),
-			}
-		},
-	}
-	
-	wordSlicePool = sync.Pool{
-		New: func() interface{} {
-			s := make([]*structs.Word, 0, 2)
-			return &s
-		},
-	}
 )
 
 // Nlp runs the main NLP process (lines 64-111)
@@ -205,52 +185,23 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 	*ngramLength = addLoc
 
-	// Add linked list elements (similarity detection) - Parallelized
-	// This O(n²) loop benefits greatly from parallelization
-	numWorkers := runtime.NumCPU()
-	type similarityJob struct {
-		k, j int
-	}
-	
-	jobs := make(chan similarityJob, numWorkers*4)
-	var wg sync.WaitGroup
-	var mu sync.Mutex // Protect ng slice writes
-	
-	// Start workers
-	for w := 0; w < numWorkers; w++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for job := range jobs {
-				k, j := job.k, job.j
-				
-				if ng[j] != nil && ng[k] != nil &&
-					string(ng[j].Word.Str) != "" && string(ng[k].Word.Str) != "" &&
-					string(ng[j].Word.Str) != string(ng[k].Word.Str) {
-					if ngram_t.NgramsSimilar(*ng[k], *ng[j]) {
-						mu.Lock()
-						ngram_t.AddSimilarNgramRef(&ng[k], &ng[j])
-						mu.Unlock()
-					}
-				}
+	// Add linked list elements (similarity detection) - Sequential version
+	for k := 0; k < *ngramLength; k++ {
+		for j := k; j < *ngramLength; j++ {
+			if j-k < constants.NgramSize {
+				continue
 			}
-		}()
-	}
-	
-	// Feed jobs
-	go func() {
-		for k := 0; k < *ngramLength; k++ {
-			for j := k; j < *ngramLength; j++ {
-				if j-k < constants.NgramSize {
-					continue
+
+			if ng[j] != nil && ng[k] != nil &&
+				string(ng[j].Word.Str) != "" && string(ng[k].Word.Str) != "" &&
+				string(ng[j].Word.Str) != string(ng[k].Word.Str) {
+				if ngram_t.NgramsSimilar(*ng[k], *ng[j]) {
+					ngram_t.AddSimilarNgramRef(&ng[k], &ng[j])
 				}
-				jobs <- similarityJob{k: k, j: j}
 			}
 		}
-		close(jobs)
-	}()
-	
-	wg.Wait()
+	}
+
 	functions.VPrint("")
 	*ngramFull = ng
 }
