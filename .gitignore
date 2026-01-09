@@ -1,6 +1,6 @@
 # Binaries
 morpheme-extract
-nlp
+/nlp
 nlp.debug
 nlp-debug
 nlp-no-omp
