@@ -14,6 +14,11 @@ type Word struct {
 	Str  []byte // word (char*)
 }
 
+// String returns the word as a string (uses Len to exclude null padding)
+func (w *Word) String() string {
+	return string(w.Str[:w.Len])
+}
+
 // WordArray represents struct word_t_array (lines 24-27)
 type WordArray struct {
 	Elems []*Word // elems
@@ -61,5 +66,36 @@ type LexicalCategories struct {
 	Morpheme *Morpheme // morpheme
 	RefCount int       // ref_count
 	Refs     []*Ngram  // refs (struct ngram_t**)
+}
+
+// StringSet is a set of strings (memory-efficient, idiomatic Go)
+type StringSet map[string]struct{}
+
+// NewStringSet creates a new StringSet with optional initial capacity
+func NewStringSet(capacity int) StringSet {
+	return make(StringSet, capacity)
+}
+
+// Add adds a string to the set
+func (s StringSet) Add(str string) {
+	s[str] = struct{}{}
+}
+
+// Contains checks if a string is in the set
+func (s StringSet) Contains(str string) bool {
+	_, exists := s[str]
+	return exists
+}
+
+// Len returns the number of elements in the set
+func (s StringSet) Len() int {
+	return len(s)
+}
+
+// AddAll adds all strings from a slice
+func (s StringSet) AddAll(strs []string) {
+	for _, str := range strs {
+		s.Add(str)
+	}
 }
 

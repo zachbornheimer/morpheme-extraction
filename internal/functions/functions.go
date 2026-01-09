@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
+	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
 // VPrint prints only if verbose mode is ON
@@ -69,18 +70,28 @@ func Uniq(chars string) (string, int) {
 
 // UniqWords returns count of unique words in array (lines 72-84)
 // Returns base 0
+// Optimized: Uses map for larger arrays (O(n)), linear search for small (less overhead)
 func UniqWords(arr []string, size int) int {
-	u := make([]string, size)
-	i := 0
-	
-	for j := 0; j < size; j++ {
-		if i == 0 || InCharArray(arr[j], u, i) == -1 {
-			u[i] = arr[j]
-			i++
+	// For small arrays, linear search has less overhead than map
+	const threshold = 50
+	if size <= threshold {
+		u := make([]string, size)
+		i := 0
+		for j := 0; j < size; j++ {
+			if i == 0 || InCharArray(arr[j], u, i) == -1 {
+				u[i] = arr[j]
+				i++
+			}
 		}
+		return i - 1
 	}
-	
-	return i - 1
+
+	// For larger arrays, use map for O(n) performance
+	seen := structs.NewStringSet(size)
+	for j := 0; j < size; j++ {
+		seen.Add(arr[j])
+	}
+	return seen.Len() - 1
 }
 
 // ExplodeSansnullStr splits string by delimiter string (lines 88-99)
@@ -181,18 +192,32 @@ func Reverse(str string) string {
 	if len(str) < 2 {
 		return str
 	}
-	
+
 	s := []byte(str)
 	length := len(s) - 1
 	i := 0
-	
+
 	for i < (length - i) {
 		temp := s[i]
 		s[i] = s[length-i]
 		s[length-i] = temp
 		i++
 	}
-	
+
 	return string(s)
+}
+
+// ReverseBytes reverses a byte slice in place and returns it
+// Avoids string allocations - works directly with bytes
+func ReverseBytes(b []byte) []byte {
+	if len(b) < 2 {
+		return b
+	}
+
+	length := len(b) - 1
+	for i := 0; i < length/2; i++ {
+		b[i], b[length-i] = b[length-i], b[i]
+	}
+	return b
 }
 
