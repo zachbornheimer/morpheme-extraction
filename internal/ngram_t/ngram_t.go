@@ -10,15 +10,6 @@ import (
 var debugCounter = 0
 var debugCallCounter = 0
 
-// AddNgramElement adds element to ngram array (lines 22-28)
-func AddNgramElement(atIndex **structs.WordArray, index int) int {
-	(*atIndex).Count++
-	newElems := make([]*structs.Word, (*atIndex).Count+1)
-	copy(newElems, (*atIndex).Elems)
-	(*atIndex).Elems = newElems
-	return (*atIndex).Count - 1
-}
-
 // NewNgram creates a new ngram structure (lines 30-52)
 func NewNgram() structs.Ngram {
 	ng := structs.Ngram{}
@@ -38,13 +29,6 @@ func NewNgram() structs.Ngram {
 
 	ng.RefsCount = 0
 	return ng
-}
-
-// FreeNgram frees ngram memory (lines 54-64)
-// In Go, this is mostly handled by GC, but we keep the function for compatibility
-func FreeNgram(ng *structs.Ngram) {
-	// Go's GC will handle cleanup
-	// Keeping function signature for C compatibility
 }
 
 // Uniqify removes duplicates from ngram arrays (lines 68-92)

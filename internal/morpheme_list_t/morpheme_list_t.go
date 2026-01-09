@@ -10,11 +10,10 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/word_t"
 )
 
-// AddMorpheme adds morpheme to list (lines 15-22)
+// Deprecated: Use MorphemeList.Add() method instead
+// This function is kept for backwards compatibility only
 func AddMorpheme(morphemes *structs.MorphemeList, morpheme structs.Morpheme) {
-	// Use append instead of manual copy to avoid O(n²) performance
-	morphemes.List = append(morphemes.List, &morpheme)
-	morphemes.Count++
+	morphemes.Add(morpheme)
 }
 
 // FindInternalMorphemes finds morphemes within words (lines 24-93)
@@ -64,12 +63,12 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 
 						if test != current.Str {
 							lm.Words = make([]*structs.Word, 0)
-							morpheme_t.AddWord(&lm, oneOrig)
-							morpheme_t.AddWord(&lm, twoOrig)
+							lm.AddWord(oneOrig)
+							lm.AddWord(twoOrig)
 							morpheme_t.GenRegex(word1, word2, iteration1, iteration2, &lm)
 
 							if lm.Regex != "" {
-								AddMorpheme(internal, lm)
+								internal.Add(lm)
 							}
 
 							lookback = len(lm.Morpheme)
@@ -77,12 +76,12 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 					}
 				} else {
 					lm.Words = make([]*structs.Word, 0)
-					morpheme_t.AddWord(&lm, oneOrig)
-					morpheme_t.AddWord(&lm, twoOrig)
+					lm.AddWord(oneOrig)
+					lm.AddWord(twoOrig)
 					morpheme_t.GenRegex(word1, word2, iteration1, iteration2, &lm)
 
 					if lm.Regex != "" {
-						AddMorpheme(internal, lm)
+						internal.Add(lm)
 					}
 
 					lookback = len(lm.Morpheme)
@@ -115,7 +114,7 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 
 		if morphemeListCount == 0 {
 			morphemeList[morphemeListCount] = original.List[i].Morpheme
-			AddMorpheme(&new, *original.List[i])
+			new.Add(*original.List[i])
 			morphemeListCount++
 			continue
 		}
@@ -241,7 +240,7 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 
 		} else {
 			morphemeList[morphemeListCount] = original.List[i].Morpheme
-			AddMorpheme(&new, *original.List[i])
+			new.Add(*original.List[i])
 			morphemeListCount++
 		}
 

@@ -62,6 +62,16 @@ type WordArray struct {
 	Count int     // count (unsigned int)
 }
 
+// AddElement adds a new element slot to the array and returns its index
+// Matches AddNgramElement from ngram_t.c (lines 22-28)
+func (wa *WordArray) AddElement() int {
+	wa.Count++
+	newElems := make([]*Word, wa.Count+1)
+	copy(newElems, wa.Elems)
+	wa.Elems = newElems
+	return wa.Count - 1
+}
+
 // ToSlice converts WordArray to []string, collecting non-nil words
 // Uses raw Str (including nulls) to match C behavior
 func (wa *WordArray) ToSlice() []string {
@@ -180,6 +190,14 @@ func (ng *Ngram) CollectContextWordsIntoSet(set *StringSet, ngramHalfSize int) {
 	ng.After.CollectWordsIntoSet(set, ngramHalfSize)
 }
 
+// AddSimilarRef adds a reference to a similar ngram
+// Matches AddSimilarNgramRef from ngram_t.c (lines 180-195)
+// Uses append() instead of manual slice copy for O(1) amortized performance
+func (ng *Ngram) AddSimilarRef(ngramRef *Ngram) {
+	ng.Refs = append(ng.Refs, ngramRef)
+	ng.RefsCount++
+}
+
 // Morpheme represents struct morpheme_t (lines 45-58)
 type Morpheme struct {
 	Regex               string   // regex
@@ -224,10 +242,31 @@ func (m *Morpheme) WordsToSet() StringSet {
 	return result
 }
 
+// AddWord adds a word to the morpheme's word list
+// Simple data manipulation - no external dependencies
+func (m *Morpheme) AddWord(w Word) {
+	m.WordsCount++
+	newWords := make([]*Word, m.WordsCount)
+	copy(newWords, m.Words)
+	newWords[m.WordsCount-1] = &w
+	m.Words = newWords
+}
+
+// GenRegex and MergeRules are defined in morpheme_t package
+// (they require functions and constants imports)
+
 // MorphemeList represents struct morpheme_list_t (lines 60-63)
 type MorphemeList struct {
 	List  []*Morpheme // list
 	Count int         // count
+}
+
+// Add adds a morpheme to the list
+// Translated from morpheme_list_t.c add_morpheme (lines 15-22)
+// Uses append instead of manual copy to avoid O(n²) performance
+func (ml *MorphemeList) Add(morpheme Morpheme) {
+	ml.List = append(ml.List, &morpheme)
+	ml.Count++
 }
 
 // LexicalCategories represents struct lexical_categories_t (lines 65-69)

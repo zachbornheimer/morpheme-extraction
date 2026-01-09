@@ -8,19 +8,9 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
-// AddWord adds word to morpheme's word list (lines 13-18)
+// AddWord is deprecated - use Morpheme.AddWord() method instead
 func AddWord(morpheme *structs.Morpheme, w structs.Word) {
-	morpheme.WordsCount++
-	newWords := make([]*structs.Word, morpheme.WordsCount)
-	copy(newWords, morpheme.Words)
-	newWords[morpheme.WordsCount-1] = &w
-	morpheme.Words = newWords
-}
-
-// FreeMorpheme frees morpheme memory (lines 20-23)
-// Kept for C compatibility, Go GC handles this
-func FreeMorpheme(morpheme *structs.Morpheme) {
-	// Go GC handles cleanup
+	morpheme.AddWord(w) // delegates to simple method in structs
 }
 
 // FindLongestMatch finds longest matching prefix (lines 25-60)

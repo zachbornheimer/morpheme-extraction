@@ -75,9 +75,7 @@ func Nlp(verboseMode, processSequentially, processFull int, outputFilename, corp
 		// Go GC handles cleanup
 	}
 
-	for i := ngramLength - 1; i >= 0; i-- {
-		ngram_t.FreeNgram(ng[i])
-	}
+	// Go GC automatically handles ngram cleanup (no explicit free needed)
 
 	return 0
 }
@@ -141,8 +139,8 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 				index := i - (constants.NgramSize / 2) + j
 				var elemID int
 
-				if index > 0 && index < len(arr) && len(arr[index]) > 0 {
-					elemID = ngram_t.AddNgramElement(&ngram.Before.At[j], j)
+			if index > 0 && index < len(arr) && len(arr[index]) > 0 {
+				elemID = ngram.Before.At[j].AddElement()
 					if ngram.Before.At[j].Elems == nil {
 						ngram.Before.At[j].Elems = make([]*structs.Word, 1)
 					}
@@ -155,9 +153,9 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 					word_t.SetWord(ngram.Before.At[j].Elems[elemID], arr[index])
 				}
 
-				afterIndex := index + (constants.NgramSize/2) + 1
-				if afterIndex <= wordCount && afterIndex < len(arr) && len(arr[afterIndex]) > 0 {
-					elemID = ngram_t.AddNgramElement(&ngram.After.At[j], j)
+			afterIndex := index + (constants.NgramSize/2) + 1
+			if afterIndex <= wordCount && afterIndex < len(arr) && len(arr[afterIndex]) > 0 {
+				elemID = ngram.After.At[j].AddElement()
 					if ngram.After.At[j].Elems == nil {
 						ngram.After.At[j].Elems = make([]*structs.Word, 1)
 					}
@@ -198,9 +196,9 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 			if ng[j] != nil && ng[k] != nil &&
 				string(ng[j].Word.Str) != "" && string(ng[k].Word.Str) != "" &&
 				string(ng[j].Word.Str) != string(ng[k].Word.Str) {
-				if comparator.AreSimilar(ng[k], ng[j]) {
-					ngram_t.AddSimilarNgramRef(&ng[k], &ng[j])
-				}
+			if comparator.AreSimilar(ng[k], ng[j]) {
+				ng[k].AddSimilarRef(ng[j])
+			}
 			}
 		}
 	}
@@ -232,10 +230,10 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 			forward.WordsCount = 0
 			forward.Words = make([]*structs.Word, 0)
 			morpheme_t.GenRegex(w1, w2, 0, 0, &forward)
-			morpheme_t.AddWord(&forward, ngram.Word)
-			morpheme_t.AddWord(&forward, target.Word)
+			forward.AddWord(ngram.Word)
+			forward.AddWord(target.Word)
 
-			morpheme_list_t.AddMorpheme(&internal, forward)
+			internal.Add(forward)
 			morpheme_list_t.FindInternalMorphemes(ngram.Word, target.Word, &internal)
 		}
 	}
