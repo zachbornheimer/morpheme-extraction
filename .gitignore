@@ -1,5 +1,5 @@
-# Binaries
-morpheme-extract
+# Binaries (in root only, not cmd/)
+/morpheme-extract
 /nlp
 nlp.debug
 nlp-debug
@@ -13,7 +13,7 @@ nlp-no-omp
 languageModel.zdrm
 output/
 
-# Old code
+# Old code (but keep cmd/ - it's our source!)
 cmd.old/
 pkg.old/
 
