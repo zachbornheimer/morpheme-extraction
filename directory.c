@@ -19,8 +19,6 @@
 #include "file.h"
 #include "directory.h"
 
-char *corpus_dir;
-
 char* getfiles(int *index, char **header)
 {
 	/* index is how many files it should parse to catch up to where it was in the previous run */

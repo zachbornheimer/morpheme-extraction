@@ -31,13 +31,19 @@ char *corpus_dir;
 /* gets/sets command line arguments */
 int main(const int argc, char *argv[])
 {
+	printf("DEBUG: main() started with argc=%d\n", argc);
+	fflush(stdout);
 	int i;
+	printf("DEBUG: Initializing globals...\n");
+	fflush(stdout);
 	verbose_mode = OFF;
 	process_sequentially = OFF;
 	process_full = OFF;
 	output_filename = ZEDRAM_OUTPUT;
 	corpus_dir = DEFAULT_PATH;
-#pragma omp parallel for
+	printf("DEBUG: Starting arg parse loop...\n");
+	fflush(stdout);
+	/* Removed #pragma omp parallel for - causes race condition on global variables */
 	for (i = 0; i < argc; ++i)
 		if (verbose_mode == OFF && !strcmp(argv[i], "--verbose")) {
 			verbose_mode = ON;
@@ -56,27 +62,49 @@ int main(const int argc, char *argv[])
 			if (i+1 < argc)
 				corpus_dir = argv[i+1];
 		}
-
+	
+	printf("DEBUG: Args parsed, calling nlp()...\n");
+	fflush(stdout);
 	return nlp();
 }	
 
 /* runs the nlp proc */
 int nlp(void)
 {
+	printf("DEBUG: nlp() started\n");
+	fflush(stdout);
 	char *f, *wd;
 	int index = 0, ngram_length = 0, lex_count = 0;
 	char *header;
-	struct ngram_t **ng;
+	struct ngram_t **ng = NULL;  /* Initialize to NULL */
 	struct lexical_categories_t *morphemes;
-
+	
+	printf("DEBUG: Starting getfiles loop...\n");
+	fflush(stdout);
 	while((f = getfiles(&index, &header))) {
+		printf("DEBUG: Got file: %s, f_len=%zu\n", header ? header : "NULL", f ? strlen(f) : 0);
+		fflush(stdout);
 		if (f != NULL && strlen(f) > 2) {
+			printf("DEBUG: Calling find_word_delimiter...\n");
+			fflush(stdout);
 			V_PRINT("Looking for Word Delimiter...");
 			wd = find_word_delimiter(&f);
+			printf("DEBUG: find_word_delimiter returned, wd=%p, errno=%d\n", (void*)wd, errno);
+			fflush(stdout);
+			if (wd != NULL && wd[0] != '\0') {
+				printf("DEBUG: wd='%s' (len=%zu)\n", wd, strlen(wd));
+				fflush(stdout);
+			}
 			V_PRINT("Found Word Delimiter");
+			printf("DEBUG: Checking conditions: wd=%p, errno=%d, E_OVERRULED=%d\n", (void*)wd, errno, E_OVERRULED);
+			fflush(stdout);
 			if (wd != NULL && wd != 0 && errno != E_OVERRULED) {
+				printf("DEBUG: About to call build_ngram_relationships\n");
+				fflush(stdout);
 				V_PRINT("Building NGRAMS");
 				build_ngram_relationships(wd, f, &ngram_length, &ng);
+				printf("DEBUG: build_ngram_relationships returned\n");
+				fflush(stdout);
 				if (errno == E_OVERRULED)
 					continue;
 				if (process_full == ON || process_sequentially == ON) {
@@ -112,6 +140,8 @@ int nlp(void)
 
 void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struct ngram_t ***ngram_full)
 {
+	printf("DEBUG: build_ngram_relationships started, wd=%p, f_len=%zu\n", (void*)wd, strlen(f));
+	fflush(stdout);
 	/*
 	 * input is a reference to an array of ngrams
 	 * each ngram is the following structure:
@@ -120,20 +150,38 @@ void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struc
 	 *     related_ngrams = array of pointers to other ngrams
 	 */
 	char **arr;
+	printf("DEBUG: Calling explode_sansnull_str...\n");
+	fflush(stdout);
 	int word_count = explode_sansnull_str(&arr, f, &wd);
+	printf("DEBUG: explode_sansnull_str returned, word_count=%d\n", word_count);
+	fflush(stdout);
 
 	int i = 0, q = 0, j = 0;
 	int ngram_count = word_count;
 	int make_new = 1;
 	int add_loc = *ngram_length;
+	
+	printf("DEBUG: add_loc=%d, ngram_count=%d\n", add_loc, ngram_count);
+	fflush(stdout);
 
 	struct ngram_t **ng = *ngram_full;
 
-	if (add_loc == 0)
+	if (add_loc == 0) {
+		printf("DEBUG: Allocating ng array for %d words\n", word_count+1);
+		fflush(stdout);
 		ng = malloc(sizeof(struct ngram_t) * (word_count+1));
+		printf("DEBUG: ng allocated\n");
+		fflush(stdout);
+	}
 
 	V_PRINT("Setting NGRAM elements");
+	printf("DEBUG: Starting main ngram loop i=0 to %d\n", word_count);
+	fflush(stdout);
 	for (i = 0; i <= word_count; ++i) {
+		if (i % 100 == 0) {
+			printf("DEBUG: Processing word i=%d/%d\n", i, word_count);
+			fflush(stdout);
+		}
 		struct ngram_t ngram;
 		if (arr[i] == NULL || strcmp(arr[i], "") == 0 || strlen(arr[i]) == 0)
 			continue;
