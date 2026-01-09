@@ -18,10 +18,10 @@ func AddMorpheme(morphemes *structs.MorphemeList, morpheme structs.Morpheme) {
 }
 
 // FindInternalMorphemes finds morphemes within words (lines 24-93)
+// Optimized: Works with native Go strings (no conversions)
 func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.MorphemeList) {
-	// Use Word.Len to get exact word length (excludes null padding)
-	word1 := string(oneOrig.Str[:oneOrig.Len])
-	word2 := string(twoOrig.Str[:twoOrig.Len])
+	word1 := oneOrig.Str
+	word2 := twoOrig.Str
 	one := oneOrig
 	two := twoOrig
 
@@ -29,26 +29,27 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 	iteration2 := 0
 	lookback := 1
 
-	for len(string(one.Str)) > 0 && string(one.Str)[0] != '\x00' {
-		for len(string(two.Str)) > 0 && string(two.Str)[0] != '\x00' {
-			two.Str = []byte(word_t.RemoveFirstChar(two))
+	for len(one.Str) > 0 {
+		for len(two.Str) > 0 {
+			two.RemoveFirstChar()
 			iteration2++
 
-			if len(string(two.Str)) < 2 {
+			if len(two.Str) < 2 {
 				break
 			}
 
 			lm := morpheme_t.FindLongestMatch(one, two)
 			lm.WordsCount = 0
 
-			if len(lm.Morpheme) > 0 && lm.Morpheme[0] != '\x00' && len(lm.Morpheme) >= 2 {
+			// With native strings, just check length (no null terminator needed)
+			if len(lm.Morpheme) >= 2 {
 				if internal.Count > 0 {
 					var current, previous structs.Word
 					word_t.SetWord(&current, lm.Morpheme)
 					word_t.SetWord(&previous, internal.List[internal.Count-1].Morpheme)
 
 					if morpheme_t.FindLongestMatch(current, previous).Morpheme != lm.Morpheme {
-						test := string(previous.Str)
+						test := previous.Str
 						test = functions.Reverse(test)
 
 						if (len(test) - lookback) >= 1 {
@@ -61,7 +62,7 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 
 						test = functions.Reverse(test)
 
-						if test != string(current.Str) {
+						if test != current.Str {
 							lm.Words = make([]*structs.Word, 0)
 							morpheme_t.AddWord(&lm, oneOrig)
 							morpheme_t.AddWord(&lm, twoOrig)
@@ -91,8 +92,8 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 			}
 		}
 
-		two.Str = []byte(word2)
-		one.Str = []byte(word_t.RemoveFirstChar(one))
+		two.Str = word2
+		one.RemoveFirstChar()
 		iteration1++
 		iteration2 = 0
 	}
@@ -253,10 +254,10 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 // IdentifyTrueMorphemes classifies morpheme types (lines 246-332)
 func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCategories) {
 	freqThresh := int(float64(list.Count) * (constants.ThresholdConfirmation / 100))
-	
+
 	kept := 0
 	filtered := 0
-	
+
 	for i := 0; i < list.Count; i++ {
 		morpheme := list.List[i]
 
@@ -304,12 +305,12 @@ func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCat
 
 					for k := 0; k < list.List[j].WordsCount; k++ {
 						combined++
-						listCombined[combined] = string(list.List[j].Words[k].Str)
+						listCombined[combined] = list.List[j].Words[k].Str
 					}
 
 					for k := 0; k < list.List[i].WordsCount; k++ {
 						combined++
-						listCombined[combined] = string(list.List[i].Words[k].Str)
+						listCombined[combined] = list.List[i].Words[k].Str
 					}
 
 					count := functions.UniqWords(listCombined, combined)
@@ -351,4 +352,3 @@ func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCat
 		(*lex)[i].Morpheme = list.List[i]
 	}
 }
-

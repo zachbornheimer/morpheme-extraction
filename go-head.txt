@@ -1,0 +1,20 @@
+
+All Processed Files
+===================
+PREFIX: N 
+PREFIX: o 
+INFIX: on 
+STEM: one 
+PREFIX: wo 
+INFIX: ld 
+PREFIX: w 
+INFIX: ul 
+PREFIX: h 
+INFIX: ha 
+PREFIX: hav 
+PREFIX: b 
+STEM: be 
+PREFIX: belie 
+INFIX: lie 
+PREFIX: bel 
+INFIX: ed 

@@ -24,12 +24,13 @@ func FreeMorpheme(morpheme *structs.Morpheme) {
 }
 
 // FindLongestMatch finds longest matching prefix (lines 25-60)
+// Optimized: Works with native strings (no byte array allocation)
 func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 	var longest, shortest structs.Word
-	empty := structs.Morpheme{Morpheme: "\x00", Freq: 1}
+	empty := structs.Morpheme{Morpheme: "", Freq: 1}
 	realLength := 0
 
-	if one.Len >= two.Len {
+	if one.Len() >= two.Len() {
 		longest = one
 		shortest = two
 	} else {
@@ -37,16 +38,13 @@ func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 		shortest = one
 	}
 
-	str := make([]byte, shortest.Len+2)
-	shortestStr := string(shortest.Str)
-	longestStr := string(longest.Str)
+	shortestStr := shortest.Str
+	longestStr := longest.Str
 
 	for realLength < len(shortestStr) && realLength < len(longestStr) &&
-		shortestStr[realLength] != '\x00' && shortestStr[realLength] == longestStr[realLength] {
-		str[realLength] = shortestStr[realLength]
+		shortestStr[realLength] == longestStr[realLength] {
 		realLength++
 	}
-	str[realLength] = '\x00'
 
 	if realLength == 0 {
 		return empty
@@ -54,7 +52,7 @@ func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 
 	longestMatch := structs.Morpheme{
 		Freq:     1,
-		Morpheme: string(str[:realLength]),
+		Morpheme: shortestStr[:realLength],
 	}
 
 	return longestMatch
@@ -68,26 +66,16 @@ func GenRegex(one, two string, placeOne, placeTwo int, morpheme *structs.Morphem
 		return
 	}
 
-	i := 0
-	word1 := make([]byte, len(morpheme.Morpheme)+1)
-	word2 := make([]byte, len(morpheme.Morpheme)+1)
+	// Extract morpheme from both words using string slicing (zero-copy!)
+	word1 := one[placeOne : placeOne+len(morpheme.Morpheme)]
+	word2 := two[placeTwo : placeTwo+len(morpheme.Morpheme)]
 
-	for i = placeOne; i < (placeOne + len(morpheme.Morpheme)); i++ {
-		word1[i-placeOne] = one[i]
-	}
-	word1[i-placeOne] = '\x00'
-
-	for i = placeTwo; i < (placeTwo + len(morpheme.Morpheme)); i++ {
-		word2[i-placeTwo] = two[i]
-	}
-	word2[i-placeTwo] = '\x00'
-
-	if !(string(word1[:len(morpheme.Morpheme)]) == string(word2[:len(morpheme.Morpheme)]) &&
-		string(word1[:len(morpheme.Morpheme)]) == morpheme.Morpheme) {
+	if !(word1 == word2 && word1 == morpheme.Morpheme) {
 		return
 	}
 
 	// Step 1.5: If Either Word = Morpheme, it's a STEM
+	var i int
 	morpheme.Type = constants.UNDEF
 
 	if one == morpheme.Morpheme || two == morpheme.Morpheme {

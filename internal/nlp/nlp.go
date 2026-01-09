@@ -221,9 +221,9 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 
 		for j := 0; j < ngram.RefsCount; j++ {
 			target := *ngram.Refs[j]
-			// Use Word.Len to get exact word length (excludes null padding)
-			w1 := string(ngram.Word.Str[:ngram.Word.Len])
-			w2 := string(target.Word.Str[:target.Word.Len])
+			// Direct string access (no conversion needed with native strings)
+			w1 := ngram.Word.Str
+			w2 := target.Word.Str
 
 			forward := morpheme_t.FindLongestMatch(ngram.Word, target.Word)
 			forward.WordsCount = 0

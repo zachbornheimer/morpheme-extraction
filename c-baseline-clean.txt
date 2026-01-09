@@ -1,0 +1,78 @@
+DEBUG: main() started with argc=2
+DEBUG: Initializing globals...
+DEBUG: Starting arg parse loop...
+DEBUG: Args parsed, calling nlp()...
+DEBUG: nlp() started
+DEBUG: Starting getfiles loop...
+Reading: ./test-corpus/War_of_the_Worlds.txt
+DEBUG: Got file: ./test-corpus/War_of_the_Worlds.txt, f_len=12730
+DEBUG: Calling find_word_delimiter...
+DEBUG: find_word_delimiter started, file=0x16d991f20
+DEBUG: Calling uniq...
+DEBUG: uniq returned, i=66
+DEBUG: About to create char_doubleton array of size 66
+DEBUG: char_doubleton array created
+DEBUG: Starting loop j=0 to 66 (should be < not <=)
+DEBUG: Loop iteration j=0
+DEBUG: Calling explode_sansnull for char 'N'
+DEBUG: explode_sansnull returned freq=5
+DEBUG: Loop iteration j=1
+DEBUG: Calling explode_sansnull for char 'o'
+DEBUG: explode_sansnull returned freq=620
+DEBUG: Loop iteration j=2
+DEBUG: Calling explode_sansnull for char ' '
+DEBUG: explode_sansnull returned freq=2210
+DEBUG: Loop finished
+DEBUG: Freeing ret...
+DEBUG: ret freed
+DEBUG: Allocating wd_real...
+DEBUG: wd_real allocated
+DEBUG: Starting second loop j=0 to 66 (should be < not <=)
+DEBUG: Second loop iteration j=0, wd[j].freq=5, max_size=0
+DEBUG: Found new max at j=0
+DEBUG: Second loop iteration j=1, wd[j].freq=620, max_size=5
+DEBUG: Found new max at j=1
+DEBUG: Second loop iteration j=2, wd[j].freq=2210, max_size=620
+DEBUG: Found new max at j=2
+DEBUG: Second loop iteration j=65, wd[j].freq=1, max_size=2210
+DEBUG: Second loop finished, max_size=2210
+DEBUG: wd_real=' ', len=1
+DEBUG: Checking if strlen(wd_real) > 1: 0
+DEBUG: About to return, wd_final_freq=0
+DEBUG: Returning wd_real=' '
+DEBUG: find_word_delimiter returned, wd=0x102bb9ff0, errno=0
+DEBUG: wd=' ' (len=1)
+DEBUG: Checking conditions: wd=0x102bb9ff0, errno=0, E_OVERRULED=8
+DEBUG: About to call build_ngram_relationships
+DEBUG: build_ngram_relationships started, wd=0x102bb9ff0, f_len=12730
+DEBUG: Calling explode_sansnull_str...
+DEBUG: explode_sansnull_str returned, word_count=2210
+DEBUG: add_loc=0, ngram_count=2210
+DEBUG: Allocating ng array for 2211 words
+DEBUG: ng allocated
+DEBUG: Starting main ngram loop i=0 to 2210
+DEBUG: Processing word i=0/2210
+DEBUG: Processing word i=100/2210
+DEBUG: Processing word i=200/2210
+DEBUG: Processing word i=300/2210
+DEBUG: Processing word i=400/2210
+DEBUG: Processing word i=500/2210
+DEBUG: Processing word i=600/2210
+DEBUG: Processing word i=700/2210
+DEBUG: Processing word i=800/2210
+DEBUG: Processing word i=900/2210
+DEBUG: Processing word i=1000/2210
+DEBUG: Processing word i=1100/2210
+DEBUG: Processing word i=1200/2210
+DEBUG: Processing word i=1300/2210
+DEBUG: Processing word i=1400/2210
+DEBUG: Processing word i=1500/2210
+DEBUG: Processing word i=1600/2210
+DEBUG: Processing word i=1700/2210
+DEBUG: Processing word i=1800/2210
+DEBUG: Processing word i=1900/2210
+DEBUG: Processing word i=2000/2210
+DEBUG: Processing word i=2100/2210
+DEBUG: Processing word i=2200/2210
+DEBUG: build_ngram_relationships returned
+Writing data to file: languageModel.zdrm

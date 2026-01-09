@@ -1,6 +1,10 @@
 // Package structs contains all struct definitions from structs.h (lines 1-73)
 package structs
 
+import (
+	"unicode/utf8"
+)
+
 // CharDoubleton represents struct char_doubleton (lines 11-14)
 type CharDoubleton struct {
 	First  byte // c
@@ -8,15 +12,48 @@ type CharDoubleton struct {
 }
 
 // Word represents struct word_t (lines 16-20)
+// Optimized: Uses native Go string instead of []byte
 type Word struct {
-	Len  int    // i (unsigned int)
+	Str  string // word - native Go string (knows its own length)
 	Freq int    // freq
-	Str  []byte // word (char*)
 }
 
-// String returns the word as a string (uses Len to exclude null padding)
+// String returns the word as a string (zero-cost with native string)
 func (w *Word) String() string {
-	return string(w.Str[:w.Len])
+	return w.Str
+}
+
+// Len returns the length of the word (for C compatibility)
+func (w *Word) Len() int {
+	return len(w.Str)
+}
+
+// Set sets the word string and resets frequency to 1
+// Pointer receiver: modifies the Word in place
+func (w *Word) Set(s string) {
+	w.Str = s
+	w.Freq = 1
+}
+
+// Reverse reverses the word string in place using built-in rune iteration
+// Pointer receiver: modifies the Word in place
+func (w *Word) Reverse() {
+	runes := []rune(w.Str)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	w.Str = string(runes)
+}
+
+// RemoveFirstChar removes the first UTF-8 character from the word
+// Pointer receiver: modifies the Word in place
+func (w *Word) RemoveFirstChar() {
+	if len(w.Str) == 0 {
+		return
+	}
+	// Find the byte index of the second rune
+	_, i := utf8.DecodeRuneInString(w.Str)
+	w.Str = w.Str[i:]
 }
 
 // WordArray represents struct word_t_array (lines 24-27)
