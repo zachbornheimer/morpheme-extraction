@@ -80,112 +80,39 @@ func Uniqify(bora *structs.NgramHalfArray) {
 }
 
 // NgramsSimilar checks if two ngrams are similar (lines 130-178)
+// Uses struct methods for abstraction while maintaining original C algorithm
 func NgramsSimilar(a, b structs.Ngram) bool {
-	percentSimilar := 0
-	elemsCount := 0
-	arrCount := 0
+	ngramHalfSize := constants.NgramSize / 2
 
-	// Count all elements
-	for i := 0; i < (constants.NgramSize / 2); i++ {
-		if a.Before.At[i] != nil {
-			elemsCount += a.Before.At[i].Count
-		}
-	}
-	for i := 0; i < (constants.NgramSize / 2); i++ {
-		if a.After.At[i] != nil {
-			elemsCount += a.After.At[i].Count
-		}
-	}
-	for i := 0; i < (constants.NgramSize / 2); i++ {
-		if b.Before.At[i] != nil {
-			elemsCount += b.Before.At[i].Count
-		}
-	}
-	for i := 0; i < (constants.NgramSize / 2); i++ {
-		if b.After.At[i] != nil {
-			elemsCount += b.After.At[i].Count
-		}
-	}
+	// Count all elements using struct methods
+	elemsCount := a.CountContextWords(ngramHalfSize) + b.CountContextWords(ngramHalfSize)
 
 	if elemsCount == 0 {
 		return false
 	}
 
+	// Allocate array for all words
 	arr := make([]string, elemsCount)
+	arrCount := 0
 
-	// Collect all words
-	for i := 0; i < (constants.NgramSize / 2); i++ {
-		if a.Before.At[i] != nil {
-			for j := 0; j < a.Before.At[i].Count; j++ {
-				if a.Before.At[i].Elems[j] != nil {
-					word := string(a.Before.At[i].Elems[j].Str)
-					if word != "" {
-						arr[arrCount] = word
-						arrCount++
-					}
-				}
-			}
-		}
-	}
-	for i := 0; i < (constants.NgramSize / 2); i++ {
-		if a.After.At[i] != nil {
-			for j := 0; j < a.After.At[i].Count; j++ {
-				if a.After.At[i].Elems[j] != nil {
-					word := string(a.After.At[i].Elems[j].Str)
-					if word != "" {
-						arr[arrCount] = word
-						arrCount++
-					}
-				}
-			}
-		}
-	}
-	for i := 0; i < (constants.NgramSize / 2); i++ {
-		if b.Before.At[i] != nil {
-			for j := 0; j < b.Before.At[i].Count; j++ {
-				if b.Before.At[i].Elems[j] != nil {
-					word := string(b.Before.At[i].Elems[j].Str)
-					if word != "" {
-						arr[arrCount] = word
-						arrCount++
-					}
-				}
-			}
-		}
-	}
-	for i := 0; i < (constants.NgramSize / 2); i++ {
-		if b.After.At[i] != nil {
-			for j := 0; j < b.After.At[i].Count; j++ {
-				if b.After.At[i].Elems[j] != nil {
-					word := string(b.After.At[i].Elems[j].Str)
-					if word != "" {
-						arr[arrCount] = word
-						arrCount++
-					}
-				}
-			}
-		}
-	}
+	// Collect all words using struct methods
+	arrCount += a.CollectContextWords(arr[arrCount:], ngramHalfSize)
+	arrCount += b.CollectContextWords(arr[arrCount:], ngramHalfSize)
 
 	// Line 167 in C: count = uniq_words(arr, elems_count);
-	// C passes elems_count, but this causes performance issues if elems_count >> arr_count
-	// The C code likely has undefined behavior here (accessing uninitialized memory)
-	// We'll pass arr_count for correctness and performance
+	// We pass arrCount for correctness (C has undefined behavior here)
 	count := functions.UniqWords(arr[:arrCount], arrCount)
-	
+
 	// Line 170 in C: arr_count -= 1;
 	arrCount--
-	
+
 	// Line 171 in C: percent_similar = (double) 100.00 * (((double)arr_count - (double)count)/(double)arr_count);
 	if arrCount <= 0 {
 		return false
 	}
-	percentSimilar = int(100.0 * (float64(arrCount-count) / float64(arrCount)))
+	percentSimilar := int(100.0 * (float64(arrCount-count) / float64(arrCount)))
 
-	if float64(percentSimilar) >= constants.ThresholdSimilarNgrams {
-		return true
-	}
-	return false
+	return float64(percentSimilar) >= constants.ThresholdSimilarNgrams
 }
 
 // AddSimilarNgramRef adds reference to similar ngram (lines 180-195)

@@ -25,9 +25,75 @@ type WordArray struct {
 	Count int     // count (unsigned int)
 }
 
+// ToSlice converts WordArray to []string, collecting non-nil words
+// Uses raw Str (including nulls) to match C behavior
+func (wa *WordArray) ToSlice() []string {
+	if wa == nil {
+		return nil
+	}
+	result := make([]string, 0, wa.Count)
+	for i := 0; i < wa.Count; i++ {
+		if wa.Elems[i] != nil {
+			word := string(wa.Elems[i].Str)
+			if word != "" {
+				result = append(result, word)
+			}
+		}
+	}
+	return result
+}
+
+// ToSet converts WordArray to StringSet (deduplicates)
+func (wa *WordArray) ToSet() StringSet {
+	if wa == nil {
+		return NewStringSet(0)
+	}
+	result := NewStringSet(wa.Count)
+	for i := 0; i < wa.Count; i++ {
+		if wa.Elems[i] != nil {
+			word := string(wa.Elems[i].Str)
+			if word != "" {
+				result.Add(word)
+			}
+		}
+	}
+	return result
+}
+
 // NgramHalfArray represents struct ngram_half_array (lines 29-31)
 type NgramHalfArray struct {
 	At [5]*WordArray // at[NGRAM_SIZE/2+1] where NGRAM_SIZE=9, so 9/2+1=5
+}
+
+// CountWords returns total count of words in this half-array
+func (h *NgramHalfArray) CountWords(ngramHalfSize int) int {
+	count := 0
+	for i := 0; i < ngramHalfSize; i++ {
+		if h.At[i] != nil {
+			count += h.At[i].Count
+		}
+	}
+	return count
+}
+
+// CollectWordsInto appends words from this half-array into the provided slice
+// Returns the number of words added
+func (h *NgramHalfArray) CollectWordsInto(arr []string, startIdx int, ngramHalfSize int) int {
+	idx := startIdx
+	for i := 0; i < ngramHalfSize; i++ {
+		if h.At[i] != nil {
+			for j := 0; j < h.At[i].Count; j++ {
+				if h.At[i].Elems[j] != nil {
+					word := string(h.At[i].Elems[j].Str)
+					if word != "" {
+						arr[idx] = word
+						idx++
+					}
+				}
+			}
+		}
+	}
+	return idx - startIdx
 }
 
 // Ngram represents struct ngram_t (lines 33-39)
@@ -37,6 +103,20 @@ type Ngram struct {
 	After     NgramHalfArray   // after
 	RefsCount int              // refs_count
 	Refs      []*Ngram         // refs (struct ngram_t**)
+}
+
+// CountContextWords returns total count of context words (Before + After)
+func (ng *Ngram) CountContextWords(ngramHalfSize int) int {
+	return ng.Before.CountWords(ngramHalfSize) + ng.After.CountWords(ngramHalfSize)
+}
+
+// CollectContextWords collects all context words into a pre-allocated slice
+// Returns the number of words collected
+func (ng *Ngram) CollectContextWords(arr []string, ngramHalfSize int) int {
+	count := 0
+	count += ng.Before.CollectWordsInto(arr, count, ngramHalfSize)
+	count += ng.After.CollectWordsInto(arr, count, ngramHalfSize)
+	return count
 }
 
 // Morpheme represents struct morpheme_t (lines 45-58)
@@ -53,6 +133,34 @@ type Morpheme struct {
 	BackRegexArr        []string // back_regex_arr (char**)
 	FrontRegexArrIndex  int      // front_regex_arr_index
 	BackRegexArrIndex   int      // back_regex_arr_index
+}
+
+// WordsToSlice returns morpheme's words as a string slice
+func (m *Morpheme) WordsToSlice() []string {
+	result := make([]string, 0, m.WordsCount)
+	for i := 0; i < m.WordsCount; i++ {
+		if m.Words[i] != nil {
+			word := string(m.Words[i].Str)
+			if word != "" {
+				result = append(result, word)
+			}
+		}
+	}
+	return result
+}
+
+// WordsToSet returns morpheme's words as a set (deduplicates)
+func (m *Morpheme) WordsToSet() StringSet {
+	result := NewStringSet(m.WordsCount)
+	for i := 0; i < m.WordsCount; i++ {
+		if m.Words[i] != nil {
+			word := string(m.Words[i].Str)
+			if word != "" {
+				result.Add(word)
+			}
+		}
+	}
+	return result
 }
 
 // MorphemeList represents struct morpheme_list_t (lines 60-63)
