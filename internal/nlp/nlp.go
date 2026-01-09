@@ -20,6 +20,24 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/word_t"
 )
 
+// Pools for frequently allocated structures to reduce GC pressure
+var (
+	morphemePool = sync.Pool{
+		New: func() interface{} {
+			return &structs.Morpheme{
+				Words: make([]*structs.Word, 0, 2),
+			}
+		},
+	}
+	
+	wordSlicePool = sync.Pool{
+		New: func() interface{} {
+			s := make([]*structs.Word, 0, 2)
+			return &s
+		},
+	}
+)
+
 // Nlp runs the main NLP process (lines 64-111)
 func Nlp(verboseMode, processSequentially, processFull int, outputFilename, corpusDir string) int {
 	// Set globals
