@@ -187,6 +187,16 @@ type Morpheme struct {
 	BackRegexArrIndex   int      // back_regex_arr_index
 }
 
+// NewMorpheme creates a new morpheme with the given morpheme string
+func NewMorpheme(morpheme string) Morpheme {
+	return Morpheme{
+		Morpheme:   morpheme,
+		Freq:       1,
+		WordsCount: 0,
+		Words:      make([]*Word, 0),
+	}
+}
+
 // WordsToSlice returns morpheme's words as a string slice
 func (m *Morpheme) WordsToSlice() []string {
 	result := make([]string, 0, m.WordsCount)

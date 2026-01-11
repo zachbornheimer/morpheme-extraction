@@ -23,55 +23,38 @@ func FreeMorpheme(morpheme *structs.Morpheme) {
 	// Go GC handles cleanup
 }
 
-// FindLongestMatch finds longest matching prefix (lines 25-60)
+// FindLongestMatch finds longest matching prefix using runes for Unicode support
 func FindLongestMatch(one, two structs.Word) structs.Morpheme {
-	var longest, shortest structs.Word
-	empty := structs.Morpheme{Morpheme: constants.EmptyMorpheme, Freq: 1}
-	realLength := 0
+	// Get clean strings without marker bytes
+	s1 := one.StringClean()
+	s2 := two.StringClean()
 
-	if one.Len >= two.Len {
-		longest = one
-		shortest = two
-	} else {
-		longest = two
-		shortest = one
+	// Convert to runes for proper Unicode handling
+	r1 := []rune(s1)
+	r2 := []rune(s2)
+
+	// Find the minimum length
+	minLen := len(r1)
+	if len(r2) < minLen {
+		minLen = len(r2)
 	}
 
-	str := make([]byte, shortest.Len+2)
-	shortestStr := string(shortest.Str)
-	longestStr := string(longest.Str)
-
-	// Check for empty morpheme marker during matching
-	emptyByte := constants.EmptyMorphemeByte
-	hasEmptyMarker := constants.HasEmptyMarker
-
-	for realLength < len(shortestStr) && realLength < len(longestStr) {
-		// Stop if we hit the empty marker (if it exists)
-		if hasEmptyMarker && shortestStr[realLength] == emptyByte {
+	// Find longest common prefix
+	matchLen := 0
+	for i := 0; i < minLen; i++ {
+		if r1[i] != r2[i] {
 			break
 		}
-		// Stop if characters don't match
-		if shortestStr[realLength] != longestStr[realLength] {
-			break
-		}
-		str[realLength] = shortestStr[realLength]
-		realLength++
-	}
-	// Add empty marker if it exists
-	if hasEmptyMarker {
-		str[realLength] = emptyByte
+		matchLen++
 	}
 
-	if realLength == 0 {
-		return empty
+	// Return empty morpheme if no match
+	if matchLen == 0 {
+		return structs.NewMorpheme(constants.EmptyMorpheme)
 	}
 
-	longestMatch := structs.Morpheme{
-		Freq:     1,
-		Morpheme: string(str[:realLength]),
-	}
-
-	return longestMatch
+	// Return the common prefix as a morpheme
+	return structs.NewMorpheme(string(r1[:matchLen]))
 }
 
 // GenRegex generates regex for morpheme (lines 62-234)
