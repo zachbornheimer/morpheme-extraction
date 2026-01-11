@@ -8,8 +8,9 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
-// FindLongestMatch finds longest matching prefix using runes for Unicode support
-func FindLongestMatch(one, two structs.Word) structs.Morpheme {
+// FindLongestMatchString finds longest matching prefix and returns just the string.
+// This avoids allocating a full Morpheme object (saves ~500 bytes per call).
+func FindLongestMatchString(one, two structs.Word) string {
 	// Get clean strings without marker bytes
 	s1 := one.StringClean()
 	s2 := two.StringClean()
@@ -33,12 +34,20 @@ func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 		matchLen++
 	}
 
-	// Return empty morpheme if no match
+	// Return empty string if no match
 	if matchLen == 0 {
-		return structs.NewMorpheme(constants.EmptyMorpheme)
+		return constants.EmptyMorpheme
 	}
 
-	// Return the common prefix as a morpheme
-	return structs.NewMorpheme(string(r1[:matchLen]))
+	// Return the common prefix
+	return string(r1[:matchLen])
+}
+
+// FindLongestMatch finds longest matching prefix using runes for Unicode support
+// DEPRECATED: Use FindLongestMatchString + MorphemeCandidate for better performance.
+// This allocates a full Morpheme object which is expensive when called millions of times.
+func FindLongestMatch(one, two structs.Word) structs.Morpheme {
+	morphemeStr := FindLongestMatchString(one, two)
+	return structs.NewMorpheme(morphemeStr)
 }
 
