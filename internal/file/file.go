@@ -8,8 +8,13 @@ import (
 	"os"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
+	"github.com/zachbornheimer/morpheme-extraction/internal/filesystem"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
+
+// DefaultFS is the default filesystem implementation
+// Can be overridden for testing
+var DefaultFS filesystem.FileSystem = filesystem.NewOsFileSystem()
 
 // ReadByChar adds a character to buffer (lines 23-32)
 func ReadByChar(c byte, buffer *[]byte, charCount *int, bytes *int) {
@@ -30,7 +35,7 @@ func ReadFile(filename string) string {
 	bytes := 1
 	f := make([]byte, bytes)
 
-	alpha, err := os.Open(filename)
+	alpha, err := DefaultFS.Open(filename)
 	if err != nil {
 		fmt.Printf("Couldn't read file: %s\n", filename)
 		return ""
@@ -59,9 +64,10 @@ func AskForFile() string {
 	bytes := 1
 	filename := make([]byte, bytes)
 
+	stdin := DefaultFS.Stdin()
 	buf := make([]byte, 1)
 	for {
-		n, err := os.Stdin.Read(buf)
+		n, err := stdin.Read(buf)
 		if err == io.EOF || (n > 0 && buf[0] == '\n') {
 			break
 		}
@@ -78,10 +84,10 @@ func WriteToFile(filename string, lex []structs.LexicalCategories, count int, he
 	fmt.Printf("Writing data to file: %s\n", filename)
 
 	// Open file in append mode
-	output, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	output, err := DefaultFS.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		fmt.Printf("Could not open file, %s, instead writing to %s\n", filename, constants.ZedramOutput)
-		output, err = os.OpenFile(constants.ZedramOutput, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		output, err = DefaultFS.OpenFile(constants.ZedramOutput, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			fmt.Printf("Something catastrophic occurred. Run again -- maybe redirect the output?\n")
 			return

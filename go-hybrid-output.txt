@@ -1,0 +1,2 @@
+Reading: ./test-corpus/War_of_the_Worlds.txt
+Writing data to file: languageModel.zdrm

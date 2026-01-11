@@ -8,19 +8,15 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/zachbornheimer/morpheme-extraction/internal/config"
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/nlp"
 )
 
-// Global variables matching nlp.c lines 25-29
+// Profiling flags
 var (
-	verboseMode         int
-	processSequentially int
-	processFull         int
-	outputFilename      string
-	corpusDir           string
-	cpuprofile          string
-	memprofile          string
+	cpuprofile string
+	memprofile string
 )
 
 func main() {
@@ -28,42 +24,40 @@ func main() {
 }
 
 func run() int {
+	// Initialize configuration
+	cfg := config.NewConfig()
+	cfg.OutputFilename = constants.ZedramOutput
+	cfg.CorpusDir = constants.DefaultPath
+
 	// Add pprof flag support
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
 	flag.StringVar(&memprofile, "memprofile", "", "write memory profile to file")
-	
+
 	argc := len(os.Args)
 	argv := os.Args
-
-	// Initialize globals (lines 35-39)
-	verboseMode = constants.OFF
-	processSequentially = constants.OFF
-	processFull = constants.OFF
-	outputFilename = constants.ZedramOutput
-	corpusDir = constants.DefaultPath
 
 	// Parse command line arguments (lines 40-58)
 	// Note: C used OpenMP parallel for which caused race conditions, we use serial
 	for i := 0; i < argc; i++ {
-		if verboseMode == constants.OFF && argv[i] == "--verbose" {
-			verboseMode = constants.ON
+		if cfg.VerboseMode == constants.OFF && argv[i] == "--verbose" {
+			cfg.VerboseMode = constants.ON
 		} else if argv[i] == "-v" {
-			verboseMode = constants.ON
-		} else if processSequentially == constants.OFF && argv[i] == "--process-sequentially" {
-			processSequentially = constants.ON
-		} else if processSequentially == constants.OFF && argv[i] == "--serial" {
-			processSequentially = constants.ON
-		} else if processSequentially == constants.OFF && argv[i] == "--sequential" {
-			processSequentially = constants.ON
-		} else if processFull == constants.OFF && argv[i] == "--process" {
-			processFull = constants.ON
+			cfg.VerboseMode = constants.ON
+		} else if cfg.ProcessSequentially == constants.OFF && argv[i] == "--process-sequentially" {
+			cfg.ProcessSequentially = constants.ON
+		} else if cfg.ProcessSequentially == constants.OFF && argv[i] == "--serial" {
+			cfg.ProcessSequentially = constants.ON
+		} else if cfg.ProcessSequentially == constants.OFF && argv[i] == "--sequential" {
+			cfg.ProcessSequentially = constants.ON
+		} else if cfg.ProcessFull == constants.OFF && argv[i] == "--process" {
+			cfg.ProcessFull = constants.ON
 		} else if argv[i] == "--output-file" || argv[i] == "-o" {
 			if i+1 < argc {
-				outputFilename = argv[i+1]
+				cfg.OutputFilename = argv[i+1]
 			}
 		} else if argv[i] == "--corpus-dir" || argv[i] == "-c" {
 			if i+1 < argc {
-				corpusDir = argv[i+1]
+				cfg.CorpusDir = argv[i+1]
 			}
 		} else if argv[i] == "-cpuprofile" {
 			if i+1 < argc {
@@ -90,7 +84,7 @@ func run() int {
 	}
 
 	// Call nlp() and return its exit code (line 60)
-	exitCode := nlp.Nlp(verboseMode, processSequentially, processFull, outputFilename, corpusDir)
+	exitCode := nlp.Nlp(cfg)
 	
 	// Write memory profile if requested
 	if memprofile != "" {

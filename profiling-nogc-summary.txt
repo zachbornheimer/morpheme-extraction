@@ -1,0 +1,62 @@
+=== CPU Profiling Results (GOGC=off) ===
+
+## Top Functions by Cumulative Time
+
+| Function | Cum Time | % | Analysis |
+|----------|----------|---|----------|
+| runtime.madvise | 410ms | 65% | **Memory allocation bottleneck** - OS syscall for memory |
+| NgramsSimilar (deprecated) | 160ms | 25% | **HOT PATH #1** - Still being called somewhere |
+| UniqWords | 100ms | 16% | **HOT PATH #2** - Map creation in loop |
+| FuseRegex | 40ms | 6% | Regex merging overhead |
+| CollectContextWords | 20ms | 3% | String collection |
+
+## Key Findings
+
+### 1. Memory Allocation Dominates (65%)
+- `runtime.madvise` @ 410ms - OS memory syscalls
+- This is pure memory allocation overhead
+- With NO GC, this is the true allocation cost
+
+### 2. NgramsSimilar Still Active (25%)
+- **CRITICAL**: This is the OLD deprecated function
+- Should be using NGramComparator.AreSimilar
+- Need to verify all callers updated
+
+### 3. UniqWords Linear Scan (16%)  
+- Line 78: `for j := 0; j < size; j++`
+- Creates new StringSet on EVERY call
+- Called in hot path during FuseRegex
+
+### 4. FuseRegex Allocation (6%)
+- Line 112: Loop with string comparisons
+- Line 238: MergeRules call
+
+## Line-Level Hotspots
+
+**UniqWords (functions.go:74-82)**
+```
+Line 78: for j := 0; j < size; j++  [40ms flat]
+Line 90: ExplodeSansnullStr return  [50ms flat]
+Line 92: ExplodeSansnull function   [10ms flat]
+```
+
+**FuseRegex (morpheme_list_t.go:103-243)**
+```
+Line 112: continue statement         [30ms flat]
+Line 238: working.Freq++              [10ms flat]
+```
+
+## Performance Recommendations
+
+1. **Remove NgramsSimilar completely** - verify NGramComparator is used
+2. **Pool StringSets** - reuse instead of allocate in UniqWords
+3. **Pre-allocate** - slice capacities in FuseRegex
+4. **Investigate** - why NgramsSimilar shows 160ms if it's deprecated
+
+## Next Steps
+
+1. Search codebase for NgramsSimilar usage
+2. Profile with GOGC=off after confirming NGramComparator usage
+3. Add buffer pooling for StringSet allocations
+4. Consider caching UniqWords results for repeated calls
+

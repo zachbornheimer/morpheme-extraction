@@ -1,0 +1,83 @@
+=== ✅ Fresh CPU Profile Analysis (GOGC=off) ===
+
+## Top Hot Functions (By Cumulative Time)
+
+| Function | Cum % | Flat ms | Cum ms | Location | Analysis |
+|----------|-------|---------|--------|----------|----------|
+| **NGramComparator.AreSimilar** | 46.5% | 10ms | 270ms | comparator.go | **PRIMARY BOTTLENECK** |
+| runtime.madvise | 41.4% | 240ms | 240ms | runtime | Memory allocation syscall |
+| StringSet.Add | 31.0% | 70ms | 180ms | structs.go | Map insertion (in loop) |
+| StringSet.Clear | 10.3% | 30ms | 60ms | structs.go | Map clearing |
+| Ngram.AddSimilarRef | 5.2% | 10ms | 30ms | structs.go | Slice append |
+
+## Line-by-Line Hotspots in AreSimilar (comparator.go:34-64)
+
+```
+Line 51: a.CollectContextWords()        [10ms flat, 10ms cum]
+Line 52: b.CollectContextWords()        [0ms flat, 10ms cum]
+Line 55: c.set.Clear()                  [0ms flat, 60ms cum] ⚠️ HOT #2
+Line 57: c.set.Add(word)                [0ms flat, 180ms cum] ⚠️ HOT #1
+Line 59: count := c.set.Len()           [10ms flat, 10ms cum]
+```
+
+## Performance Breakdown
+
+### 1. Map Operations Dominate (41% of CPU)
+- **Line 57 (180ms)**: `c.set.Add(word)` in loop
+  - Called once per context word
+  - Hash computation + insertion
+  - 31% of total CPU time
+  
+- **Line 55 (60ms)**: `c.set.Clear()`
+  - Called once per ngram comparison
+  - Clears entire map
+  - 10% of total CPU time
+
+### 2. Memory Allocation (41% of CPU)
+- **runtime.madvise (240ms)**: OS syscalls for memory
+  - With NO GC, this is pure allocation overhead
+  - Similar to map operations in cost
+
+### 3. String Collection (3.4% of CPU)
+- **CollectContextWords (20ms)**: Collecting strings into buffer
+  - Relatively cheap compared to map operations
+
+## Key Findings
+
+1. ✅ **NGramComparator IS being used** (not old NgramsSimilar)
+2. ⚠️ **Map operations are 2.4x MORE expensive than string collection**
+3. ⚠️ **Clear() costs 25% of what Add() costs**
+4. ⚠️ **Set reuse is good, but map overhead is still dominant**
+
+## Optimization Opportunities
+
+### Immediate (High Impact)
+1. **Replace StringSet with sorted array + binary search**
+   - Trade O(1) insert for O(log n) search
+   - Avoid hash computation overhead
+   - Estimate: 50-70% reduction in map time
+
+2. **Pre-allocate map capacity**
+   - `NewStringSet(elemsCount)` instead of `NewStringSet(0)`
+   - Reduces map growth/rehashing
+   - Estimate: 10-15% reduction
+
+### Advanced (Very High Impact)
+3. **Use bloom filter for fast negative checks**
+   - Check bloom first before map insertion
+   - Skip duplicates without map access
+   - Estimate: 30-40% reduction if many duplicates
+
+4. **Two-pass algorithm**
+   - First pass: count unique (no map, just array scan)
+   - Only use map if threshold might be met
+   - Estimate: varies by input
+
+## Recommendation
+
+**Start with #1**: Replace StringSet with sorted slice approach
+- Simple to implement
+- No external dependencies
+- Predictable performance
+- Better cache locality
+

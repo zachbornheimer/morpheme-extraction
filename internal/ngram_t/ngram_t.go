@@ -3,13 +3,22 @@
 package ngram_t
 
 import (
+	"sync"
+
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
-var debugCounter = 0
-var debugCallCounter = 0
+// contextWordPool reuses string slice buffers for NgramsSimilar
+// Reduces allocations from ~100MB to near-zero for this hot path
+var contextWordPool = sync.Pool{
+	New: func() any {
+		// Pre-allocate reasonable size (most ngrams have < 100 context words)
+		buf := make([]string, 0, 100)
+		return &buf
+	},
+}
 
 // AddNgramElement adds element to ngram array (lines 22-28)
 func AddNgramElement(atIndex **structs.WordArray, index int) int {
@@ -91,8 +100,24 @@ func NgramsSimilar(a, b structs.Ngram) bool {
 		return false
 	}
 
-	// Allocate array for all words
-	arr := make([]string, elemsCount)
+	// Get buffer from pool (optimization: reuse allocations)
+	bufPtr := contextWordPool.Get().(*[]string)
+	arr := *bufPtr
+	arr = arr[:0] // Reset length, keep capacity
+
+	// Ensure buffer has enough capacity
+	if cap(arr) < elemsCount {
+		arr = make([]string, elemsCount)
+	} else {
+		arr = arr[:elemsCount]
+	}
+
+	// Return buffer to pool when done
+	defer func() {
+		*bufPtr = arr[:0] // Reset for next use
+		contextWordPool.Put(bufPtr)
+	}()
+
 	arrCount := 0
 
 	// Collect all words using struct methods

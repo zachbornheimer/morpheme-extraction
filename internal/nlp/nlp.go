@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/alphabet"
+	"github.com/zachbornheimer/morpheme-extraction/internal/config"
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/directory"
 	"github.com/zachbornheimer/morpheme-extraction/internal/file"
@@ -19,11 +20,11 @@ import (
 )
 
 // Nlp runs the main NLP process (lines 64-111)
-func Nlp(verboseMode, processSequentially, processFull int, outputFilename, corpusDir string) int {
-	// Set globals
-	functions.VerboseMode = verboseMode
-	directory.CorpusDir = corpusDir
-	alphabet.VerboseMode = &verboseMode
+func Nlp(cfg *config.Config) int {
+	// Set globals (TODO: remove these once all packages use Config)
+	functions.VerboseMode = cfg.VerboseMode
+	directory.CorpusDir = cfg.CorpusDir
+	alphabet.VerboseMode = &cfg.VerboseMode
 
 	var f string
 	var header string
@@ -40,9 +41,9 @@ func Nlp(verboseMode, processSequentially, processFull int, outputFilename, corp
 		}
 
 		if len(f) > 2 {
-			functions.VPrint("Looking for Word Delimiter...")
+			cfg.VPrint("Looking for Word Delimiter...")
 			wd, err := alphabet.FindWordDelimiter(&f)
-			if functions.VerboseMode == constants.ON {
+			if cfg.IsVerbose() {
 				fmt.Printf("Found Word Delimiter: %q\n", wd)
 			}
 
@@ -51,23 +52,23 @@ func Nlp(verboseMode, processSequentially, processFull int, outputFilename, corp
 			}
 
 			if err == nil && wd != "" {
-				functions.VPrint("Building NGRAMS")
+				cfg.VPrint("Building NGRAMS")
 				BuildNgramRelationships(wd, f, &ngramLength, &ng)
 
-				if processFull == constants.ON || processSequentially == constants.ON {
-					functions.VPrint("\nPROCESSING SEQUENTIALLY!")
-					functions.VPrint("Extracting Morphemes and Building Lexical Categories.")
-					lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, outputFilename)
+				if cfg.ProcessFull == constants.ON || cfg.ProcessSequentially == constants.ON {
+					cfg.VPrint("\nPROCESSING SEQUENTIALLY!")
+					cfg.VPrint("Extracting Morphemes and Building Lexical Categories.")
+					lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, cfg.OutputFilename)
 				}
 			}
 		}
 	}
 
-	if processFull == constants.ON || processSequentially == constants.OFF {
+	if cfg.ProcessFull == constants.ON || cfg.ProcessSequentially == constants.OFF {
 		header = "All Processed Files"
-		functions.VPrint("PROCESSING SIMULTANEOUSLY!")
-		functions.VPrint("Extracting Morphemes and Building Lexical Categories.")
-		lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, outputFilename)
+		cfg.VPrint("PROCESSING SIMULTANEOUSLY!")
+		cfg.VPrint("Extracting Morphemes and Building Lexical Categories.")
+		lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, cfg.OutputFilename)
 	}
 
 	// Cleanup
