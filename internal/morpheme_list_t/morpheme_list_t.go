@@ -19,9 +19,9 @@ func AddMorpheme(morphemes *structs.MorphemeList, morpheme structs.Morpheme) {
 
 // FindInternalMorphemes finds morphemes within words (lines 24-93)
 func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.MorphemeList) {
-	// Use Word.Len to get exact word length (excludes null padding)
-	word1 := string(oneOrig.Str[:oneOrig.Len])
-	word2 := string(twoOrig.Str[:twoOrig.Len])
+	// Use Word.StringClean() to get clean string without null padding
+	word1 := oneOrig.StringClean()
+	word2 := twoOrig.StringClean()
 	one := oneOrig
 	two := twoOrig
 

@@ -19,6 +19,14 @@ func (w *Word) String() string {
 	return string(w.Str)
 }
 
+// StringClean returns the word as a clean string without null terminator (uses Len field)
+func (w *Word) StringClean() string {
+	if w.Len > len(w.Str) {
+		return string(w.Str)
+	}
+	return string(w.Str[:w.Len])
+}
+
 // WordArray represents struct word_t_array (lines 24-27)
 type WordArray struct {
 	Elems []*Word // elems
