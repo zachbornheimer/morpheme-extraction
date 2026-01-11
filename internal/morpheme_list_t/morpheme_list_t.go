@@ -78,7 +78,7 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 							lm.AddWord(twoOrig)
 							lm.GenRegex(word1, word2, iteration1, iteration2)
 
-							if lm.Regex != "" {
+							if lm.Regex() != "" {
 								AddMorpheme(internal, lm)
 							}
 
@@ -91,7 +91,7 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 					lm.AddWord(twoOrig)
 					lm.GenRegex(word1, word2, iteration1, iteration2)
 
-					if lm.Regex != "" {
+					if lm.Regex() != "" {
 						AddMorpheme(internal, lm)
 					}
 
@@ -119,8 +119,10 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 	currentIndex := -1
 
 	for i := 0; i < original.Count; i++ {
-		// Don't skip morphemes - even "\x00" is a valid morpheme value
-		// (it represents "no common substring found" between two words)
+		// Skip empty morphemes (no common substring found)
+		if original.List[i].Morpheme == "" || original.List[i].Morpheme == constants.EmptyMorpheme {
+			continue
+		}
 
 		if morphemeListCount == 0 {
 			morphemeList[morphemeListCount] = original.List[i].Morpheme
@@ -147,104 +149,17 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 				continue
 			}
 
-			// Extract Parenthetical Sections
+			// Merge regex patterns from duplicate morpheme into existing one
 			working := *new.List[currentIndex]
-			dupRegex := dup.Regex
-			origRegex := orig.Regex
-			origFrontIndex := orig.FrontRegexArrIndex
-			dupFrontIndex := dup.FrontRegexArrIndex
-			origBackIndex := orig.BackRegexArrIndex
-			dupBackIndex := dup.BackRegexArrIndex
 
-			if origRegex == dupRegex {
+			// Check if patterns are already identical (no merge needed)
+			if orig.Regex() == dup.Regex() {
 				new.List[currentIndex].Freq++
 				continue
 			}
 
-			// Merge regex patterns
-			regexFront := make([]string, (dupFrontIndex+1)+(origFrontIndex+1)+1)
-			regexBack := make([]string, (dupBackIndex+1)+(origBackIndex+1)+1)
-
-			// Merge front blocks
-			j := 0
-			for {
-				size := 2
-				longest := dupFrontIndex
-				if origFrontIndex > longest {
-					longest = origFrontIndex
-				}
-
-				if j-(longest-origFrontIndex) >= 0 && j-(longest-origFrontIndex) <= origFrontIndex {
-					size += len(orig.FrontRegexArr[j-(longest-origFrontIndex)])
-				}
-
-				if j-(longest-dupFrontIndex) >= 0 && j-(longest-dupFrontIndex) <= dupFrontIndex {
-					size += len(dup.FrontRegexArr[j-(longest-dupFrontIndex)])
-				}
-
-				regexFront[j] = ""
-
-				if size == 2 {
-					break
-				}
-
-				if j >= longest-origFrontIndex && origFrontIndex != -1 {
-					regexFront[j] += orig.FrontRegexArr[j-(longest-origFrontIndex)]
-				}
-
-				if j >= longest-dupFrontIndex && dupFrontIndex != -1 {
-					regexFront[j] += dup.FrontRegexArr[j-(longest-dupFrontIndex)]
-				}
-
-				arr, _ := functions.Uniq(regexFront[j])
-				regexFront[j] = arr
-				j++
-			}
-
-			working.FrontRegexArrIndex = j - 1
-			working.FrontRegexArr = regexFront
-
-			// Merge back blocks
-			j = 0
-			for {
-				size := 2
-				longest := dupBackIndex
-				if origBackIndex > longest {
-					longest = origBackIndex
-				}
-
-				if j-(longest-origBackIndex) >= 0 && j-(longest-origBackIndex) <= origBackIndex {
-					size += len(orig.BackRegexArr[j-(longest-origBackIndex)])
-				}
-
-				if j-(longest-dupBackIndex) >= 0 && j-(longest-dupBackIndex) <= dupBackIndex {
-					size += len(dup.BackRegexArr[j-(longest-dupBackIndex)])
-				}
-
-				regexBack[j] = ""
-
-				if size == 2 {
-					break
-				}
-
-				if j >= longest-origBackIndex && origBackIndex != -1 {
-					regexBack[j] += orig.BackRegexArr[j-(longest-origBackIndex)]
-				}
-
-				if j >= longest-dupBackIndex && dupBackIndex != -1 {
-					regexBack[j] += dup.BackRegexArr[j-(longest-dupBackIndex)]
-				}
-
-				arr, _ := functions.Uniq(regexBack[j])
-				regexBack[j] = arr
-				j++
-			}
-
-			working.BackRegexArrIndex = j - 1
-			working.BackRegexArr = regexBack
-
-			// Reconstruct and restore
-			working.MergeRules()
+			// Merge patterns using encapsulated method (replaces 90+ lines of manual merging)
+			working.MergePatternsWith(&dup)
 			working.Freq++
 			new.List[currentIndex] = &working
 
@@ -279,9 +194,12 @@ func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCat
 		kept++
 
 		if morpheme.Type != constants.STEM {
+			front := morpheme.GetFrontRegex()
+			back := morpheme.GetBackRegex()
+
 			// Prefix Identification
-			if morpheme.FrontRegex == "^" || morpheme.FrontRegex == "()" {
-				if morpheme.BackRegex == "$" {
+			if front == "^" || front == "()" {
+				if back == "$" {
 					list.List[i].Type = constants.STEM
 				} else {
 					list.List[i].Type = constants.PREFIX
@@ -289,7 +207,7 @@ func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCat
 			}
 
 			// Suffix Identification
-			if morpheme.BackRegex == "$" || morpheme.BackRegex == "()" {
+			if back == "$" || back == "()" {
 				if morpheme.Type == constants.PREFIX {
 					list.List[i].Type = constants.STEM
 				} else {
@@ -330,19 +248,19 @@ func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCat
 						list.List[j].Type = constants.CIRCUMFIX
 
 						if list.List[i].Type == constants.PREFIX {
-							list.List[i].FrontRegex = list.List[i].Regex
-							list.List[i].BackRegex = list.List[j].Regex
-							list.List[j].FrontRegex = list.List[i].Regex
-							list.List[j].BackRegex = list.List[j].Regex
+							list.List[i].SetFrontRegex(list.List[i].Regex())
+							list.List[i].SetBackRegex(list.List[j].Regex())
+							list.List[j].SetFrontRegex(list.List[i].Regex())
+							list.List[j].SetBackRegex(list.List[j].Regex())
 
 							grapheme := list.List[i].Morpheme + "(.*)" + list.List[j].Morpheme
 							list.List[i].Morpheme = grapheme
 							list.List[j].Morpheme = grapheme
 						} else {
-							list.List[i].FrontRegex = list.List[j].Regex
-							list.List[i].BackRegex = list.List[i].Regex
-							list.List[j].FrontRegex = list.List[j].Regex
-							list.List[j].BackRegex = list.List[i].Regex
+							list.List[i].SetFrontRegex(list.List[j].Regex())
+							list.List[i].SetBackRegex(list.List[i].Regex())
+							list.List[j].SetFrontRegex(list.List[j].Regex())
+							list.List[j].SetBackRegex(list.List[i].Regex())
 
 							grapheme := list.List[j].Morpheme + "(.*)" + list.List[i].Morpheme
 							list.List[i].Morpheme = grapheme
