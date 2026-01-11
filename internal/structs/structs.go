@@ -2,6 +2,8 @@
 package structs
 
 import (
+	"strings"
+
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 )
 
@@ -243,15 +245,19 @@ func (rp *RegexPattern) String() string {
 	// Build pattern from charArray: )][chars][chars][(  → reversed → ([chars])([chars])
 	// Even empty charArray produces "()" pattern (not "")
 	// IMPORTANT: Include ALL slots up to lastIndex, even if empty, to match old MergeRules behavior
-	pattern := ")"
-	for i := 0; i <= rp.lastIndex; i++ {
-		pattern += "]"
-		pattern += rp.charArray[i] // Include even if empty
-		pattern += "["
-	}
-	pattern += "("
 
-	return reverseString(pattern)
+	// Use strings.Builder to avoid repeated string allocations
+	var builder strings.Builder
+	builder.Grow((rp.lastIndex + 1) * 4) // Pre-allocate: "][" + avg chars per slot
+	builder.WriteByte(')')
+	for i := 0; i <= rp.lastIndex; i++ {
+		builder.WriteByte(']')
+		builder.WriteString(rp.charArray[i]) // Include even if empty
+		builder.WriteByte('[')
+	}
+	builder.WriteByte('(')
+
+	return reverseString(builder.String())
 }
 
 // MergeWith merges another RegexPattern's character alternatives into this one.
