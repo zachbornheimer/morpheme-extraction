@@ -59,155 +59,163 @@ func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 
 // GenRegex generates regex for morpheme (lines 62-234)
 func GenRegex(one, two string, placeOne, placeTwo int, morpheme *structs.Morpheme) {
-	// Step 1: Confirm Morpheme Placement
-	if morpheme.Morpheme == constants.EmptyMorpheme || len(morpheme.Morpheme) == 0 ||
-		!(len(morpheme.Morpheme) <= len(one) && len(morpheme.Morpheme) <= len(two)) {
+	// Validate morpheme placement
+	if !isValidMorphemePlacement(one, two, placeOne, placeTwo, morpheme) {
 		return
 	}
 
-	i := 0
-	word1 := make([]byte, len(morpheme.Morpheme)+1)
-	word2 := make([]byte, len(morpheme.Morpheme)+1)
-
-	for i = placeOne; i < (placeOne + len(morpheme.Morpheme)); i++ {
-		word1[i-placeOne] = one[i]
-	}
-	// Add empty marker if it exists
-	emptyByte := constants.EmptyMorphemeByte
-	if emptyByte != 0 {
-		word1[i-placeOne] = emptyByte
-	}
-
-	for i = placeTwo; i < (placeTwo + len(morpheme.Morpheme)); i++ {
-		word2[i-placeTwo] = two[i]
-	}
-	// Add empty marker if it exists
-	if emptyByte != 0 {
-		word2[i-placeTwo] = emptyByte
-	}
-
-	if !(string(word1[:len(morpheme.Morpheme)]) == string(word2[:len(morpheme.Morpheme)]) &&
-		string(word1[:len(morpheme.Morpheme)]) == morpheme.Morpheme) {
-		return
-	}
-
-	// Step 1.5: If Either Word = Morpheme, it's a STEM
 	morpheme.Type = constants.UNDEF
 
+	// Handle STEM case (morpheme equals entire word)
 	if one == morpheme.Morpheme || two == morpheme.Morpheme {
-		morpheme.Regex = "^" + morpheme.Morpheme + "$"
-		morpheme.FrontRegex = "^"
-		morpheme.BackRegex = "$"
-		morpheme.Type = constants.STEM
+		setStemRegex(morpheme)
 		return
 	}
 
-	// Step 2: Extract Chars on Each Side
-	firstHalf1 := one[:placeOne]
-	secondHalf1 := ""
-	if placeOne+len(morpheme.Morpheme) <= len(one) {
-		secondHalf1 = one[placeOne+len(morpheme.Morpheme):]
+	// Extract context (prefix/suffix) from both words
+	prefix1, suffix1 := extractContext(one, placeOne, len(morpheme.Morpheme))
+	prefix2, suffix2 := extractContext(two, placeTwo, len(morpheme.Morpheme))
+
+	// Build character class regex patterns
+	factory := newRegexFactory()
+	frontRegex, frontArr, frontIdx := factory.buildCharacterClass(prefix1, prefix2, true)
+	backRegex, backArr, backIdx := factory.buildCharacterClass(suffix1, suffix2, false)
+
+	// Store results
+	morpheme.FrontRegex = frontRegex
+	morpheme.FrontRegexArr = frontArr
+	morpheme.FrontRegexArrIndex = frontIdx
+
+	morpheme.BackRegex = backRegex
+	morpheme.BackRegexArr = backArr
+	morpheme.BackRegexArrIndex = backIdx
+
+	morpheme.Regex = frontRegex + morpheme.Morpheme + backRegex
+}
+
+// isValidMorphemePlacement validates morpheme can be placed at specified positions
+func isValidMorphemePlacement(one, two string, placeOne, placeTwo int, morpheme *structs.Morpheme) bool {
+	// Check morpheme is not empty
+	if morpheme.Morpheme == constants.EmptyMorpheme || len(morpheme.Morpheme) == 0 {
+		return false
 	}
 
-	firstHalf2 := two[:placeTwo]
-	secondHalf2 := ""
-	if placeTwo+len(morpheme.Morpheme) <= len(two) {
-		secondHalf2 = two[placeTwo+len(morpheme.Morpheme):]
+	// Check morpheme fits in both words
+	if len(morpheme.Morpheme) > len(one) || len(morpheme.Morpheme) > len(two) {
+		return false
 	}
 
-	// Step 3: Generate Regex for Each Side
-	front := ")"
-	back := ")"
+	// Verify morpheme matches at specified positions
+	morphemeLen := len(morpheme.Morpheme)
 
-	firstHalf1 = functions.Reverse(firstHalf1)
-	firstHalf2 = functions.Reverse(firstHalf2)
+	extractedOne := extractMorphemeAt(one, placeOne, morphemeLen)
+	extractedTwo := extractMorphemeAt(two, placeTwo, morphemeLen)
 
-	maxFrontLen := len(firstHalf1)
-	if len(firstHalf2) > maxFrontLen {
-		maxFrontLen = len(firstHalf2)
+	return extractedOne == morpheme.Morpheme && extractedTwo == morpheme.Morpheme
+}
+
+// extractMorphemeAt extracts substring at position with marker byte handling
+func extractMorphemeAt(word string, position, length int) string {
+	if position+length > len(word) {
+		return ""
 	}
 
-	morpheme.FrontRegexArr = make([]string, maxFrontLen*2)
-	morpheme.FrontRegexArrIndex = -1
+	// Extract the morpheme substring
+	extracted := make([]byte, length+1)
+	for i := 0; i < length; i++ {
+		extracted[i] = word[position+i]
+	}
 
-	i = 0
-	for {
-		if i >= len(firstHalf1) && i >= len(firstHalf2) {
+	// Add marker byte if configured
+	if constants.EmptyMorphemeByte != 0 {
+		extracted[length] = constants.EmptyMorphemeByte
+	}
+
+	return string(extracted[:length])
+}
+
+// setStemRegex configures morpheme as a STEM (whole word)
+func setStemRegex(morpheme *structs.Morpheme) {
+	morpheme.Regex = "^" + morpheme.Morpheme + "$"
+	morpheme.FrontRegex = "^"
+	morpheme.BackRegex = "$"
+	morpheme.Type = constants.STEM
+}
+
+// extractContext splits word into prefix and suffix around morpheme
+func extractContext(word string, position, morphemeLen int) (prefix, suffix string) {
+	prefix = word[:position]
+
+	if position+morphemeLen <= len(word) {
+		suffix = word[position+morphemeLen:]
+	}
+
+	return prefix, suffix
+}
+
+// regexFactory builds character class regex patterns
+type regexFactory struct{}
+
+func newRegexFactory() *regexFactory {
+	return &regexFactory{}
+}
+
+// buildCharacterClass creates regex pattern from two context strings
+// isPrefix determines if building front (true) or back (false) pattern
+func (rf *regexFactory) buildCharacterClass(ctx1, ctx2 string, isPrefix bool) (regex string, charArray []string, lastIndex int) {
+	// Reverse for prefix processing (builds right-to-left)
+	if isPrefix {
+		ctx1 = functions.Reverse(ctx1)
+		ctx2 = functions.Reverse(ctx2)
+	} else {
+		ctx1 = functions.Reverse(ctx1)
+		ctx2 = functions.Reverse(ctx2)
+	}
+
+	maxLen := len(ctx1)
+	if len(ctx2) > maxLen {
+		maxLen = len(ctx2)
+	}
+
+	// Allocate array (different sizes for front vs back in original C)
+	arraySize := maxLen * 2
+	if !isPrefix {
+		arraySize = maxLen * 4
+	}
+	charArray = make([]string, arraySize)
+	lastIndex = -1
+
+	// Build character class pattern
+	pattern := ")"
+	for i := 0; i < maxLen; i++ {
+		if i >= len(ctx1) && i >= len(ctx2) {
 			break
 		}
 
-		morpheme.FrontRegexArr[i] = ""
-		front += "]"
+		charArray[i] = ""
+		pattern += "]"
 
-		if i < len(firstHalf2) {
-			work := string(firstHalf2[i])
-			front += work
-			morpheme.FrontRegexArr[i] += work
+		// Add characters from both contexts at this position
+		if i < len(ctx2) {
+			char := string(ctx2[i])
+			pattern += char
+			charArray[i] += char
 		}
 
-		if i < len(firstHalf1) {
-			work := string(firstHalf1[i])
-			front += work
-			morpheme.FrontRegexArr[i] += work
+		if i < len(ctx1) {
+			char := string(ctx1[i])
+			pattern += char
+			charArray[i] += char
 		}
 
-		morpheme.FrontRegexArrIndex = i
-		front += "["
-		i++
+		lastIndex = i
+		pattern += "["
 	}
 
-	firstHalf1 = functions.Reverse(firstHalf1)
-	firstHalf2 = functions.Reverse(firstHalf2)
-	front += "("
-	front = functions.Reverse(front)
+	pattern += "("
+	regex = functions.Reverse(pattern)
 
-	// Process back half
-	secondHalf1 = functions.Reverse(secondHalf1)
-	secondHalf2 = functions.Reverse(secondHalf2)
-
-	maxBackLen := len(secondHalf1)
-	if len(secondHalf2) > maxBackLen {
-		maxBackLen = len(secondHalf2)
-	}
-
-	morpheme.BackRegexArr = make([]string, maxBackLen*4)
-	morpheme.BackRegexArrIndex = -1
-
-	i = 0
-	for {
-		if i >= len(secondHalf1) && i >= len(secondHalf2) {
-			break
-		}
-
-		back += "]"
-		morpheme.BackRegexArr[i] = ""
-
-		if i < len(secondHalf1) {
-			work := string(secondHalf1[i])
-			back += work
-			morpheme.BackRegexArr[i] += work
-		}
-
-		if i < len(secondHalf2) {
-			work := string(secondHalf2[i])
-			back += work
-			morpheme.BackRegexArr[i] += work
-		}
-
-		morpheme.BackRegexArrIndex = i
-		back += "["
-		i++
-	}
-
-	secondHalf1 = functions.Reverse(secondHalf1)
-	secondHalf2 = functions.Reverse(secondHalf2)
-	back += "("
-	back = functions.Reverse(back)
-
-	// Step 4: Store Regex
-	morpheme.Regex = front + morpheme.Morpheme + back
-	morpheme.FrontRegex = front
-	morpheme.BackRegex = back
+	return regex, charArray, lastIndex
 }
 
 // MergeRules merges regex rules (lines 236-312)
