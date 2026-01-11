@@ -6,7 +6,7 @@ import "errors"
 // File paths
 const (
 	DefaultPath    = "./test-corpus/"
-	ZedramOutput   = "languageModel.zdrm"
+	ZedramOutput   = "languageModel.zy"
 	NgramSize      = 9
 )
 

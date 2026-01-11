@@ -222,18 +222,33 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 	internal := structs.MorphemeList{Count: 0}
 	internal.List = make([]*structs.Morpheme, 0, ngramLength*100) // Pre-allocate
 
+	// Vocabulary-based deduplication: track which word pairs we've already compared
+	// Maps word1 -> word2 -> bool to avoid redundant comparisons
+	// This changes O(N²) where N=occurrences to O(V²) where V=vocabulary
+	seen := make(map[string]map[string]bool)
+
 	for i := 0; i < ngramLength; i++ {
 		if ng[i] == nil {
 			continue
 		}
 
 		ngram := *ng[i]
+		w1 := ngram.Word.StringClean()
+
+		// Initialize inner map for this word if needed
+		if seen[w1] == nil {
+			seen[w1] = make(map[string]bool)
+		}
 
 		for j := 0; j < ngram.RefsCount; j++ {
 			target := *ngram.Refs[j]
-			// Use Word.StringClean() to get clean string without null padding
-			w1 := ngram.Word.StringClean()
 			w2 := target.Word.StringClean()
+
+			// Skip if we've already compared this unique word pair
+			if seen[w1][w2] {
+				continue
+			}
+			seen[w1][w2] = true
 
 			forward := morpheme_t.FindLongestMatch(ngram.Word, target.Word)
 			forward.WordsCount = 0
