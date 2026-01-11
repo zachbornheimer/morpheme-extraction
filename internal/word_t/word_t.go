@@ -11,9 +11,8 @@ import (
 func SetWord(word *structs.Word, w string) {
 	word.Len = len(w)
 	word.Freq = 1 // initialized
-	// strdup equivalent - copy the string
-	word.Str = make([]byte, len(w)+1)
-	copy(word.Str, []byte(w))
+	// Convert string to []byte with null terminator
+	word.Str = append([]byte(w), 0)
 }
 
 // NewWord constructs a new word (lines 28-33)
