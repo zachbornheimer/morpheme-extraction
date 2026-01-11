@@ -225,6 +225,199 @@ func (m *Morpheme) WordsToSet() StringSet {
 	return result
 }
 
+// AddWord adds word to morpheme's word list
+func (m *Morpheme) AddWord(w Word) {
+	m.WordsCount++
+	newWords := make([]*Word, m.WordsCount)
+	copy(newWords, m.Words)
+	newWords[m.WordsCount-1] = &w
+	m.Words = newWords
+}
+
+// GenRegex generates regex pattern for this morpheme based on two example words
+func (m *Morpheme) GenRegex(one, two string, placeOne, placeTwo int) {
+	// Validate morpheme placement
+	if !m.isValidPlacement(one, two, placeOne, placeTwo) {
+		return
+	}
+
+	m.Type = constants.UNDEF
+
+	// Handle STEM case (morpheme equals entire word)
+	if one == m.Morpheme || two == m.Morpheme {
+		m.setStemRegex()
+		return
+	}
+
+	// Extract context (prefix/suffix) from both words
+	prefix1, suffix1 := extractContext(one, placeOne, len(m.Morpheme))
+	prefix2, suffix2 := extractContext(two, placeTwo, len(m.Morpheme))
+
+	// Build character class regex patterns
+	factory := newRegexFactory()
+	m.FrontRegex, m.FrontRegexArr, m.FrontRegexArrIndex = factory.buildCharacterClass(prefix1, prefix2, true)
+	m.BackRegex, m.BackRegexArr, m.BackRegexArrIndex = factory.buildCharacterClass(suffix1, suffix2, false)
+	m.Regex = m.FrontRegex + m.Morpheme + m.BackRegex
+}
+
+// MergeRules merges regex rules from multiple morpheme observations
+func (m *Morpheme) MergeRules() {
+	front := ")"
+	for i := 0; i <= m.FrontRegexArrIndex; i++ {
+		front += "]"
+		front += m.FrontRegexArr[i]
+		front += "["
+	}
+	front += "("
+	front = reverseString(front)
+
+	back := ")"
+	for i := 0; i <= m.BackRegexArrIndex; i++ {
+		back += "]"
+		back += m.BackRegexArr[i]
+		back += "["
+	}
+	back += "("
+	back = reverseString(back)
+
+	m.Regex = ""
+	if m.FrontRegex != "^" {
+		m.FrontRegex = front
+		m.Regex += front
+	} else {
+		m.Regex += m.FrontRegex
+	}
+
+	m.Regex += m.Morpheme
+
+	if m.BackRegex != "$" {
+		m.BackRegex = back
+		m.Regex += back
+	} else {
+		m.Regex += m.BackRegex
+	}
+}
+
+// isValidPlacement validates morpheme can be placed at specified positions
+func (m *Morpheme) isValidPlacement(one, two string, placeOne, placeTwo int) bool {
+	// Check morpheme is not empty
+	if m.Morpheme == constants.EmptyMorpheme || len(m.Morpheme) == 0 {
+		return false
+	}
+
+	// Check morpheme fits in both words
+	if len(m.Morpheme) > len(one) || len(m.Morpheme) > len(two) {
+		return false
+	}
+
+	// Verify morpheme matches at specified positions
+	morphemeLen := len(m.Morpheme)
+
+	extractedOne := extractMorphemeAt(one, placeOne, morphemeLen)
+	extractedTwo := extractMorphemeAt(two, placeTwo, morphemeLen)
+
+	return extractedOne == m.Morpheme && extractedTwo == m.Morpheme
+}
+
+// setStemRegex configures morpheme as a STEM (whole word)
+func (m *Morpheme) setStemRegex() {
+	m.Regex = "^" + m.Morpheme + "$"
+	m.FrontRegex = "^"
+	m.BackRegex = "$"
+	m.Type = constants.STEM
+}
+
+// extractMorphemeAt extracts substring at position with marker byte handling
+func extractMorphemeAt(word string, position, length int) string {
+	if position+length > len(word) {
+		return ""
+	}
+
+	// Extract the morpheme substring
+	extracted := make([]byte, length+1)
+	for i := 0; i < length; i++ {
+		extracted[i] = word[position+i]
+	}
+
+	// Add marker byte if configured
+	if constants.EmptyMorphemeByte != 0 {
+		extracted[length] = constants.EmptyMorphemeByte
+	}
+
+	return string(extracted[:length])
+}
+
+// extractContext splits word into prefix and suffix around morpheme
+func extractContext(word string, position, morphemeLen int) (prefix, suffix string) {
+	prefix = word[:position]
+
+	if position+morphemeLen <= len(word) {
+		suffix = word[position+morphemeLen:]
+	}
+
+	return prefix, suffix
+}
+
+// regexFactory builds character class regex patterns
+type regexFactory struct{}
+
+func newRegexFactory() *regexFactory {
+	return &regexFactory{}
+}
+
+// buildCharacterClass creates regex pattern from two context strings
+// isPrefix determines if building front (true) or back (false) pattern
+func (rf *regexFactory) buildCharacterClass(ctx1, ctx2 string, isPrefix bool) (regex string, charArray []string, lastIndex int) {
+	// Reverse for processing (builds right-to-left)
+	ctx1 = reverseString(ctx1)
+	ctx2 = reverseString(ctx2)
+
+	maxLen := len(ctx1)
+	if len(ctx2) > maxLen {
+		maxLen = len(ctx2)
+	}
+
+	// Allocate array (different sizes for front vs back in original C)
+	arraySize := maxLen * 2
+	if !isPrefix {
+		arraySize = maxLen * 4
+	}
+	charArray = make([]string, arraySize)
+	lastIndex = -1
+
+	// Build character class pattern
+	pattern := ")"
+	for i := 0; i < maxLen; i++ {
+		if i >= len(ctx1) && i >= len(ctx2) {
+			break
+		}
+
+		charArray[i] = ""
+		pattern += "]"
+
+		// Add characters from both contexts at this position
+		if i < len(ctx2) {
+			char := string(ctx2[i])
+			pattern += char
+			charArray[i] += char
+		}
+
+		if i < len(ctx1) {
+			char := string(ctx1[i])
+			pattern += char
+			charArray[i] += char
+		}
+
+		lastIndex = i
+		pattern += "["
+	}
+
+	pattern += "("
+	regex = reverseString(pattern)
+
+	return regex, charArray, lastIndex
+}
+
 // MorphemeList represents struct morpheme_list_t (lines 60-63)
 type MorphemeList struct {
 	List  []*Morpheme // list

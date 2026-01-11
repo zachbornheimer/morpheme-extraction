@@ -238,9 +238,9 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 			forward := morpheme_t.FindLongestMatch(ngram.Word, target.Word)
 			forward.WordsCount = 0
 			forward.Words = make([]*structs.Word, 0)
-			morpheme_t.GenRegex(w1, w2, 0, 0, &forward)
-			morpheme_t.AddWord(&forward, ngram.Word)
-			morpheme_t.AddWord(&forward, target.Word)
+			forward.GenRegex(w1, w2, 0, 0)
+			forward.AddWord(ngram.Word)
+			forward.AddWord(target.Word)
 
 			morpheme_list_t.AddMorpheme(&internal, forward)
 			morpheme_list_t.FindInternalMorphemes(ngram.Word, target.Word, &internal)

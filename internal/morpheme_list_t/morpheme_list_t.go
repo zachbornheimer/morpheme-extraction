@@ -74,9 +74,9 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 
 						if test != string(current.Str) {
 							lm.Words = make([]*structs.Word, 0)
-							morpheme_t.AddWord(&lm, oneOrig)
-							morpheme_t.AddWord(&lm, twoOrig)
-							morpheme_t.GenRegex(word1, word2, iteration1, iteration2, &lm)
+							lm.AddWord(oneOrig)
+							lm.AddWord(twoOrig)
+							lm.GenRegex(word1, word2, iteration1, iteration2)
 
 							if lm.Regex != "" {
 								AddMorpheme(internal, lm)
@@ -87,9 +87,9 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 					}
 				} else {
 					lm.Words = make([]*structs.Word, 0)
-					morpheme_t.AddWord(&lm, oneOrig)
-					morpheme_t.AddWord(&lm, twoOrig)
-					morpheme_t.GenRegex(word1, word2, iteration1, iteration2, &lm)
+					lm.AddWord(oneOrig)
+					lm.AddWord(twoOrig)
+					lm.GenRegex(word1, word2, iteration1, iteration2)
 
 					if lm.Regex != "" {
 						AddMorpheme(internal, lm)
@@ -244,7 +244,7 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 			working.BackRegexArr = regexBack
 
 			// Reconstruct and restore
-			morpheme_t.MergeRules(&working)
+			working.MergeRules()
 			working.Freq++
 			new.List[currentIndex] = &working
 
