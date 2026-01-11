@@ -101,9 +101,20 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 	functions.VPrint("Setting NGRAM elements")
 
+	// Hash map for O(1) ngram lookup (replaces O(N²) linear search)
+	ngramMap := make(map[string]int, wordCount)
+
+	// Build initial map from existing ngrams
+	for idx := 0; idx < addLoc; idx++ {
+		if ng[idx] != nil {
+			// Word.String() now returns full string with null (matches original behavior)
+			ngramMap[ng[idx].Word.String()] = idx
+		}
+	}
+
 	// Declare q outside loop so it persists (line 125 in C: int i = 0, q = 0, j = 0;)
 	var q int
-	
+
 	for i = 0; i <= wordCount; i++ {
 		if i >= len(arr) || arr[i] == "" || len(arr[i]) == 0 {
 			continue
@@ -112,15 +123,15 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 		ngram := ngram_t.NewNgram()
 
 		if i != 0 {
-			for q = 0; q < addLoc; q++ {
-				if string(ng[q].Word.Str) == arr[i] {
-					ngram = *ng[q]
-					ngramCount--
-					makeNew = 0
-					break
-				} else {
-					makeNew = 1
-				}
+			// O(1) hash map lookup - arr[i] needs null terminator to match
+			lookupKey := arr[i] + "\x00"
+			if existingIdx, found := ngramMap[lookupKey]; found {
+				q = existingIdx
+				ngram = *ng[q]
+				ngramCount--
+				makeNew = 0
+			} else {
+				makeNew = 1
 			}
 		}
 

@@ -14,9 +14,9 @@ type Word struct {
 	Str  []byte // word (char*)
 }
 
-// String returns the word as a string (uses Len to exclude null padding)
+// String returns the word as a string (includes full Str with null terminator for compatibility)
 func (w *Word) String() string {
-	return string(w.Str[:w.Len])
+	return string(w.Str)
 }
 
 // WordArray represents struct word_t_array (lines 24-27)
