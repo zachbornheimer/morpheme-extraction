@@ -1,6 +1,10 @@
 // Package structs contains all struct definitions from structs.h (lines 1-73)
 package structs
 
+import (
+	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
+)
+
 // CharDoubleton represents struct char_doubleton (lines 11-14)
 type CharDoubleton struct {
 	First  byte // c
@@ -25,6 +29,46 @@ func (w *Word) StringClean() string {
 		return string(w.Str)
 	}
 	return string(w.Str[:w.Len])
+}
+
+// SetWord sets the word string, length, and frequency
+func (w *Word) SetWord(str string) {
+	w.Str = str + constants.EmptyMorpheme
+	w.Len = len(str)
+	w.Freq = 1 // initialized
+}
+
+// Reverse returns a new Word with reversed string
+func (w Word) Reverse() Word {
+	temp := Word{}
+	temp.Len = w.Len
+	temp.Freq = w.Freq
+	temp.Str = reverseString(w.Str)
+	return temp
+}
+
+// RemoveFirstChar removes first character and returns clean string without marker
+// Returns the result WITHOUT the marker byte (caller should use SetWord to add it back)
+func (w Word) RemoveFirstChar() string {
+	// Use StringClean to get string without marker
+	word := w.StringClean()
+	if len(word) == 0 {
+		return ""
+	}
+	finalized := reverseString(word)
+	if len(finalized) > 0 {
+		finalized = finalized[:len(finalized)-1]
+	}
+	return reverseString(finalized)
+}
+
+// reverseString reverses a string
+func reverseString(s string) string {
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
 }
 
 // WordArray represents struct word_t_array (lines 24-27)

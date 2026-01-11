@@ -7,7 +7,6 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
 	"github.com/zachbornheimer/morpheme-extraction/internal/morpheme_t"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
-	"github.com/zachbornheimer/morpheme-extraction/internal/word_t"
 )
 
 // AddMorpheme adds morpheme to list (lines 15-22)
@@ -29,12 +28,12 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 	iteration2 := 0
 	lookback := 1
 
-	for len(one.Str) > 0 {
-		for len(two.Str) > 0 {
-			two.Str = word_t.RemoveFirstChar(two)
+	for one.Len > 0 {
+		for two.Len > 0 {
+			two.SetWord(two.RemoveFirstChar())
 			iteration2++
 
-			if len(two.Str) < 2 {
+			if two.Len < (1 + len(constants.EmptyMorpheme)) {
 				break
 			}
 
@@ -44,15 +43,27 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 			if len(lm.Morpheme) >= 2 {
 				if internal.Count > 0 {
 					var current, previous structs.Word
-					word_t.SetWord(&current, lm.Morpheme)
-					word_t.SetWord(&previous, internal.List[internal.Count-1].Morpheme)
+					current.SetWord(lm.Morpheme)
+					previous.SetWord(internal.List[internal.Count-1].Morpheme)
 
 					if morpheme_t.FindLongestMatch(current, previous).Morpheme != lm.Morpheme {
 						test := string(previous.Str)
 						test = functions.Reverse(test)
 
 						if (len(test) - lookback) >= 1 {
-							if len(test) > lookback && test[len(test)-lookback] != 0 {
+							// Check if we'd trim into the empty morpheme marker
+							checkPos := len(test) - lookback
+							shouldTrim := len(test) > lookback
+
+							// If EmptyMorphemeByte is not zero, check if we'd hit it
+							emptyByte := constants.EmptyMorphemeByte
+							if shouldTrim && constants.HasEmptyMarker && checkPos >= 0 && checkPos < len(test) {
+								if test[checkPos] == emptyByte {
+									shouldTrim = false
+								}
+							}
+
+							if shouldTrim {
 								test = test[:len(test)-lookback]
 							}
 						} else {
@@ -91,8 +102,8 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 			}
 		}
 
-		two.Str = word2
-		one.Str = word_t.RemoveFirstChar(one)
+		two.SetWord(word2)
+		one.SetWord(one.RemoveFirstChar())
 		iteration1++
 		iteration2 = 0
 	}
@@ -108,9 +119,8 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 	currentIndex := -1
 
 	for i := 0; i < original.Count; i++ {
-		if original.List[i].Morpheme == "" {
-			continue
-		}
+		// Don't skip morphemes - even "\x00" is a valid morpheme value
+		// (it represents "no common substring found" between two words)
 
 		if morphemeListCount == 0 {
 			morphemeList[morphemeListCount] = original.List[i].Morpheme

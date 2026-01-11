@@ -16,7 +16,6 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/morpheme_t"
 	"github.com/zachbornheimer/morpheme-extraction/internal/ngram_t"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
-	"github.com/zachbornheimer/morpheme-extraction/internal/word_t"
 )
 
 // Nlp runs the main NLP process (lines 64-111)
@@ -137,7 +136,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 		if makeNew == 1 {
 			ngram = ngram_t.NewNgram()
 			if len(arr[i]) > 0 {
-				word_t.SetWord(&ngram.Word, arr[i])
+				ngram.Word.SetWord(arr[i])
 			}
 		}
 
@@ -163,7 +162,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 						ngram.Before.At[j].Elems = newElems
 					}
 					ngram.Before.At[j].Elems[elemID] = &structs.Word{}
-					word_t.SetWord(ngram.Before.At[j].Elems[elemID], arr[index])
+					ngram.Before.At[j].Elems[elemID].SetWord(arr[index])
 				}
 
 				afterIndex := index + (constants.NgramSize/2) + 1
@@ -178,7 +177,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 						ngram.After.At[j].Elems = newElems
 					}
 					ngram.After.At[j].Elems[elemID] = &structs.Word{}
-					word_t.SetWord(ngram.After.At[j].Elems[elemID], arr[afterIndex])
+					ngram.After.At[j].Elems[elemID].SetWord(arr[afterIndex])
 				}
 			}
 		}

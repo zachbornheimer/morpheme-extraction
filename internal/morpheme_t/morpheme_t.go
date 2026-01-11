@@ -26,7 +26,7 @@ func FreeMorpheme(morpheme *structs.Morpheme) {
 // FindLongestMatch finds longest matching prefix (lines 25-60)
 func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 	var longest, shortest structs.Word
-	empty := structs.Morpheme{Morpheme: "\x00", Freq: 1}
+	empty := structs.Morpheme{Morpheme: constants.EmptyMorpheme, Freq: 1}
 	realLength := 0
 
 	if one.Len >= two.Len {
@@ -41,12 +41,26 @@ func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 	shortestStr := string(shortest.Str)
 	longestStr := string(longest.Str)
 
-	for realLength < len(shortestStr) && realLength < len(longestStr) &&
-		shortestStr[realLength] != '\x00' && shortestStr[realLength] == longestStr[realLength] {
+	// Check for empty morpheme marker during matching
+	emptyByte := constants.EmptyMorphemeByte
+	hasEmptyMarker := constants.HasEmptyMarker
+
+	for realLength < len(shortestStr) && realLength < len(longestStr) {
+		// Stop if we hit the empty marker (if it exists)
+		if hasEmptyMarker && shortestStr[realLength] == emptyByte {
+			break
+		}
+		// Stop if characters don't match
+		if shortestStr[realLength] != longestStr[realLength] {
+			break
+		}
 		str[realLength] = shortestStr[realLength]
 		realLength++
 	}
-	str[realLength] = '\x00'
+	// Add empty marker if it exists
+	if hasEmptyMarker {
+		str[realLength] = emptyByte
+	}
 
 	if realLength == 0 {
 		return empty
@@ -63,7 +77,7 @@ func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 // GenRegex generates regex for morpheme (lines 62-234)
 func GenRegex(one, two string, placeOne, placeTwo int, morpheme *structs.Morpheme) {
 	// Step 1: Confirm Morpheme Placement
-	if morpheme.Morpheme == "" || len(morpheme.Morpheme) == 0 ||
+	if morpheme.Morpheme == constants.EmptyMorpheme || len(morpheme.Morpheme) == 0 ||
 		!(len(morpheme.Morpheme) <= len(one) && len(morpheme.Morpheme) <= len(two)) {
 		return
 	}
@@ -75,12 +89,19 @@ func GenRegex(one, two string, placeOne, placeTwo int, morpheme *structs.Morphem
 	for i = placeOne; i < (placeOne + len(morpheme.Morpheme)); i++ {
 		word1[i-placeOne] = one[i]
 	}
-	word1[i-placeOne] = '\x00'
+	// Add empty marker if it exists
+	emptyByte := constants.EmptyMorphemeByte
+	if emptyByte != 0 {
+		word1[i-placeOne] = emptyByte
+	}
 
 	for i = placeTwo; i < (placeTwo + len(morpheme.Morpheme)); i++ {
 		word2[i-placeTwo] = two[i]
 	}
-	word2[i-placeTwo] = '\x00'
+	// Add empty marker if it exists
+	if emptyByte != 0 {
+		word2[i-placeTwo] = emptyByte
+	}
 
 	if !(string(word1[:len(morpheme.Morpheme)]) == string(word2[:len(morpheme.Morpheme)]) &&
 		string(word1[:len(morpheme.Morpheme)]) == morpheme.Morpheme) {

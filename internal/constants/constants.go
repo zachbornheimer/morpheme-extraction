@@ -42,6 +42,16 @@ const (
 	STEM      = 5
 )
 
+// Morpheme markers
+const (
+	// EmptyMorpheme represents an empty/no morpheme found
+	EmptyMorpheme = "\x00"
+	// EmptyMorphemeByte is the byte value for empty morpheme marker
+	EmptyMorphemeByte = byte('\x00')
+	// HasEmptyMarker indicates whether empty morpheme marker is used
+	HasEmptyMarker = true
+)
+
 // Error variables
 var (
 	ErrOverruled = errors.New("overruled")
