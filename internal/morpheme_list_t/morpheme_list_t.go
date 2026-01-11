@@ -29,19 +29,19 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 	iteration2 := 0
 	lookback := 1
 
-	for len(string(one.Str)) > 0 && string(one.Str)[0] != '\x00' {
-		for len(string(two.Str)) > 0 && string(two.Str)[0] != '\x00' {
-			two.Str = []byte(word_t.RemoveFirstChar(two))
+	for len(one.Str) > 0 {
+		for len(two.Str) > 0 {
+			two.Str = word_t.RemoveFirstChar(two)
 			iteration2++
 
-			if len(string(two.Str)) < 2 {
+			if len(two.Str) < 2 {
 				break
 			}
 
 			lm := morpheme_t.FindLongestMatch(one, two)
 			lm.WordsCount = 0
 
-			if len(lm.Morpheme) > 0 && lm.Morpheme[0] != '\x00' && len(lm.Morpheme) >= 2 {
+			if len(lm.Morpheme) >= 2 {
 				if internal.Count > 0 {
 					var current, previous structs.Word
 					word_t.SetWord(&current, lm.Morpheme)
@@ -91,8 +91,8 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 			}
 		}
 
-		two.Str = []byte(word2)
-		one.Str = []byte(word_t.RemoveFirstChar(one))
+		two.Str = word2
+		one.Str = word_t.RemoveFirstChar(one)
 		iteration1++
 		iteration2 = 0
 	}

@@ -9,9 +9,9 @@ type CharDoubleton struct {
 
 // Word represents struct word_t (lines 16-20)
 type Word struct {
-	Len  int    // i (unsigned int)
+	Str  string // word (string, not []byte - idiomatic Go)
+	Len  int    // i (unsigned int) - redundant with len(Str) but kept for compatibility
 	Freq int    // freq
-	Str  []byte // word (char*)
 }
 
 // String returns the word as a string (includes full Str with null terminator for compatibility)

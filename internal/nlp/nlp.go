@@ -123,9 +123,8 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 		ngram := ngram_t.NewNgram()
 
 		if i != 0 {
-			// O(1) hash map lookup - arr[i] needs null terminator to match
-			lookupKey := arr[i] + "\x00"
-			if existingIdx, found := ngramMap[lookupKey]; found {
+			// O(1) hash map lookup with clean strings (no null terminators)
+			if existingIdx, found := ngramMap[arr[i]]; found {
 				q = existingIdx
 				ngram = *ng[q]
 				ngramCount--

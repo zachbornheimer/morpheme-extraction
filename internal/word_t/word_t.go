@@ -9,10 +9,9 @@ import (
 
 // SetWord sets the word in word_t struct (lines 19-24)
 func SetWord(word *structs.Word, w string) {
+	word.Str = w + "\x00"    // Add null terminator to match C behavior
 	word.Len = len(w)
-	word.Freq = 1 // initialized
-	// Convert string to []byte with null terminator
-	word.Str = append([]byte(w), 0)
+	word.Freq = 1   // initialized
 }
 
 // NewWord constructs a new word (lines 28-33)
@@ -27,13 +26,13 @@ func ReverseWord(w structs.Word) structs.Word {
 	temp := structs.Word{}
 	temp.Len = w.Len
 	temp.Freq = w.Freq
-	temp.Str = []byte(functions.Reverse(string(w.Str)))
+	temp.Str = functions.Reverse(w.Str)
 	return temp
 }
 
 // RemoveFirstChar removes first character from word (lines 47-53)
 func RemoveFirstChar(w structs.Word) string {
-	word := string(w.Str)
+	word := w.Str
 	if len(word) == 0 {
 		return ""
 	}
