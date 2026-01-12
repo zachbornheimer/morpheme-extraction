@@ -5,6 +5,8 @@ package nlp
 
 import (
 	"fmt"
+	"runtime"
+	"sync"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/alphabet"
 	"github.com/zachbornheimer/morpheme-extraction/internal/config"
@@ -195,20 +197,75 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 	*ngramLength = addLoc
 
-	// Add linked list elements (similarity detection) - Sequential version
-	for k := 0; k < *ngramLength; k++ {
-		for j := k; j < *ngramLength; j++ {
-			if j-k < constants.NgramSize {
-				continue
-			}
+	// Add linked list elements (similarity detection) - Parallel with chunked work distribution
+	const magicMultiplier = 4 // Tunable: workers = NumCPU × magicMultiplier
+	numWorkers := runtime.NumCPU() * magicMultiplier
 
-			if ng[j] != nil && ng[k] != nil &&
-				string(ng[j].Word.Str) != "" && string(ng[k].Word.Str) != "" &&
-				string(ng[j].Word.Str) != string(ng[k].Word.Str) {
-				if ngram_t.NgramsSimilar(*ng[k], *ng[j]) {
-					ngram_t.AddSimilarNgramRef(&ng[k], &ng[j])
+	// Calculate chunk size: divide work evenly across workers
+	chunkSize := (*ngramLength + numWorkers - 1) / numWorkers // Ceiling division
+
+	if functions.VerboseMode == constants.ON {
+		fmt.Printf("Parallelizing similarity detection: %d workers, chunk size %d\n", numWorkers, chunkSize)
+	}
+
+	type workChunk struct {
+		start, end int
+	}
+
+	type similarPair struct {
+		k, j int
+	}
+
+	workChan := make(chan workChunk, numWorkers)
+	resultsChan := make(chan []similarPair, numWorkers)
+	var wg sync.WaitGroup
+
+	// Start worker pool - each processes a chunk of k values
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			localResults := make([]similarPair, 0, 1000) // Collect locally (no mutex!)
+
+			for chunk := range workChan {
+				// Process this worker's chunk of k values
+				for k := chunk.start; k < chunk.end && k < *ngramLength; k++ {
+					for j := k + constants.NgramSize; j < *ngramLength; j++ {
+						if ng[j] != nil && ng[k] != nil &&
+							ng[j].Word.Str != "" && ng[k].Word.Str != "" &&
+							ng[j].Word.Str != ng[k].Word.Str {
+							if ngram_t.NgramsSimilar(*ng[k], *ng[j]) {
+								localResults = append(localResults, similarPair{k, j})
+							}
+						}
+					}
 				}
 			}
+
+			resultsChan <- localResults
+		}()
+	}
+
+	// Distribute work chunks to workers
+	for start := 0; start < *ngramLength; start += chunkSize {
+		end := start + chunkSize
+		if end > *ngramLength {
+			end = *ngramLength
+		}
+		workChan <- workChunk{start, end}
+	}
+	close(workChan)
+
+	// Wait for all workers to finish and close results channel
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+	}()
+
+	// Collect results from all workers (sequential merge, but only happens once)
+	for localResults := range resultsChan {
+		for _, pair := range localResults {
+			ngram_t.AddSimilarNgramRef(&ng[pair.k], &ng[pair.j])
 		}
 	}
 
