@@ -85,6 +85,17 @@ func Nlp(cfg *config.Config) int {
 	// Print dictionary stats if verbose
 	cfg.VPrint(fmt.Sprintf("Dictionary: %d unique words interned", dictionary.Dictionary.Size()))
 
+	// Print memory stats if verbose
+	if cfg.IsVerbose() {
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		fmt.Printf("\nMemory Statistics:\n")
+		fmt.Printf("  Alloc:      %10d MB (currently allocated)\n", m.Alloc/1024/1024)
+		fmt.Printf("  TotalAlloc: %10d MB (cumulative allocated)\n", m.TotalAlloc/1024/1024)
+		fmt.Printf("  Sys:        %10d MB (obtained from system)\n", m.Sys/1024/1024)
+		fmt.Printf("  NumGC:      %10d (garbage collections)\n", m.NumGC)
+	}
+
 	return 0
 }
 
@@ -106,14 +117,14 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 	functions.VPrint("Setting NGRAM elements")
 
-	// Hash map for O(1) ngram lookup (replaces O(N²) linear search)
-	ngramMap := make(map[string]int, wordCount)
+	// Hash map for O(1) ngram lookup using interned Identity pointers
+	// Pointer equality is O(1) vs O(N) string comparison
+	ngramMap := make(map[*dictionary.WordIdentity]int, wordCount)
 
 	// Build initial map from existing ngrams
 	for idx := 0; idx < addLoc; idx++ {
-		if ng[idx] != nil {
-			// Word.String() now returns full string with null (matches original behavior)
-			ngramMap[ng[idx].Word.String()] = idx
+		if ng[idx] != nil && ng[idx].Word.Identity != nil {
+			ngramMap[ng[idx].Word.Identity] = idx
 		}
 	}
 
@@ -128,8 +139,9 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 		ngram := ngram_t.NewNgram()
 
 		if i != 0 {
-			// O(1) hash map lookup with clean strings (no null terminators)
-			if existingIdx, found := ngramMap[arr[i]]; found {
+			// O(1) hash map lookup using interned Identity pointer
+			wordIdentity := dictionary.Dictionary.Word(arr[i])
+			if existingIdx, found := ngramMap[wordIdentity]; found {
 				q = existingIdx
 				ngram = *ng[q]
 				ngramCount--
@@ -203,6 +215,9 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 		if makeNew == 1 {
 			ng[addLoc] = &ngram
+			// NOTE: Intentionally NOT adding to map here (matches original C behavior)
+			// Map is only built from existing ngrams at start of BuildNgramRelationships
+			// Within-file duplicates are handled by similarity detection later
 			addLoc++
 		} else {
 			// Update existing ngram (line 185-186 in C)
@@ -248,9 +263,10 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 				// Process this worker's chunk of k values
 				for k := chunk.start; k < chunk.end && k < *ngramLength; k++ {
 					for j := k + constants.NgramSize; j < *ngramLength; j++ {
+						// Use Identity pointer comparison (O(1) vs O(N) string comparison)
 						if ng[j] != nil && ng[k] != nil &&
-							ng[j].Word.Str != "" && ng[k].Word.Str != "" &&
-							ng[j].Word.Str != ng[k].Word.Str {
+							ng[j].Word.Identity != nil && ng[k].Word.Identity != nil &&
+							ng[j].Word.Identity != ng[k].Word.Identity {
 							if ngram_t.NgramsSimilar(*ng[k], *ng[j]) {
 								localResults = append(localResults, similarPair{k, j})
 							}

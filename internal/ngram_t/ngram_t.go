@@ -6,16 +6,18 @@ import (
 	"sync"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
+	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
-// contextWordPool reuses string slice buffers for NgramsSimilar
-// Reduces allocations from ~100MB to near-zero for this hot path
-var contextWordPool = sync.Pool{
+// contextIdentityPool reuses Identity pointer slice buffers for NgramsSimilar
+// Uses O(1) pointer equality instead of O(N) string comparison
+// Reduces allocations from ~600MB to near-zero for this hot path
+var contextIdentityPool = sync.Pool{
 	New: func() any {
 		// Pre-allocate reasonable size (most ngrams have < 100 context words)
-		buf := make([]string, 0, 100)
+		buf := make([]*dictionary.WordIdentity, 0, 100)
 		return &buf
 	},
 }
@@ -76,7 +78,8 @@ func Uniqify(bora *structs.NgramHalfArray) {
 				if comp.Freq != 1 {
 					continue
 				}
-				if string(elem.Str) == string(comp.Str) {
+				// Use Identity pointer comparison (O(1) vs O(N) string comparison)
+				if elem.Identity != nil && comp.Identity != nil && elem.Identity == comp.Identity {
 					elem.Freq += bora.At[i].Elems[k].Freq
 				} else {
 					elems[elemsCount] = bora.At[i].Elems[k]
@@ -89,7 +92,7 @@ func Uniqify(bora *structs.NgramHalfArray) {
 }
 
 // NgramsSimilar checks if two ngrams are similar (lines 130-178)
-// Uses struct methods for abstraction while maintaining original C algorithm
+// Uses Identity pointers for O(1) comparison instead of O(N) string comparison
 func NgramsSimilar(a, b structs.Ngram) bool {
 	ngramHalfSize := constants.NgramSize / 2
 
@@ -100,14 +103,14 @@ func NgramsSimilar(a, b structs.Ngram) bool {
 		return false
 	}
 
-	// Get buffer from pool (optimization: reuse allocations)
-	bufPtr := contextWordPool.Get().(*[]string)
+	// Get Identity buffer from pool (optimization: reuse allocations)
+	bufPtr := contextIdentityPool.Get().(*[]*dictionary.WordIdentity)
 	arr := *bufPtr
 	arr = arr[:0] // Reset length, keep capacity
 
 	// Ensure buffer has enough capacity
 	if cap(arr) < elemsCount {
-		arr = make([]string, elemsCount)
+		arr = make([]*dictionary.WordIdentity, elemsCount)
 	} else {
 		arr = arr[:elemsCount]
 	}
@@ -115,18 +118,17 @@ func NgramsSimilar(a, b structs.Ngram) bool {
 	// Return buffer to pool when done
 	defer func() {
 		*bufPtr = arr[:0] // Reset for next use
-		contextWordPool.Put(bufPtr)
+		contextIdentityPool.Put(bufPtr)
 	}()
 
 	arrCount := 0
 
-	// Collect all words using struct methods
-	arrCount += a.CollectContextWords(arr[arrCount:], ngramHalfSize)
-	arrCount += b.CollectContextWords(arr[arrCount:], ngramHalfSize)
+	// Collect all Identity pointers using struct methods (O(1) pointer operations)
+	arrCount += a.CollectContextIdentities(arr[arrCount:], ngramHalfSize)
+	arrCount += b.CollectContextIdentities(arr[arrCount:], ngramHalfSize)
 
-	// Line 167 in C: count = uniq_words(arr, elems_count);
-	// We pass arrCount for correctness (C has undefined behavior here)
-	count := functions.UniqWords(arr[:arrCount], arrCount)
+	// Count unique identities using O(1) pointer equality
+	count := functions.UniqIdentities(arr[:arrCount], arrCount)
 
 	// Line 170 in C: arr_count -= 1;
 	arrCount--

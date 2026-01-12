@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
+	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
@@ -92,6 +93,42 @@ func UniqWords(arr []string, size int) int {
 		seen.Add(arr[j])
 	}
 	return seen.Len() - 1
+}
+
+// UniqIdentities returns count of unique Identity pointers in array
+// Returns base 0
+// Uses O(1) pointer equality checks (very fast for small arrays)
+func UniqIdentities(arr []*dictionary.WordIdentity, size int) int {
+	if size == 0 {
+		return -1
+	}
+
+	// Simple slice-based deduplication with pointer comparison
+	// Fast for typical ngram context sizes (< 50 words)
+	// O(n²) but pointer comparison is extremely fast (single instruction)
+	uniqueCount := 0
+	for i := 0; i < size; i++ {
+		if arr[i] == nil {
+			continue
+		}
+
+		// Check if this pointer already seen
+		seen := false
+		for j := 0; j < uniqueCount; j++ {
+			if arr[j] == arr[i] {  // Pointer equality: single CPU cycle
+				seen = true
+				break
+			}
+		}
+
+		if !seen {
+			// Swap to front of "unique" section
+			arr[uniqueCount], arr[i] = arr[i], arr[uniqueCount]
+			uniqueCount++
+		}
+	}
+
+	return uniqueCount - 1
 }
 
 // ExplodeSansnullStr splits string by delimiter string (lines 88-99)

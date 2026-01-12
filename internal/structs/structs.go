@@ -3,6 +3,7 @@ package structs
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
@@ -87,26 +88,63 @@ func (w Word) Reverse() Word {
 
 // RemoveFirstChar removes first character and returns clean string without marker
 // Returns the result WITHOUT the marker byte (caller should use SetWord to add it back)
+// Uses idiomatic Go approach with UTF-8/Unicode support
 func (w Word) RemoveFirstChar() string {
 	// Use StringClean to get string without marker
 	word := w.StringClean()
 	if len(word) == 0 {
 		return ""
 	}
-	finalized := reverseString(word)
-	if len(finalized) > 0 {
-		finalized = finalized[:len(finalized)-1]
+
+	// Convert to runes for proper Unicode handling
+	runes := []rune(word)
+	if len(runes) <= 1 {
+		return ""
 	}
-	return reverseString(finalized)
+
+	// Simply slice from second rune onwards (idiomatic Go)
+	return string(runes[1:])
 }
 
-// reverseString reverses a string
+// runeSlicePool reuses rune slice allocations for string reversal
+// Reduces GC pressure by pooling temporary buffers
+var runeSlicePool = sync.Pool{
+	New: func() any {
+		// Pre-allocate reasonable size for most words
+		s := make([]rune, 0, 128)
+		return &s
+	},
+}
+
+// reverseString reverses a string with Unicode/UTF-8 support
+// Uses sync.Pool to reduce allocations and GC pressure
 func reverseString(s string) string {
-	runes := []rune(s)
+	if s == "" {
+		return ""
+	}
+
+	// Get pooled rune slice
+	runesPtr := runeSlicePool.Get().(*[]rune)
+	runes := (*runesPtr)[:0] // Reset length, keep capacity
+
+	// Convert string to runes
+	for _, r := range s {
+		runes = append(runes, r)
+	}
+
+	// Reverse in place
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
-	return string(runes)
+
+	// Convert back to string
+	result := string(runes)
+
+	// Return slice to pool for reuse
+	*runesPtr = runes[:0]
+	runeSlicePool.Put(runesPtr)
+
+	return result
 }
 
 // WordArray represents struct word_t_array (lines 24-27)
@@ -186,6 +224,23 @@ func (h *NgramHalfArray) CollectWordsInto(arr []string, startIdx int, ngramHalfS
 	return idx - startIdx
 }
 
+// CollectIdentitiesInto appends Identity pointers from this half-array into the provided slice
+// Returns the number of identities added (uses O(1) pointer operations)
+func (h *NgramHalfArray) CollectIdentitiesInto(arr []*dictionary.WordIdentity, startIdx int, ngramHalfSize int) int {
+	idx := startIdx
+	for i := 0; i < ngramHalfSize; i++ {
+		if h.At[i] != nil {
+			for j := 0; j < h.At[i].Count; j++ {
+				if h.At[i].Elems[j] != nil && h.At[i].Elems[j].Identity != nil {
+					arr[idx] = h.At[i].Elems[j].Identity
+					idx++
+				}
+			}
+		}
+	}
+	return idx - startIdx
+}
+
 // Ngram represents struct ngram_t (lines 33-39)
 type Ngram struct {
 	Word      Word             // word
@@ -206,6 +261,15 @@ func (ng *Ngram) CollectContextWords(arr []string, ngramHalfSize int) int {
 	count := 0
 	count += ng.Before.CollectWordsInto(arr, count, ngramHalfSize)
 	count += ng.After.CollectWordsInto(arr, count, ngramHalfSize)
+	return count
+}
+
+// CollectContextIdentities collects all context word identities into a pre-allocated slice
+// Returns the number of identities collected (O(1) pointer operations)
+func (ng *Ngram) CollectContextIdentities(arr []*dictionary.WordIdentity, ngramHalfSize int) int {
+	count := 0
+	count += ng.Before.CollectIdentitiesInto(arr, count, ngramHalfSize)
+	count += ng.After.CollectIdentitiesInto(arr, count, ngramHalfSize)
 	return count
 }
 

@@ -91,8 +91,10 @@ func (f *Frequency) calcIndex(context int, offset int) int {
 
 // WordIdentity represents a unique word with positional frequency tracking
 // One instance per unique string (interned)
+// NOTE: Currently uses normalized (uppercase) strings for interning
+// Future: Can use case-insensitive comparisons once baseline matching not needed
 type WordIdentity struct {
-	Str       string
+	Str       string    // Normalized string (uppercase)
 	Frequency Frequency
 }
 
@@ -114,15 +116,16 @@ var Dictionary = &dict{
 
 // Word gets or creates a word identity (factory pattern)
 // Returns pointer for O(1) equality checking
-// Normalizes string to uppercase for case-insensitive matching
+// NOTE: Currently case-sensitive for algorithm correctness
+// Future: Add case-insensitive variant after baseline matching complete
 // Thread-safe for concurrent access
 func (d *dict) Word(str string) *WordIdentity {
-	// Normalize to uppercase for case-insensitive interning
-	normalized := Normalize(str)
+	// Use original case for now (algorithm requires case sensitivity)
+	// normalized := Normalize(str)  // TODO: Enable after baseline matching
 
 	// Fast path: read lock
 	d.mu.RLock()
-	if word, exists := d.words[normalized]; exists {
+	if word, exists := d.words[str]; exists {
 		d.mu.RUnlock()
 		return word
 	}
@@ -133,16 +136,16 @@ func (d *dict) Word(str string) *WordIdentity {
 	defer d.mu.Unlock()
 
 	// Double-check after acquiring write lock
-	if word, exists := d.words[normalized]; exists {
+	if word, exists := d.words[str]; exists {
 		return word
 	}
 
-	// Create new identity with normalized string
+	// Create new identity with original case
 	word := &WordIdentity{
-		Str:       normalized,
+		Str:       str,
 		Frequency: Frequency{},
 	}
-	d.words[normalized] = word
+	d.words[str] = word
 	return word
 }
 
