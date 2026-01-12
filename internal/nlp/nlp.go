@@ -11,6 +11,7 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/alphabet"
 	"github.com/zachbornheimer/morpheme-extraction/internal/config"
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
+	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
 	"github.com/zachbornheimer/morpheme-extraction/internal/directory"
 	"github.com/zachbornheimer/morpheme-extraction/internal/file"
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
@@ -81,6 +82,9 @@ func Nlp(cfg *config.Config) int {
 		ngram_t.FreeNgram(ng[i])
 	}
 
+	// Print dictionary stats if verbose
+	cfg.VPrint(fmt.Sprintf("Dictionary: %d unique words interned", dictionary.Dictionary.Size()))
+
 	return 0
 }
 
@@ -147,7 +151,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 		}
 
 		if len(arr[i]) > 0 {
-			ngram.Word.Freq++
+			ngram.Word.Freq++ // Legacy frequency (Identity tracks it separately)
 
 			for j := 0; j < (constants.NgramSize / 2); j++ {
 				index := i - (constants.NgramSize / 2) + j

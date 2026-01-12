@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
+	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
 )
 
 // CharDoubleton represents struct char_doubleton (lines 11-14)
@@ -14,10 +15,12 @@ type CharDoubleton struct {
 }
 
 // Word represents struct word_t (lines 16-20)
+// Future: Will be replaced by direct WordIdentity references for full interning
 type Word struct {
-	Str  string // word (string, not []byte - idiomatic Go)
-	Len  int    // i (unsigned int) - redundant with len(Str) but kept for compatibility
-	Freq int    // freq
+	Identity *dictionary.WordIdentity // If set, use interned identity (future: always set)
+	Str      string                   // word (string, not []byte - idiomatic Go) [Deprecated: use Identity]
+	Len      int                      // i (unsigned int) - redundant with len(Str) but kept for compatibility
+	Freq     int                      // freq [Deprecated: use Identity.Frequency]
 }
 
 // String returns the word as a string (includes full Str with null terminator for compatibility)
@@ -34,10 +37,43 @@ func (w *Word) StringClean() string {
 }
 
 // SetWord sets the word string, length, and frequency
+// Uses dictionary for interning (future-proof)
 func (w *Word) SetWord(str string) {
+	// Get interned identity from dictionary
+	w.Identity = dictionary.Dictionary.Word(str)
+
+	// Keep legacy fields for compatibility (will be removed later)
 	w.Str = str + constants.EmptyMorpheme
 	w.Len = len(str)
-	w.Freq = 1 // initialized
+	w.Freq = 1 // initialized (deprecated, use Identity.Frequency)
+}
+
+// GetIdentity returns the word identity, creating it if needed
+func (w *Word) GetIdentity() *dictionary.WordIdentity {
+	if w.Identity == nil && w.Str != "" {
+		// Migrate legacy Word to use identity
+		cleanStr := w.StringClean()
+		w.Identity = dictionary.Dictionary.Word(cleanStr)
+	}
+	return w.Identity
+}
+
+// IncFreq increments frequency at center position
+// Delegates to identity if available, otherwise uses legacy Freq
+func (w *Word) IncFreq() {
+	if w.Identity != nil {
+		w.Identity.Frequency.IncCenter()
+	} else {
+		w.Freq++
+	}
+}
+
+// GetFreq returns frequency at center position
+func (w *Word) GetFreq() int {
+	if w.Identity != nil {
+		return w.Identity.Frequency.GetCenter()
+	}
+	return w.Freq
 }
 
 // Reverse returns a new Word with reversed string

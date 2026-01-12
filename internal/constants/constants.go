@@ -16,6 +16,13 @@ const (
 	OFF = 0
 )
 
+// Positional context (for frequency tracking)
+const (
+	BEFORE = -1
+	CENTER = 0
+	AFTER  = 1
+)
+
 // Error codes
 const (
 	EOverruled = 8
