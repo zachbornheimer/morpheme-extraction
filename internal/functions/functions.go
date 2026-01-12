@@ -5,19 +5,11 @@ package functions
 import (
 	"strings"
 
-	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
-// VPrint prints only if verbose mode is ON
-var VerboseMode int
-
-func VPrint(msg string) {
-	if VerboseMode == constants.ON {
-		println(msg)
-	}
-}
+// VPrint removed - use Config.VPrint() instead for better testability
 
 // Append concatenates two strings (lines 21-29)
 func Append(one, two string) string {

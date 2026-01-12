@@ -5,29 +5,28 @@ package alphabet
 import (
 	"fmt"
 
+	"github.com/zachbornheimer/morpheme-extraction/internal/config"
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
-// Global verbose mode reference
-var VerboseMode *int
-
 // FindWordDelimiter retrieves word delimiter (lines 30-99)
-func FindWordDelimiter(filePtr *string) (string, error) {
+// Updated to accept Config parameter for dependency injection (no globals)
+func FindWordDelimiter(filePtr *string, cfg *config.Config) (string, error) {
 	file := *filePtr
-	
-	functions.VPrint("Creating List of Uniq Chars.")
+
+	cfg.VPrint("Creating List of Uniq Chars.")
 	ret, i := functions.Uniq(file)
 	if i == -1 {
 		return "", constants.ErrUniq
 	}
 
-	functions.VPrint("Constructing Word Delimiter Structures.")
+	cfg.VPrint("Constructing Word Delimiter Structures.")
 	wd := make([]structs.CharDoubleton, i+1)
 	
 	for j := 0; j <= i; j++ {
-		if VerboseMode != nil && *VerboseMode == constants.ON {
+		if cfg.IsVerbose() {
 			fmt.Printf("Working on character %d/%d...\r", j, i)
 		}
 		
@@ -38,7 +37,7 @@ func FindWordDelimiter(filePtr *string) (string, error) {
 		wd[j].Second = freq
 	}
 	
-	functions.VPrint("Initial Word Delimiter Structures Constructed.")
+	cfg.VPrint("Initial Word Delimiter Structures Constructed.")
 
 	maxSize := 0
 	index := 0
@@ -66,7 +65,7 @@ func FindWordDelimiter(filePtr *string) (string, error) {
 		}
 	}
 	
-	functions.VPrint("Word Delimiter Candidates Identified.")
+	cfg.VPrint("Word Delimiter Candidates Identified.")
 
 	wdRealStr := string(wdReal[:index])
 	wdPermuted := wdRealStr

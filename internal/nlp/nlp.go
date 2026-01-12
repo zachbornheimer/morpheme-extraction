@@ -23,10 +23,8 @@ import (
 
 // Nlp runs the main NLP process (lines 64-111)
 func Nlp(cfg *config.Config) int {
-	// Set globals (TODO: remove these once all packages use Config)
-	functions.VerboseMode = cfg.VerboseMode
+	// Set directory corpus (TODO: refactor directory package to use Config)
 	directory.CorpusDir = cfg.CorpusDir
-	alphabet.VerboseMode = &cfg.VerboseMode
 
 	var f string
 	var header string
@@ -44,7 +42,7 @@ func Nlp(cfg *config.Config) int {
 
 		if len(f) > 2 {
 			cfg.VPrint("Looking for Word Delimiter...")
-			wd, err := alphabet.FindWordDelimiter(&f)
+			wd, err := alphabet.FindWordDelimiter(&f, cfg)
 			if cfg.IsVerbose() {
 				fmt.Printf("Found Word Delimiter: %q\n", wd)
 			}
@@ -55,12 +53,12 @@ func Nlp(cfg *config.Config) int {
 
 			if err == nil && wd != "" {
 				cfg.VPrint("Building NGRAMS")
-				BuildNgramRelationships(wd, f, &ngramLength, &ng)
+				BuildNgramRelationships(wd, f, &ngramLength, &ng, cfg)
 
 				if cfg.ProcessFull == constants.ON || cfg.ProcessSequentially == constants.ON {
 					cfg.VPrint("\nPROCESSING SEQUENTIALLY!")
 					cfg.VPrint("Extracting Morphemes and Building Lexical Categories.")
-					lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, cfg.OutputFilename)
+					lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, cfg.OutputFilename, cfg)
 				}
 			}
 		}
@@ -70,7 +68,7 @@ func Nlp(cfg *config.Config) int {
 		header = "All Processed Files"
 		cfg.VPrint("PROCESSING SIMULTANEOUSLY!")
 		cfg.VPrint("Extracting Morphemes and Building Lexical Categories.")
-		lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, cfg.OutputFilename)
+		lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, cfg.OutputFilename, cfg)
 	}
 
 	// Cleanup
@@ -100,7 +98,8 @@ func Nlp(cfg *config.Config) int {
 }
 
 // BuildNgramRelationships builds n-gram structures (lines 113-211)
-func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*structs.Ngram) {
+// Updated to accept Config parameter for dependency injection (no globals)
+func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*structs.Ngram, cfg *config.Config) {
 	arr := functions.ExplodeSansnullStr(f, wd)
 	wordCount := len(arr)
 
@@ -115,7 +114,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 		ng = make([]*structs.Ngram, wordCount+1)
 	}
 
-	functions.VPrint("Setting NGRAM elements")
+	cfg.VPrint("Setting NGRAM elements")
 
 	// Hash map for O(1) ngram lookup using interned Identity pointers
 	// Pointer equality is O(1) vs O(N) string comparison
@@ -158,7 +157,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 			}
 		}
 
-		if functions.VerboseMode == constants.ON {
+		if cfg.IsVerbose() {
 			fmt.Printf("  Processing Word: %d:%d     \r", i, wordCount)
 		}
 
@@ -236,7 +235,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 	// Calculate chunk size: divide work evenly across workers
 	chunkSize := (*ngramLength + numWorkers - 1) / numWorkers // Ceiling division
 
-	if functions.VerboseMode == constants.ON {
+	if cfg.IsVerbose() {
 		fmt.Printf("Parallelizing similarity detection: %d workers, chunk size %d\n", numWorkers, chunkSize)
 	}
 
@@ -302,13 +301,14 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 		}
 	}
 
-	functions.VPrint("")
+	cfg.VPrint("")
 	*ngramFull = ng
 }
 
 // FindMorphemes extracts morphemes from n-grams (lines 213-259)
 // Sequential to preserve morpheme order (affects FuseRegex results)
-func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *[]structs.LexicalCategories, outputFilename string) int {
+// Updated to accept Config parameter for dependency injection (no globals)
+func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *[]structs.LexicalCategories, outputFilename string, cfg *config.Config) int {
 	internal := structs.MorphemeList{Count: 0}
 	internal.List = make([]*structs.Morpheme, 0, ngramLength*100) // Pre-allocate
 
@@ -352,10 +352,10 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 		}
 	}
 
-	functions.VPrint("")
+	cfg.VPrint("")
 	morphemeList := morpheme_list_t.FuseRegex(internal)
 
-	if functions.VerboseMode == constants.ON {
+	if cfg.IsVerbose() {
 		fmt.Printf("\nFound %d internal morphemes before fusion\n", internal.Count)
 		fmt.Printf("Found %d morphemes after fusion\n", morphemeList.Count)
 	}
@@ -363,7 +363,7 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 	lex := make([]structs.LexicalCategories, morphemeList.Count)
 	morpheme_list_t.IdentifyTrueMorphemes(&morphemeList, &lex)
 	
-	if functions.VerboseMode == constants.ON {
+	if cfg.IsVerbose() {
 		fmt.Printf("Writing %d morphemes to file\n", morphemeList.Count)
 	}
 	
