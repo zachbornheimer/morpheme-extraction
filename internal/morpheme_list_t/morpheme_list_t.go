@@ -3,6 +3,8 @@
 package morpheme_list_t
 
 import (
+	"fmt"
+
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
 	"github.com/zachbornheimer/morpheme-extraction/internal/morpheme_t"
@@ -16,13 +18,34 @@ func AddMorpheme(morphemes *structs.MorphemeList, morpheme structs.Morpheme) {
 	morphemes.Count++
 }
 
+// Global debug counters (temporary for debugging)
+var (
+	debugTotalChecks      int
+	debugTooShort         int
+	debugPrefixMatch      int
+	debugLookbackFail     int
+	debugTestMismatch     int
+	debugAdded            int
+	debugFirstAdded       int
+	debugFunctionCalls    int
+)
+
 // FindInternalMorphemes finds morphemes within words (lines 24-93)
-func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.MorphemeList) {
+// Optimized to use MorphemeCandidate for lazy allocation
+func FindInternalMorphemes(oneOrig, twoOrig structs.Word, candidates *[]structs.MorphemeCandidate) {
+	debugFunctionCalls++
+
 	// Use Word.StringClean() to get clean string without null padding
 	word1 := oneOrig.StringClean()
 	word2 := twoOrig.StringClean()
 	one := oneOrig
 	two := twoOrig
+
+	// Track the index of the last SUCCESSFULLY ADDED candidate from this word pair
+	// This matches the original's behavior of comparing against internal.List[internal.Count-1]
+	// IMPORTANT: Only candidates that pass regex check should update this!
+	// Start at -1 to indicate no candidates added yet (matches internal.Count == 0)
+	lastAddedIdx := -1
 
 	iteration1 := 0
 	iteration2 := 0
@@ -37,18 +60,25 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 				break
 			}
 
-			lm := morpheme_t.FindLongestMatch(one, two)
-			lm.WordsCount = 0
+			// Use FindLongestMatchString instead of FindLongestMatch (no allocation)
+			morphemeStr := morpheme_t.FindLongestMatchString(one, two)
+			debugTotalChecks++
 
-			if len(lm.Morpheme) >= 2 {
-				if internal.Count > 0 {
-					var current, previous structs.Word
-					current.SetWord(lm.Morpheme)
-					previous.SetWord(internal.List[internal.Count-1].Morpheme)
+			if len(morphemeStr) >= 2 {
+				// Check if we have successfully added a previous candidate from THIS word pair
+				// This matches the original's `if internal.Count > 0` check
+				if lastAddedIdx >= 0 {
+					// Get previous morpheme string from last SUCCESSFULLY ADDED candidate
+					// This matches internal.List[internal.Count-1] in the original
+					prevMorpheme := (*candidates)[lastAddedIdx].Morpheme
 
-					if morpheme_t.FindLongestMatch(current, previous).Morpheme != lm.Morpheme {
-						test := string(previous.Str)
-						test = functions.Reverse(test)
+					// Check if current morpheme is different from previous
+					// Use string comparison instead of creating Word objects
+					currentPrefixOfPrev := findCommonPrefixStr(morphemeStr, prevMorpheme)
+
+					if currentPrefixOfPrev != morphemeStr {
+						// Apply lookback logic (string operations only)
+						test := functions.Reverse(prevMorpheme)
 
 						if (len(test) - lookback) >= 1 {
 							// Check if we'd trim into the empty morpheme marker
@@ -67,37 +97,90 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 								test = test[:len(test)-lookback]
 							}
 						} else {
+							debugLookbackFail++
+							// Original updates lookback even on fail, but outside the outer if
+							lookback = len(morphemeStr)
 							continue
 						}
 
 						test = functions.Reverse(test)
 
-						if test != string(current.Str) {
-							lm.Words = make([]*structs.Word, 0)
-							lm.AddWord(oneOrig)
-							lm.AddWord(twoOrig)
-							lm.GenRegex(word1, word2, iteration1, iteration2)
+						if test != morphemeStr {
+							// CRITICAL: Match original behavior - check regex BEFORE adding to list
+							// Create temporary morpheme to test regex
+							m := structs.NewMorpheme(morphemeStr)
+							m.WordsCount = 0
+							m.Words = make([]*structs.Word, 0)
 
-							if lm.Regex() != "" {
-								AddMorpheme(internal, lm)
+							// Create Word objects for GenRegex
+							var w1, w2 structs.Word
+							w1.SetWord(word1)
+							w2.SetWord(word2)
+
+							// Generate regex pattern
+							m.GenRegex(word1, word2, iteration1, iteration2)
+
+							// Only add if regex is valid (matches original line 57-58)
+							if m.Regex() != "" {
+								*candidates = append(*candidates, structs.MorphemeCandidate{
+									Morpheme:  morphemeStr,
+									Word1:     word1,
+									Word2:     word2,
+									Pos1:      iteration1,
+									Pos2:      iteration2,
+									IsStem:    false,
+									IsForward: false, // Internal morphemes need regex check
+								})
+								// Update last added index to point to this new candidate
+								lastAddedIdx = len(*candidates) - 1
+								debugAdded++
 							}
 
-							lookback = len(lm.Morpheme)
+							// Original updates lookback OUTSIDE the regex check (line 61)
+							lookback = len(morphemeStr)
+						} else {
+							debugTestMismatch++
+							// Original still updates lookback here too
+							lookback = len(morphemeStr)
 						}
+					} else {
+						debugPrefixMatch++
 					}
 				} else {
-					lm.Words = make([]*structs.Word, 0)
-					lm.AddWord(oneOrig)
-					lm.AddWord(twoOrig)
-					lm.GenRegex(word1, word2, iteration1, iteration2)
+					// First candidate - check regex before adding (matches original line 72-75)
+					m := structs.NewMorpheme(morphemeStr)
+					m.WordsCount = 0
+					m.Words = make([]*structs.Word, 0)
 
-					if lm.Regex() != "" {
-						AddMorpheme(internal, lm)
+					// Create Word objects for GenRegex
+					var w1, w2 structs.Word
+					w1.SetWord(word1)
+					w2.SetWord(word2)
+
+					// Generate regex pattern
+					m.GenRegex(word1, word2, iteration1, iteration2)
+
+					// Only add if regex is valid
+					if m.Regex() != "" {
+						*candidates = append(*candidates, structs.MorphemeCandidate{
+							Morpheme:  morphemeStr,
+							Word1:     word1,
+							Word2:     word2,
+							Pos1:      iteration1,
+							Pos2:      iteration2,
+							IsStem:    false,
+							IsForward: false, // Internal morphemes need regex check
+						})
+						// Update last added index to point to this first candidate
+						lastAddedIdx = len(*candidates) - 1
+						debugFirstAdded++
 					}
 
-					lookback = len(lm.Morpheme)
+					// Original updates lookback OUTSIDE the regex check (line 75)
+					lookback = len(morphemeStr)
 				}
 			} else {
+				debugTooShort++
 				lookback = 1
 			}
 		}
@@ -107,6 +190,48 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 		iteration1++
 		iteration2 = 0
 	}
+}
+
+// PrintDebugStats prints debug statistics for FindInternalMorphemes
+func PrintDebugStats() {
+	fmt.Printf("FindInternalMorphemes Debug Stats:\n")
+	fmt.Printf("  Function calls:   %d\n", debugFunctionCalls)
+	fmt.Printf("  Total checks:     %d (avg %.1f per call)\n", debugTotalChecks, float64(debugTotalChecks)/float64(debugFunctionCalls))
+	fmt.Printf("  Too short (<2):   %d (%.1f%%)\n", debugTooShort, 100.0*float64(debugTooShort)/float64(debugTotalChecks))
+	fmt.Printf("  Prefix match:     %d (currentPrefixOfPrev == morphemeStr)\n", debugPrefixMatch)
+	fmt.Printf("  Lookback fail:    %d\n", debugLookbackFail)
+	fmt.Printf("  Test mismatch:    %d (test == morphemeStr)\n", debugTestMismatch)
+	fmt.Printf("  Added (with prev):%d\n", debugAdded)
+	fmt.Printf("  Added (first):    %d\n", debugFirstAdded)
+	fmt.Printf("  Total added:      %d (avg %.1f per call)\n", debugAdded+debugFirstAdded, float64(debugAdded+debugFirstAdded)/float64(debugFunctionCalls))
+	fmt.Printf("  Filtered:         %d (%.1f%% of >= 2 chars)\n",
+		debugPrefixMatch+debugLookbackFail+debugTestMismatch,
+		100.0*float64(debugPrefixMatch+debugLookbackFail+debugTestMismatch)/float64(debugTotalChecks-debugTooShort))
+}
+
+// findCommonPrefixStr returns longest common prefix between two strings
+// Used for lookback filtering in FindInternalMorphemes
+func findCommonPrefixStr(s1, s2 string) string {
+	r1 := []rune(s1)
+	r2 := []rune(s2)
+
+	minLen := len(r1)
+	if len(r2) < minLen {
+		minLen = len(r2)
+	}
+
+	matchLen := 0
+	for i := 0; i < minLen; i++ {
+		if r1[i] != r2[i] {
+			break
+		}
+		matchLen++
+	}
+
+	if matchLen == 0 {
+		return ""
+	}
+	return string(r1[:matchLen])
 }
 
 // FuseRegex fuses regex patterns for duplicate morphemes (lines 95-244)
@@ -141,11 +266,15 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 			if dup.Type == constants.STEM {
 				orig = dup
 				orig.Freq++
+				// BUGFIX: Must update new.List to persist changes
+				new.List[currentIndex] = &orig
 				continue
 			}
 
 			if orig.Type == constants.STEM {
 				orig.Freq++
+				// BUGFIX: Must update new.List to persist changes
+				new.List[currentIndex] = &orig
 				continue
 			}
 
@@ -178,10 +307,10 @@ func FuseRegex(original structs.MorphemeList) structs.MorphemeList {
 // IdentifyTrueMorphemes classifies morpheme types (lines 246-332)
 func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCategories) {
 	freqThresh := int(float64(list.Count) * (constants.ThresholdConfirmation / 100))
-	
+
 	kept := 0
 	filtered := 0
-	
+
 	for i := 0; i < list.Count; i++ {
 		morpheme := list.List[i]
 

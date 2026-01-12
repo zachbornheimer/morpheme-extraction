@@ -214,9 +214,10 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 		if makeNew == 1 {
 			ng[addLoc] = &ngram
-			// NOTE: Intentionally NOT adding to map here (matches original C behavior)
-			// Map is only built from existing ngrams at start of BuildNgramRelationships
-			// Within-file duplicates are handled by similarity detection later
+			// Add to map so future occurrences of this word will merge into this ngram
+			if ngram.Word.Identity != nil {
+				ngramMap[ngram.Word.Identity] = addLoc
+			}
 			addLoc++
 		} else {
 			// Update existing ngram (line 185-186 in C)
@@ -295,11 +296,24 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 	}()
 
 	// Collect results from all workers (sequential merge, but only happens once)
+	totalPairs := 0
 	for localResults := range resultsChan {
 		for _, pair := range localResults {
 			ngram_t.AddSimilarNgramRef(&ng[pair.k], &ng[pair.j])
+			totalPairs++
 		}
 	}
+
+	// Count total pairs checked
+	totalChecked := 0
+	for k := 0; k < *ngramLength; k++ {
+		for j := k + constants.NgramSize; j < *ngramLength; j++ {
+			totalChecked++
+		}
+	}
+
+	fmt.Printf("DEBUG: ngram_length: %d\n", *ngramLength)
+	fmt.Printf("DEBUG: Pairs checked: %d, similar: %d (%.1f%%)\n", totalChecked, totalPairs, 100.0*float64(totalPairs)/float64(totalChecked))
 
 	cfg.VPrint("")
 	*ngramFull = ng
@@ -308,14 +322,10 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 // FindMorphemes extracts morphemes from n-grams (lines 213-259)
 // Sequential to preserve morpheme order (affects FuseRegex results)
 // Updated to accept Config parameter for dependency injection (no globals)
+// Optimized to use MorphemeCandidate for lazy allocation
 func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *[]structs.LexicalCategories, outputFilename string, cfg *config.Config) int {
-	internal := structs.MorphemeList{Count: 0}
-	internal.List = make([]*structs.Morpheme, 0, ngramLength*100) // Pre-allocate
-
-	// Vocabulary-based deduplication: track which word pairs we've already compared
-	// Maps word1 -> word2 -> bool to avoid redundant comparisons
-	// This changes O(N²) where N=occurrences to O(V²) where V=vocabulary
-	seen := make(map[string]map[string]bool)
+	// Collect lightweight candidates first (no expensive allocations)
+	candidates := make([]structs.MorphemeCandidate, 0, ngramLength*100)
 
 	for i := 0; i < ngramLength; i++ {
 		if ng[i] == nil {
@@ -325,34 +335,42 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 		ngram := *ng[i]
 		w1 := ngram.Word.StringClean()
 
-		// Initialize inner map for this word if needed
-		if seen[w1] == nil {
-			seen[w1] = make(map[string]bool)
-		}
-
 		for j := 0; j < ngram.RefsCount; j++ {
 			target := *ngram.Refs[j]
 			w2 := target.Word.StringClean()
 
-			// Skip if we've already compared this unique word pair
-			if seen[w1][w2] {
-				continue
-			}
-			seen[w1][w2] = true
+			// Get forward morpheme (whole word prefix/suffix match)
+			// Always add (matches original behavior - no empty check)
+			forwardStr := morpheme_t.FindLongestMatchString(ngram.Word, target.Word)
+			candidates = append(candidates, structs.MorphemeCandidate{
+				Morpheme:  forwardStr,
+				Word1:     w1,
+				Word2:     w2,
+				Pos1:      0,
+				Pos2:      0,
+				IsStem:    false, // Let IdentifyTrueMorphemes classify based on regex patterns
+				IsForward: true,  // Forward morphemes always added (no regex check)
+			})
 
-			forward := morpheme_t.FindLongestMatch(ngram.Word, target.Word)
-			forward.WordsCount = 0
-			forward.Words = make([]*structs.Word, 0)
-			forward.GenRegex(w1, w2, 0, 0)
-			forward.AddWord(ngram.Word)
-			forward.AddWord(target.Word)
-
-			morpheme_list_t.AddMorpheme(&internal, forward)
-			morpheme_list_t.FindInternalMorphemes(ngram.Word, target.Word, &internal)
+			// Find internal morphemes (infixes) - adds to candidates
+			morpheme_list_t.FindInternalMorphemes(ngram.Word, target.Word, &candidates)
 		}
 	}
 
 	cfg.VPrint("")
+
+	if cfg.IsVerbose() {
+		fmt.Printf("\nCollected %d candidates\n", len(candidates))
+		morpheme_list_t.PrintDebugStats()
+	}
+
+	// Build full Morpheme objects from candidates (with GenRegex)
+	internal := buildMorphemesFromCandidatesWithRegex(candidates)
+
+	if cfg.IsVerbose() {
+		fmt.Printf("Built %d morphemes from candidates\n", internal.Count)
+	}
+
 	morphemeList := morpheme_list_t.FuseRegex(internal)
 
 	if cfg.IsVerbose() {
@@ -371,5 +389,55 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 
 	*lexMap = lex
 	return morphemeList.Count
+}
+
+// buildMorphemesFromCandidatesWithRegex creates full Morpheme objects from candidates
+// and generates regex patterns using GenRegex. This preserves the original algorithm
+// while avoiding expensive allocations in hot loops.
+func buildMorphemesFromCandidatesWithRegex(candidates []structs.MorphemeCandidate) structs.MorphemeList {
+	result := structs.MorphemeList{
+		List:  make([]*structs.Morpheme, 0, len(candidates)),
+		Count: 0,
+	}
+
+	skippedEmpty := 0
+	addedForward := 0
+	addedInternal := 0
+
+	for _, cand := range candidates {
+		// Don't skip empty morphemes here - let FuseRegex handle that
+		// (matching original behavior where all morphemes go to FuseRegex)
+
+		// Create morpheme with GenRegex
+		m := structs.NewMorpheme(cand.Morpheme)
+		m.WordsCount = 0
+		m.Words = make([]*structs.Word, 0)
+
+		// Create Word objects for GenRegex
+		var word1, word2 structs.Word
+		word1.SetWord(cand.Word1)
+		word2.SetWord(cand.Word2)
+
+		// Generate regex pattern
+		m.GenRegex(cand.Word1, cand.Word2, cand.Pos1, cand.Pos2)
+		m.AddWord(word1)
+		m.AddWord(word2)
+
+		// Internal candidates already passed regex check in FindInternalMorphemes
+		// Forward morphemes always added (no regex check needed)
+		if cand.IsForward {
+			morpheme_list_t.AddMorpheme(&result, m)
+			addedForward++
+		} else {
+			// Internal morphemes already validated, just add them
+			morpheme_list_t.AddMorpheme(&result, m)
+			addedInternal++
+		}
+	}
+
+	fmt.Printf("DEBUG: skippedEmpty=%d, addedForward=%d, addedInternal=%d\n",
+		skippedEmpty, addedForward, addedInternal)
+
+	return result
 }
 

@@ -237,8 +237,13 @@ void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struc
 	i = add_loc-1;
 	*ngram_length = add_loc;
 
+	printf("DEBUG: ngram_length after uniquify: %d\n", *ngram_length);
+
 	/* Add linked list elements */
 	int k, counter = 0, percent_complete;
+	int pairs_checked = 0;
+	int pairs_similar = 0;
+	int pairs_same_word = 0;
 #pragma omp parallel for shared(counter)
 	for (k = 0; k < *ngram_length; ++k) {
 		percent_complete = 100 * (double)counter/(*ngram_length);
@@ -248,13 +253,31 @@ void build_ngram_relationships(const char *wd, char *f, int *ngram_length, struc
 				printf("Processing Similar Ngrams in Parallel: %d%s complete | Target: %d/%d| Similar: %d/%d     \r     ", percent_complete, "%", k, *ngram_length, j, *ngram_length);
 			if (j - k < NGRAM_SIZE)
 				continue;
-			if (ng[j]->word.word != NULL && ng[k]->word.word != NULL && strcmp(ng[j]->word.word, ng[k]->word.word) != 0 && ngrams_similar(*ng[k], *ng[j]))
-				add_similar_ngram_ref(&ng[k], &ng[j]);
+			pairs_checked++;
+			if (ng[j]->word.word != NULL && ng[k]->word.word != NULL) {
+				if (strcmp(ng[j]->word.word, ng[k]->word.word) == 0) {
+					pairs_same_word++;
+				} else if (ngrams_similar(*ng[k], *ng[j])) {
+					add_similar_ngram_ref(&ng[k], &ng[j]);
+					pairs_similar++;
+				}
+			}
 		}
 		++counter;
 	}
+	printf("DEBUG: Pairs checked: %d, same word: %d, similar: %d\n", pairs_checked, pairs_same_word, pairs_similar);
 
 	V_PRINT("");
+
+	// DEBUG: Count total refs
+	int total_refs = 0;
+	for (int debug_i = 0; debug_i < *ngram_length; debug_i++) {
+		if (ng[debug_i] != NULL) {
+			total_refs += ng[debug_i]->refs_count;
+		}
+	}
+	printf("DEBUG: Total similar ngram pairs found: %d\n", total_refs);
+
 	*ngram_full = ng;
 }
 
@@ -291,10 +314,13 @@ int find_morphemes(struct ngram_t **ng, int ngram_length, char *header, struct l
 	}
 
 	V_PRINT("");
+	printf("DEBUG: Before fuse_regex: %d morphemes\n", internal.count);
 	struct morpheme_list_t morpheme_list = fuse_regex(internal);
+	printf("DEBUG: After fuse_regex: %d morphemes\n", morpheme_list.count);
 	i = 0;
 	struct lexical_categories_t *lex = malloc(sizeof(struct lexical_categories_t) * morpheme_list.count);
 	identify_true_morphemes(&morpheme_list, &lex);
+	printf("DEBUG: After identify_true_morphemes: %d morphemes\n", morpheme_list.count);
 	write_to_file(output_filename, lex, morpheme_list.count, header);
 
 	for (i = 0; i < morpheme_list.count; ++i)
