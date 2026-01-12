@@ -114,11 +114,15 @@ var Dictionary = &dict{
 
 // Word gets or creates a word identity (factory pattern)
 // Returns pointer for O(1) equality checking
+// Normalizes string to uppercase for case-insensitive matching
 // Thread-safe for concurrent access
 func (d *dict) Word(str string) *WordIdentity {
+	// Normalize to uppercase for case-insensitive interning
+	normalized := Normalize(str)
+
 	// Fast path: read lock
 	d.mu.RLock()
-	if word, exists := d.words[str]; exists {
+	if word, exists := d.words[normalized]; exists {
 		d.mu.RUnlock()
 		return word
 	}
@@ -129,16 +133,16 @@ func (d *dict) Word(str string) *WordIdentity {
 	defer d.mu.Unlock()
 
 	// Double-check after acquiring write lock
-	if word, exists := d.words[str]; exists {
+	if word, exists := d.words[normalized]; exists {
 		return word
 	}
 
-	// Create new identity
+	// Create new identity with normalized string
 	word := &WordIdentity{
-		Str:       str,
+		Str:       normalized,
 		Frequency: Frequency{},
 	}
-	d.words[str] = word
+	d.words[normalized] = word
 	return word
 }
 

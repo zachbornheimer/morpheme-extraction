@@ -151,7 +151,10 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 		}
 
 		if len(arr[i]) > 0 {
-			ngram.Word.Freq++ // Legacy frequency (Identity tracks it separately)
+			// Track center word frequency in dictionary
+			if ngram.Word.Identity != nil {
+				ngram.Word.Identity.Frequency.IncCenter()
+			}
 
 			for j := 0; j < (constants.NgramSize / 2); j++ {
 				index := i - (constants.NgramSize / 2) + j
@@ -169,6 +172,11 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 					}
 					ngram.Before.At[j].Elems[elemID] = &structs.Word{}
 					ngram.Before.At[j].Elems[elemID].SetWord(arr[index])
+					// Track positional frequency: BEFORE context at offset (NgramSize/2 - j)
+					if ngram.Before.At[j].Elems[elemID].Identity != nil {
+						offset := (constants.NgramSize / 2) - j
+						ngram.Before.At[j].Elems[elemID].Identity.Frequency.IncPos(constants.BEFORE, offset)
+					}
 				}
 
 				afterIndex := index + (constants.NgramSize/2) + 1
@@ -184,6 +192,11 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 					}
 					ngram.After.At[j].Elems[elemID] = &structs.Word{}
 					ngram.After.At[j].Elems[elemID].SetWord(arr[afterIndex])
+					// Track positional frequency: AFTER context at offset (NgramSize/2 - j)
+					if ngram.After.At[j].Elems[elemID].Identity != nil {
+						offset := (constants.NgramSize / 2) - j
+						ngram.After.At[j].Elems[elemID].Identity.Frequency.IncPos(constants.AFTER, offset)
+					}
 				}
 			}
 		}
