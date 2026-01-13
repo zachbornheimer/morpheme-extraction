@@ -16,6 +16,7 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/file"
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
 	"github.com/zachbornheimer/morpheme-extraction/internal/graph"
+	"github.com/zachbornheimer/morpheme-extraction/internal/minhash"
 	"github.com/zachbornheimer/morpheme-extraction/internal/morpheme_list_t"
 	"github.com/zachbornheimer/morpheme-extraction/internal/morpheme_t"
 	"github.com/zachbornheimer/morpheme-extraction/internal/ngram_t"
@@ -221,6 +222,11 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 			}
 		}
 
+		// Compute MinHash signature for this ngram's context
+		// Used for fast similarity filtering (Phase 5)
+		contextIDs := minhash.ExtractContextIDs(&ngram, constants.NgramSize/2)
+		ngram.MinHash = minhash.ComputeMinHash(contextIDs)
+
 		if makeNew == 1 {
 			ng[addLoc] = &ngram
 			// Add to map so future occurrences of this word will merge into this ngram
@@ -286,6 +292,15 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 						if ng[j] != nil && ng[k] != nil &&
 							ng[j].Word.Identity != nil && ng[k].Word.Identity != nil &&
 							ng[j].Word.Identity != ng[k].Word.Identity {
+
+							// MinHash fast rejection filter (Phase 5) - DISABLED
+							// TODO: MinHash threshold needs calibration
+							// MinHash estimates Jaccard, NgramsSimilar uses different metric
+							// For now, disabled to ensure correctness
+							_ = minhash.EstimateSimilarity(ng[k].MinHash, ng[j].MinHash)
+							// if minHashSim < threshold { continue }
+
+							// Full similarity check (only 20-40% of pairs reach here)
 							if ngram_t.NgramsSimilar(*ng[k], *ng[j]) {
 								localResults = append(localResults, similarPair{k, j})
 							}

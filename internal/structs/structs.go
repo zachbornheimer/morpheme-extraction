@@ -244,9 +244,10 @@ func (h *NgramHalfArray) CollectIdentitiesInto(arr []*dictionary.WordIdentity, s
 // Ngram represents struct ngram_t (lines 33-39)
 // NOTE: Refs and RefsCount removed - now using SemanticGraph for relationships
 type Ngram struct {
-	Word   Word           // word
-	Before NgramHalfArray // before
-	After  NgramHalfArray // after
+	Word    Word           // word
+	Before  NgramHalfArray // before
+	After   NgramHalfArray // after
+	MinHash [128]uint64    // MinHash signature for fast similarity filtering
 }
 
 // CountContextWords returns total count of context words (Before + After)
