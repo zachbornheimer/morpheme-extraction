@@ -5,6 +5,7 @@ package functions
 import (
 	"strings"
 
+	"github.com/zachbornheimer/morpheme-extraction/internal/bitset"
 	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
@@ -95,28 +96,24 @@ func UniqIdentities(arr []*dictionary.WordIdentity, size int) int {
 		return -1
 	}
 
-	// Simple slice-based deduplication with pointer comparison
-	// Fast for typical ngram context sizes (< 50 words)
-	// O(n²) but pointer comparison is extremely fast (single instruction)
+	// BitSet-based deduplication using WordIdentity.ID
+	// O(n) with O(1) lookups instead of O(n²) pointer comparisons
+	// Uses pooled bitset to reduce GC pressure
+	bs := bitset.Get()
+	defer bitset.Put(bs)
+
 	uniqueCount := 0
 	for i := 0; i < size; i++ {
 		if arr[i] == nil {
 			continue
 		}
 
-		// Check if this pointer already seen
-		seen := false
-		for j := 0; j < uniqueCount; j++ {
-			if arr[j] == arr[i] {  // Pointer equality: single CPU cycle
-				seen = true
-				break
-			}
-		}
-
-		if !seen {
-			// Swap to front of "unique" section
-			arr[uniqueCount], arr[i] = arr[i], arr[uniqueCount]
+		id := arr[i].ID
+		if !bs.IsSet(id) {
+			// First occurrence of this ID - add to unique section
+			arr[uniqueCount] = arr[i]
 			uniqueCount++
+			bs.Set(id)
 		}
 	}
 
