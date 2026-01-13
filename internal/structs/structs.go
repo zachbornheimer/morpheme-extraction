@@ -600,11 +600,8 @@ func (m *Morpheme) WordsToSet() StringSet {
 
 // AddWord adds word to morpheme's word list
 func (m *Morpheme) AddWord(w Word) {
-	m.WordsCount++
-	newWords := make([]*Word, m.WordsCount)
-	copy(newWords, m.Words)
-	newWords[m.WordsCount-1] = &w
-	m.Words = newWords
+	m.Words = append(m.Words, &w)
+	m.WordsCount = len(m.Words)
 }
 
 // GenRegex generates a regex pattern for matching words containing this morpheme.
@@ -635,13 +632,23 @@ func (m *Morpheme) GenRegex(one, two string, placeOne, placeTwo int) {
 		return
 	}
 
-	m.Type = constants.UNDEF
-
 	// STEM: morpheme equals entire word (e.g., "the" in word "the")
-	if one == m.Morpheme || two == m.Morpheme {
+	// Normalize words for comparison (trim trailing punctuation)
+	// Check STEM first before guard - STEM always overrides (matches FuseRegex priority)
+	normalizedOne := strings.TrimRight(one, ".,!?;:'\"-()")
+	normalizedTwo := strings.TrimRight(two, ".,!?;:'\"-()")
+
+	if normalizedOne == m.Morpheme || normalizedTwo == m.Morpheme {
 		m.SetType(constants.STEM)
 		return
 	}
+
+	// If already STEM from a previous pair, don't downgrade (STEM is sticky)
+	if m.Type == constants.STEM {
+		return
+	}
+
+	m.Type = constants.UNDEF
 
 	// Extract surrounding context from both example words
 	beforeMorpheme1, afterMorpheme1 := splitAroundMorpheme(one, placeOne, len(m.Morpheme))
