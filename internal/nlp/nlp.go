@@ -15,6 +15,7 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/directory"
 	"github.com/zachbornheimer/morpheme-extraction/internal/file"
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
+	"github.com/zachbornheimer/morpheme-extraction/internal/graph"
 	"github.com/zachbornheimer/morpheme-extraction/internal/morpheme_list_t"
 	"github.com/zachbornheimer/morpheme-extraction/internal/morpheme_t"
 	"github.com/zachbornheimer/morpheme-extraction/internal/ngram_t"
@@ -33,6 +34,7 @@ func Nlp(cfg *config.Config) int {
 	lexCount := 0
 	var ng []*structs.Ngram
 	var morphemes []structs.LexicalCategories
+	var semanticGraph *graph.SemanticGraph
 
 	for {
 		f = directory.GetFiles(&index, &header)
@@ -53,12 +55,12 @@ func Nlp(cfg *config.Config) int {
 
 			if err == nil && wd != "" {
 				cfg.VPrint("Building NGRAMS")
-				BuildNgramRelationships(wd, f, &ngramLength, &ng, cfg)
+				semanticGraph = BuildNgramRelationships(wd, f, &ngramLength, &ng, semanticGraph, cfg)
 
 				if cfg.ProcessFull == constants.ON || cfg.ProcessSequentially == constants.ON {
 					cfg.VPrint("\nPROCESSING SEQUENTIALLY!")
 					cfg.VPrint("Extracting Morphemes and Building Lexical Categories.")
-					lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, cfg.OutputFilename, cfg)
+					lexCount = FindMorphemes(semanticGraph, ng, ngramLength, header, &morphemes, cfg.OutputFilename, cfg)
 				}
 			}
 		}
@@ -68,7 +70,7 @@ func Nlp(cfg *config.Config) int {
 		header = "All Processed Files"
 		cfg.VPrint("PROCESSING SIMULTANEOUSLY!")
 		cfg.VPrint("Extracting Morphemes and Building Lexical Categories.")
-		lexCount = FindMorphemes(ng, ngramLength, header, &morphemes, cfg.OutputFilename, cfg)
+		lexCount = FindMorphemes(semanticGraph, ng, ngramLength, header, &morphemes, cfg.OutputFilename, cfg)
 	}
 
 	// Cleanup
@@ -82,6 +84,13 @@ func Nlp(cfg *config.Config) int {
 
 	// Print dictionary stats if verbose
 	cfg.VPrint(fmt.Sprintf("Dictionary: %d unique words interned", dictionary.Dictionary.Size()))
+
+	// Print graph stats if verbose
+	if cfg.IsVerbose() && semanticGraph != nil {
+		fmt.Printf("\nSemantic Graph Statistics:\n")
+		fmt.Printf("  Nodes:      %10d (unique words in graph)\n", semanticGraph.NodeCount())
+		fmt.Printf("  Edges:      %10d (co-occurrence relationships)\n", semanticGraph.EdgeCount())
+	}
 
 	// Print memory stats if verbose
 	if cfg.IsVerbose() {
@@ -99,7 +108,7 @@ func Nlp(cfg *config.Config) int {
 
 // BuildNgramRelationships builds n-gram structures (lines 113-211)
 // Updated to accept Config parameter for dependency injection (no globals)
-func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*structs.Ngram, cfg *config.Config) {
+func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*structs.Ngram, semanticGraph *graph.SemanticGraph, cfg *config.Config) *graph.SemanticGraph {
 	arr := functions.ExplodeSansnullStr(f, wd)
 	wordCount := len(arr)
 
@@ -229,6 +238,16 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 	*ngramLength = addLoc
 
+	// Create semantic graph if not provided (first file), then add nodes
+	if semanticGraph == nil {
+		semanticGraph = graph.NewSemanticGraph()
+	}
+	for i := 0; i < *ngramLength; i++ {
+		if ng[i] != nil && ng[i].Word.Identity != nil {
+			semanticGraph.AddNode(ng[i].Word.Identity)
+		}
+	}
+
 	// Add linked list elements (similarity detection) - Parallel with chunked work distribution
 	const magicMultiplier = 4 // Tunable: workers = NumCPU × magicMultiplier
 	numWorkers := runtime.NumCPU() * magicMultiplier
@@ -300,6 +319,12 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 	for localResults := range resultsChan {
 		for _, pair := range localResults {
 			ngram_t.AddSimilarNgramRef(&ng[pair.k], &ng[pair.j])
+
+			// Add edge to semantic graph (parallel construction)
+			if ng[pair.k].Word.Identity != nil && ng[pair.j].Word.Identity != nil {
+				semanticGraph.AddEdge(ng[pair.k].Word.Identity.ID, ng[pair.j].Word.Identity.ID, 1.0)
+			}
+
 			totalPairs++
 		}
 	}
@@ -315,15 +340,37 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 	fmt.Printf("DEBUG: ngram_length: %d\n", *ngramLength)
 	fmt.Printf("DEBUG: Pairs checked: %d, similar: %d (%.1f%%)\n", totalChecked, totalPairs, 100.0*float64(totalPairs)/float64(totalChecked))
 
+	if cfg.IsVerbose() {
+		fmt.Printf("\nSemantic Graph Built:\n")
+		fmt.Printf("  Nodes: %d (unique words)\n", semanticGraph.NodeCount())
+		fmt.Printf("  Edges: %d (similar word pairs)\n", semanticGraph.EdgeCount())
+	}
+
 	cfg.VPrint("")
 	*ngramFull = ng
+
+	return semanticGraph
+}
+
+// findAllNgramsByID searches the ngram array for ALL ngrams with matching word ID
+// Returns slice of ngrams (can be empty if none found)
+// A word can appear at multiple positions in the corpus (multiple ngram indices)
+func findAllNgramsByID(ng []*structs.Ngram, wordID int, ngramLength int) []*structs.Ngram {
+	results := make([]*structs.Ngram, 0, 4) // Usually not many duplicates
+	for i := 0; i < ngramLength; i++ {
+		if ng[i] != nil && ng[i].Word.Identity != nil && ng[i].Word.Identity.ID == wordID {
+			results = append(results, ng[i])
+		}
+	}
+	return results
 }
 
 // FindMorphemes extracts morphemes from n-grams (lines 213-259)
 // Sequential to preserve morpheme order (affects FuseRegex results)
 // Updated to accept Config parameter for dependency injection (no globals)
 // Optimized to use MorphemeCandidate for lazy allocation
-func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *[]structs.LexicalCategories, outputFilename string, cfg *config.Config) int {
+// Now uses SemanticGraph instead of Refs arrays for neighbor traversal
+func FindMorphemes(semanticGraph *graph.SemanticGraph, ng []*structs.Ngram, ngramLength int, header string, lexMap *[]structs.LexicalCategories, outputFilename string, cfg *config.Config) int {
 	// Collect lightweight candidates first (no expensive allocations)
 	candidates := make([]structs.MorphemeCandidate, 0, ngramLength*100)
 
@@ -335,25 +382,46 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 		ngram := *ng[i]
 		w1 := ngram.Word.StringClean()
 
-		for j := 0; j < ngram.RefsCount; j++ {
-			target := *ngram.Refs[j]
-			w2 := target.Word.StringClean()
+		// Get similar ngrams from semantic graph instead of Refs array
+		node := semanticGraph.GetNode(ngram.Word.Identity.ID)
+		if node == nil {
+			continue
+		}
 
-			// Get forward morpheme (whole word prefix/suffix match)
-			// Always add (matches original behavior - no empty check)
-			forwardStr := morpheme_t.FindLongestMatchString(ngram.Word, target.Word)
-			candidates = append(candidates, structs.MorphemeCandidate{
-				Morpheme:  forwardStr,
-				Word1:     w1,
-				Word2:     w2,
-				Pos1:      0,
-				Pos2:      0,
-				IsStem:    false, // Let IdentifyTrueMorphemes classify based on regex patterns
-				IsForward: true,  // Forward morphemes always added (no regex check)
-			})
+		// Get neighbor IDs and iterate through them
+		neighborIDs := node.GetNeighbors()
+		for _, neighborID := range neighborIDs {
+			// Find ngrams with this neighbor word ID at indices j >= i + NgramSize
+			// This matches the original algorithm's constraint
+			for j := i + constants.NgramSize; j < ngramLength; j++ {
+				if ng[j] == nil || ng[j].Word.Identity == nil {
+					continue
+				}
 
-			// Find internal morphemes (infixes) - adds to candidates
-			morpheme_list_t.FindInternalMorphemes(ngram.Word, target.Word, &candidates)
+				// Check if this ngram has the neighbor word ID
+				if ng[j].Word.Identity.ID != neighborID {
+					continue
+				}
+
+				target := *ng[j]
+				w2 := target.Word.StringClean()
+
+				// Get forward morpheme (whole word prefix/suffix match)
+				// Always add (matches original behavior - no empty check)
+				forwardStr := morpheme_t.FindLongestMatchString(ngram.Word, target.Word)
+				candidates = append(candidates, structs.MorphemeCandidate{
+					Morpheme:  forwardStr,
+					Word1:     w1,
+					Word2:     w2,
+					Pos1:      0,
+					Pos2:      0,
+					IsStem:    false, // Let IdentifyTrueMorphemes classify based on regex patterns
+					IsForward: true,  // Forward morphemes always added (no regex check)
+				})
+
+				// Find internal morphemes (infixes) - adds to candidates
+				morpheme_list_t.FindInternalMorphemes(ngram.Word, target.Word, &candidates)
+			}
 		}
 	}
 

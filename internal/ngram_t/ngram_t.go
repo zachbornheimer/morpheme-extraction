@@ -48,7 +48,6 @@ func NewNgram() structs.Ngram {
 		}
 	}
 
-	ng.RefsCount = 0
 	return ng
 }
 
@@ -143,9 +142,9 @@ func NgramsSimilar(a, b structs.Ngram) bool {
 }
 
 // AddSimilarNgramRef adds reference to similar ngram (lines 180-195)
-// Fixed: Use append() instead of manual slice copy for O(1) amortized performance
+// NOTE: This function is now a no-op since we use SemanticGraph instead of Refs
+// Kept for backward compatibility during transition
 func AddSimilarNgramRef(ngram **structs.Ngram, ngramRef **structs.Ngram) {
-	(*ngram).Refs = append((*ngram).Refs, *ngramRef)
-	(*ngram).RefsCount++
+	// No-op: relationships are now stored in SemanticGraph
 }
 

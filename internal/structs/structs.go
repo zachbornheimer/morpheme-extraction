@@ -242,12 +242,11 @@ func (h *NgramHalfArray) CollectIdentitiesInto(arr []*dictionary.WordIdentity, s
 }
 
 // Ngram represents struct ngram_t (lines 33-39)
+// NOTE: Refs and RefsCount removed - now using SemanticGraph for relationships
 type Ngram struct {
-	Word      Word             // word
-	Before    NgramHalfArray   // before
-	After     NgramHalfArray   // after
-	RefsCount int              // refs_count
-	Refs      []*Ngram         // refs (struct ngram_t**)
+	Word   Word           // word
+	Before NgramHalfArray // before
+	After  NgramHalfArray // after
 }
 
 // CountContextWords returns total count of context words (Before + After)
@@ -769,12 +768,13 @@ type MorphemeList struct {
 // MorphemeCandidate is a lightweight representation of a potential morpheme
 // before full Morpheme object allocation. Saves ~450 bytes per candidate.
 type MorphemeCandidate struct {
-	Morpheme string // The morpheme string (e.g., "walk")
-	Word1    string // First word containing morpheme
-	Word2    string // Second word containing morpheme
-	Pos1     int    // Position of morpheme in word1
-	Pos2     int    // Position of morpheme in word2
-	IsStem   bool   // True if morpheme equals entire word
+	Morpheme  string // The morpheme string (e.g., "walk")
+	Word1     string // First word containing morpheme
+	Word2     string // Second word containing morpheme
+	Pos1      int    // Position of morpheme in word1
+	Pos2      int    // Position of morpheme in word2
+	IsStem    bool   // True if morpheme equals entire word
+	IsForward bool   // True if forward morpheme (no regex check), false if internal (needs regex check)
 }
 
 // CandidateList holds lightweight morpheme candidates before validation
