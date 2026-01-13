@@ -4,6 +4,7 @@ package structs
 import (
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
@@ -18,10 +19,11 @@ type CharDoubleton struct {
 // Word represents struct word_t (lines 16-20)
 // Future: Will be replaced by direct WordIdentity references for full interning
 type Word struct {
-	Identity *dictionary.WordIdentity // If set, use interned identity (future: always set)
-	Str      string                   // word (string, not []byte - idiomatic Go) [Deprecated: use Identity]
-	Len      int                      // i (unsigned int) - redundant with len(Str) but kept for compatibility
-	Freq     int                      // freq [Deprecated: use Identity.Frequency]
+	Identity        *dictionary.WordIdentity // If set, use interned identity (future: always set)
+	Str             string                   // word (string, not []byte - idiomatic Go) [Deprecated: use Identity]
+	Len             int                      // i (unsigned int) - redundant with len(Str) but kept for compatibility
+	Freq            int                      // freq [Deprecated: use Identity.Frequency]
+	NormalizedString string                   // Cached normalized string (set in SetWord)
 }
 
 // String returns the word as a string (includes full Str with null terminator for compatibility)
@@ -47,6 +49,10 @@ func (w *Word) SetWord(str string) {
 	w.Str = str + constants.EmptyMorpheme
 	w.Len = len(str)
 	w.Freq = 1 // initialized (deprecated, use Identity.Frequency)
+
+	// Cache normalized string (lowercase, no leading/trailing punctuation)
+	// This avoids repeated StringClean() + normalization calls in hot paths
+	w.NormalizedString = w.Identity.Str  // Already normalized in dictionary
 }
 
 // GetIdentity returns the word identity, creating it if needed
@@ -87,23 +93,24 @@ func (w Word) Reverse() Word {
 }
 
 // RemoveFirstChar removes first character and returns clean string without marker
-// Returns the result WITHOUT the marker byte (caller should use SetWord to add it back)
-// Uses idiomatic Go approach with UTF-8/Unicode support
+// Optimized: Uses string slicing (no allocation) instead of rune conversion
 func (w Word) RemoveFirstChar() string {
-	// Use StringClean to get string without marker
 	word := w.StringClean()
 	if len(word) == 0 {
 		return ""
 	}
 
-	// Convert to runes for proper Unicode handling
-	runes := []rune(word)
-	if len(runes) <= 1 {
-		return ""
+	// ASCII fast path (most common case, no allocation)
+	if word[0] < 0x80 {
+		return word[1:]
 	}
 
-	// Simply slice from second rune onwards (idiomatic Go)
-	return string(runes[1:])
+	// UTF-8 multi-byte rune: find rune boundary
+	_, size := utf8.DecodeRuneInString(word)
+	if size >= len(word) {
+		return ""
+	}
+	return word[size:]  // String slice, no allocation
 }
 
 // runeSlicePool reuses rune slice allocations for string reversal

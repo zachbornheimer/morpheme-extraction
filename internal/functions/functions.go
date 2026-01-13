@@ -247,3 +247,21 @@ func ReverseBytes(b []byte) []byte {
 	return b
 }
 
+// ReverseInto reverses a string into a reusable buffer (minimal allocation)
+// Reuses the provided buffer's capacity, only allocates for final string conversion
+func ReverseInto(s string, buf []byte) string {
+	if len(s) < 2 {
+		return s
+	}
+
+	// Reset buffer, keep capacity
+	buf = buf[:0]
+
+	// Append reversed bytes
+	for i := len(s) - 1; i >= 0; i-- {
+		buf = append(buf, s[i])
+	}
+
+	return string(buf)  // One allocation here
+}
+

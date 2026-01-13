@@ -52,6 +52,9 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, candidates *[]structs.
 	iteration2 := 0
 	lookback := 1
 
+	// Reusable buffer for reverse operations (reduces allocations)
+	reverseBuf := make([]byte, 0, 256)
+
 	for one.Len > 0 {
 		for two.Len > 0 {
 			two.SetWord(two.RemoveFirstChar())
@@ -78,8 +81,8 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, candidates *[]structs.
 					currentPrefixOfPrev := findCommonPrefixStr(morphemeStr, prevMorpheme)
 
 					if currentPrefixOfPrev != morphemeStr {
-						// Apply lookback logic (string operations only)
-						test := functions.Reverse(prevMorpheme)
+						// Apply lookback logic (string operations with buffer reuse)
+						test := functions.ReverseInto(prevMorpheme, reverseBuf)
 
 						if (len(test) - lookback) >= 1 {
 							// Check if we'd trim into the empty morpheme marker
@@ -104,7 +107,7 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, candidates *[]structs.
 							continue
 						}
 
-						test = functions.Reverse(test)
+						test = functions.ReverseInto(test, reverseBuf)
 
 						if test != morphemeStr {
 							// CRITICAL: Match original behavior - check regex BEFORE adding to list
