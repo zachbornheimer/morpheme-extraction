@@ -137,12 +137,10 @@ struct morpheme_list_t fuse_regex(struct morpheme_list_t original)
 			if (dup.type == STEM) {
 				orig = dup;
 				++orig.freq;
-				new.list[current_index] = orig;
 				continue;
 			}
 			if (orig.type == STEM) {
 				++orig.freq;
-				new.list[current_index] = orig;
 				continue;
 			}
 

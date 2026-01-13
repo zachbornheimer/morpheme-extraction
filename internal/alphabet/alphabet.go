@@ -51,15 +51,24 @@ func FindWordDelimiter(filePtr *string, cfg *config.Config) (string, error) {
 			wdReal[index] = 0
 			maxSize = wd[j].Second
 		} else if wd[j].Second == maxSize && functions.InArray(wd[j].First, wdReal, index) == -1 {
+			// Reallocate BEFORE writing if needed
+			if index >= len(wdReal) {
+				newWdReal := make([]byte, index+2)
+				copy(newWdReal, wdReal)
+				wdReal = newWdReal
+			}
+
 			wdReal[index] = wd[j].First
 			index++
+
+			// Reallocate again if needed for null terminator
+			if index >= len(wdReal) {
+				newWdReal := make([]byte, index+2)
+				copy(newWdReal, wdReal)
+				wdReal = newWdReal
+			}
 			wdReal[index] = 0
-			
-			// Reallocate
-			newWdReal := make([]byte, index+2)
-			copy(newWdReal, wdReal)
-			wdReal = newWdReal
-			
+
 			uniqd, _ := functions.Uniq(string(wdReal))
 			wdReal = []byte(uniqd)
 		}

@@ -3,7 +3,7 @@ All Processed Files
 ===================
 PREFIX: N 
 PREFIX: o 
-INFIX: on 
+STEM: on 
 STEM: one 
 PREFIX: wo 
 INFIX: ld 
@@ -43,14 +43,14 @@ INFIX: ntur
 INFIX: ur 
 PREFIX: tha 
 STEM: that 
-INFIX: at 
+STEM: at 
 PREFIX: thi 
 STEM: world 
 INFIX: rld 
 PREFIX: wa 
 STEM: was 
-PREFIX: a 
-INFIX: an 
+STEM: a 
+STEM: an 
 PREFIX: clo 
 PREFIX: cl 
 SUFFIX: ly 
@@ -86,13 +86,13 @@ PREFIX: mor
 PREFIX: mo 
 INFIX: al 
 PREFIX: hi 
-INFIX: me 
+STEM: me 
 PREFIX: bu 
 STEM: them 
 INFIX: em 
 INFIX: se 
 STEM: about 
-INFIX: out 
+STEM: out 
 PREFIX: ab 
 INFIX: ir 
 PREFIX: v 
@@ -104,7 +104,7 @@ INFIX: rn
 PREFIX: concern 
 INFIX: ncern 
 INFIX: ern 
-PREFIX: we 
+STEM: we 
 PREFIX: s 
 INFIX: per 
 PREFIX: p 
@@ -125,7 +125,7 @@ PREFIX: sw
 PREFIX: mu 
 PREFIX: d 
 PREFIX: dr 
-PREFIX: water 
+STEM: water 
 INFIX: ter 
 INFIX: ite 
 PREFIX: compla 
@@ -160,7 +160,7 @@ INFIX: ou
 STEM: space 
 INFIX: ace 
 PREFIX: sp 
-PREFIX: so 
+STEM: so 
 PREFIX: sou 
 PREFIX: hu 
 PREFIX: da 
@@ -294,7 +294,7 @@ INFIX: ess
 PREFIX: exp 
 STEM: since 
 INFIX: rf 
-PREFIX: remote 
+STEM: remote 
 INFIX: mote 
 INFIX: ti 
 STEM: nearer 

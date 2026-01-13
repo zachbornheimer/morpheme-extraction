@@ -4,6 +4,7 @@ package morpheme_list_t
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
@@ -403,6 +404,52 @@ func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCat
 		// Infix Identification
 		if list.List[i].Type == constants.UNDEF {
 			list.List[i].Type = constants.INFIX
+		}
+
+		// Reclassify based on morpheme position in actual words
+		// Check if this morpheme appears predominantly at word boundaries
+		if list.List[i].Type == constants.INFIX && list.List[i].WordsCount > 0 {
+			morphemeStr := list.List[i].Morpheme
+			atStart := 0
+			atEnd := 0
+
+			// Check all words containing this morpheme
+			for j := 0; j < list.List[i].WordsCount; j++ {
+				// Use StringClean() to get proper word without null padding
+				wordStr := list.List[i].Words[j].StringClean()
+				// Trim whitespace and punctuation for boundary detection
+				wordStr = strings.TrimSpace(wordStr)
+				wordStr = strings.Trim(wordStr, ".,!?;:'\"")
+
+				// Check if morpheme is at the start of the word
+				if strings.HasPrefix(wordStr, morphemeStr) {
+					atStart++
+				}
+
+				// Check if morpheme is at the end of the word
+				if strings.HasSuffix(wordStr, morphemeStr) {
+					atEnd++
+				}
+			}
+
+			total := float64(list.List[i].WordsCount)
+			startPct := float64(atStart) / total
+			endPct := float64(atEnd) / total
+
+			// If >50% of occurrences are at a boundary, reclassify
+			// Lower threshold aligns with paper's focus on parallel environments
+			const threshold = 0.5
+
+			if startPct > threshold && endPct <= 0.2 {
+				// Predominantly at word start → PREFIX
+				list.List[i].Type = constants.PREFIX
+			} else if endPct > threshold && startPct <= 0.2 {
+				// Predominantly at word end → SUFFIX
+				list.List[i].Type = constants.SUFFIX
+			} else if startPct > threshold && endPct > threshold {
+				// Appears at both start and end → likely a STEM
+				list.List[i].Type = constants.STEM
+			}
 		}
 
 		(*lex)[i].Morpheme = list.List[i]

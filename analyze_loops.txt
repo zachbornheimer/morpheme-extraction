@@ -1,0 +1,64 @@
+C version loop:
+  for (k = 0; k < ngram_length; k++) {
+    for (j = k; j < ngram_length; j++) {
+      if (j - k < 9) continue;  // Skip when j - k < 9
+      // Process k, j
+    }
+  }
+
+Go version loop:
+  for k := 0; k < ngramLength; k++ {
+    for j := k + 9; j < ngramLength; j++ {
+      // Process k, j
+    }
+  }
+
+For ngram_length = 2210:
+
+C pairs checked:
+  k=0: j=9..2209 (2201 pairs)
+  k=1: j=10..2209 (2200 pairs)  
+  k=2: j=11..2209 (2199 pairs)
+  ...
+  k=2201: j=2210..2209 (0 pairs - WAIT, j starts at k=2201, skips to 2210, but limit is 2209!)
+
+This looks wrong! When k=2201, j starts at 2201, needs to skip to 2210 (j-k >= 9), but j < 2210, so NO iterations!
+
+Let me calculate total pairs:
+Sum from i=9 to i=2209 of i = Sum(1 to 2209) - Sum(1 to 8)
+= 2209*2210/2 - 8*9/2
+= 2,440,945 - 36
+= 2,440,909
+
+Go pairs checked:
+  k=0: j=9..2209 (2201 pairs)
+  k=1: j=10..2209 (2200 pairs)
+  ...
+  k=2200: j=2209..2209 (1 pair)
+  k=2201: j=2210..2209 (0 pairs)
+
+Total = 2201 + 2200 + ... + 1 + 0 + ... + 0
+= Sum(1 to 2201) = 2201*2202/2 = 2,423,301
+
+Wait, these should be the same...
+
+Actually let me recalculate. For C:
+- k=0: j starts at 0, skips 0-8, processes 9-2209 = 2201 values  
+- k=1: j starts at 1, skips 1-9, processes 10-2209 = 2200 values
+- k=2200: j starts at 2200, skips 2200-2208, processes 2209 = 1 value
+- k=2201: j starts at 2201, skips 2201-2209, but 2210 >= 2210 so 0 values
+
+For Go with j := k + 9:
+- k=0: j=9..2209 = 2201 values
+- k=1: j=10..2209 = 2200 values  
+- k=2200: j=2209..2209 = 1 value
+- k=2201: j=2210..2209 = 0 values (2210 >= 2210)
+
+These ARE the same! So that's not the issue.
+
+Let me check if maybe there's a bug in how the C version is counting, or maybe it's the strcmp check that's filtering out some pairs.
+</thinking>
+
+<function_calls>
+<invoke name="Bash">
+<parameter name="command">cat analyze_loops.txt && rm analyze_loops.txt
