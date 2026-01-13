@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
+	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
 	"github.com/zachbornheimer/morpheme-extraction/internal/filesystem"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
@@ -102,10 +103,12 @@ func WriteToFile(filename string, lex []structs.LexicalCategories, count int, he
 	}
 	fmt.Fprintf(output, "\n")
 
-	// Write morphemes
+	// Write morphemes (normalized for consistent output)
 	for i := 0; i < count; i++ {
 		if lex[i].Morpheme != nil && lex[i].Morpheme.Type != constants.UNDEF {
-			fmt.Fprintf(output, "%s: %s \n", constants.StrType(lex[i].Morpheme.Type), lex[i].Morpheme.Morpheme)
+			// Normalize morpheme string to remove punctuation and lowercase
+			normalizedMorpheme := dictionary.Normalize(lex[i].Morpheme.Morpheme)
+			fmt.Fprintf(output, "%s: %s \n", constants.StrType(lex[i].Morpheme.Type), normalizedMorpheme)
 		}
 	}
 }

@@ -3,9 +3,14 @@ package dictionary
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 )
+
+// nextID provides atomic sequential ID assignment for WordIdentity
+// Used for bitset indexing optimization (O(1) set membership)
+var nextID int32
 
 // Frequency encapsulates positional frequency tracking
 // Array positions map directly to ngram positions:
@@ -91,11 +96,11 @@ func (f *Frequency) calcIndex(context int, offset int) int {
 
 // WordIdentity represents a unique word with positional frequency tracking
 // One instance per unique string (interned)
-// NOTE: Currently uses normalized (uppercase) strings for interning
-// Future: Can use case-insensitive comparisons once baseline matching not needed
+// NOTE: Currently uses normalized (lowercase) strings for interning
 type WordIdentity struct {
-	Str       string    // Normalized string (uppercase)
+	Str       string    // Normalized string (lowercase)
 	Frequency Frequency
+	ID        int       // Sequential ID for bitset indexing (1-based)
 }
 
 // String returns the word string (for compatibility)
@@ -116,16 +121,15 @@ var Dictionary = &dict{
 
 // Word gets or creates a word identity (factory pattern)
 // Returns pointer for O(1) equality checking
-// NOTE: Currently case-sensitive for algorithm correctness
-// Future: Add case-insensitive variant after baseline matching complete
+// Uses case-insensitive normalization to eliminate duplicates
 // Thread-safe for concurrent access
 func (d *dict) Word(str string) *WordIdentity {
-	// Use original case for now (algorithm requires case sensitivity)
-	// normalized := Normalize(str)  // TODO: Enable after baseline matching
+	// Normalize to lowercase for case-insensitive interning
+	normalized := Normalize(str)
 
 	// Fast path: read lock
 	d.mu.RLock()
-	if word, exists := d.words[str]; exists {
+	if word, exists := d.words[normalized]; exists {
 		d.mu.RUnlock()
 		return word
 	}
@@ -136,16 +140,17 @@ func (d *dict) Word(str string) *WordIdentity {
 	defer d.mu.Unlock()
 
 	// Double-check after acquiring write lock
-	if word, exists := d.words[str]; exists {
+	if word, exists := d.words[normalized]; exists {
 		return word
 	}
 
-	// Create new identity with original case
+	// Create new identity with normalized string and sequential ID
 	word := &WordIdentity{
-		Str:       str,
+		Str:       normalized,
 		Frequency: Frequency{},
+		ID:        int(atomic.AddInt32(&nextID, 1)),
 	}
-	d.words[str] = word
+	d.words[normalized] = word
 	return word
 }
 
@@ -161,4 +166,5 @@ func (d *dict) Clear() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.words = make(map[string]*WordIdentity)
+	atomic.StoreInt32(&nextID, 0)
 }

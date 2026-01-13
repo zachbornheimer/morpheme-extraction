@@ -1,10 +1,10 @@
 package dictionary
 
-// ToUpperASCII converts ASCII string to uppercase using fast bit operations
-// For ASCII: lowercase 'a'-'z' (0x61-0x7A) → uppercase 'A'-'Z' (0x41-0x5A)
-// Difference is bit 5 (0x20), so we clear it: ch & 0xDF
+// ToLowerASCII converts ASCII string to lowercase using fast bit operations
+// For ASCII: uppercase 'A'-'Z' (0x41-0x5A) → lowercase 'a'-'z' (0x61-0x7A)
+// Difference is bit 5 (0x20), so we set it: ch | 0x20
 // Non-ASCII (UTF-8) falls back to slower byte-by-byte conversion
-func ToUpperASCII(s string) string {
+func ToLowerASCII(s string) string {
 	// Fast path: Check if string is pure ASCII
 	hasNonASCII := false
 	for i := 0; i < len(s); i++ {
@@ -18,9 +18,9 @@ func ToUpperASCII(s string) string {
 	if !hasNonASCII {
 		b := []byte(s)
 		for i := 0; i < len(b); i++ {
-			// If lowercase (0x61-0x7A), clear bit 5 to make uppercase
-			if b[i] >= 'a' && b[i] <= 'z' {
-				b[i] &= 0xDF // Clear bit 5: 'a' (0x61) → 'A' (0x41)
+			// If uppercase (0x41-0x5A), set bit 5 to make lowercase
+			if b[i] >= 'A' && b[i] <= 'Z' {
+				b[i] |= 0x20 // Set bit 5: 'A' (0x41) → 'a' (0x61)
 			}
 		}
 		return string(b)
@@ -28,20 +28,48 @@ func ToUpperASCII(s string) string {
 
 	// UTF-8: slower byte-by-byte with rune support
 	// For simplicity, only convert ASCII portion (common in most text)
-	// Full Unicode uppercase would require unicode.ToUpper (slower)
+	// Full Unicode lowercase would require unicode.ToLower (slower)
 	b := []byte(s)
 	for i := 0; i < len(b); i++ {
-		if b[i] >= 'a' && b[i] <= 'z' {
-			b[i] &= 0xDF
+		if b[i] >= 'A' && b[i] <= 'Z' {
+			b[i] |= 0x20
 		}
 		// Non-ASCII bytes pass through unchanged
 	}
 	return string(b)
 }
 
+// isPunctuation checks if a byte is common punctuation
+func isPunctuation(ch byte) bool {
+	return ch == '.' || ch == ',' || ch == '!' || ch == '?' ||
+		ch == ';' || ch == ':' || ch == '\'' || ch == '"'
+}
+
 // Normalize prepares a word for dictionary interning
-// - Converts to uppercase (case-insensitive matching)
-// - Future: Could add other normalizations (strip diacritics, etc.)
+// - Converts to lowercase (case-insensitive matching)
+// - Strips leading punctuation (handles "The, 1st,, etc.)
+// - Strips trailing punctuation (.,!?;:'")
 func Normalize(s string) string {
-	return ToUpperASCII(s)
+	// Convert to lowercase
+	s = ToLowerASCII(s)
+
+	// Strip leading punctuation
+	for len(s) > 0 {
+		if isPunctuation(s[0]) {
+			s = s[1:]
+		} else {
+			break
+		}
+	}
+
+	// Strip trailing punctuation
+	for len(s) > 0 {
+		if isPunctuation(s[len(s)-1]) {
+			s = s[:len(s)-1]
+		} else {
+			break
+		}
+	}
+
+	return s
 }
