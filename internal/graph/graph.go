@@ -143,3 +143,109 @@ func (n *SemanticNode) NeighborCount() int {
 func (n *SemanticNode) Word() *dictionary.WordIdentity {
 	return n.word
 }
+
+// FindPath uses BFS to find the shortest path between two nodes
+// Returns nil if no path exists
+// Returns slice of nodes representing the path from fromID to toID (inclusive)
+func (g *SemanticGraph) FindPath(fromID, toID int) []*SemanticNode {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if g.nodes[fromID] == nil || g.nodes[toID] == nil {
+		return nil
+	}
+
+	if fromID == toID {
+		return []*SemanticNode{g.nodes[fromID]}
+	}
+
+	// BFS implementation
+	visited := make(map[int]bool)
+	parent := make(map[int]int)
+	queue := []int{fromID}
+	visited[fromID] = true
+
+	// BFS search
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		if current == toID {
+			// Reconstruct path by following parent pointers
+			path := []*SemanticNode{}
+			for id := toID; id != fromID; id = parent[id] {
+				path = append([]*SemanticNode{g.nodes[id]}, path...)
+			}
+			path = append([]*SemanticNode{g.nodes[fromID]}, path...)
+			return path
+		}
+
+		// Explore neighbors
+		node := g.nodes[current]
+		node.mu.RLock()
+		for neighborID := range node.neighbors {
+			if !visited[neighborID] {
+				visited[neighborID] = true
+				parent[neighborID] = current
+				queue = append(queue, neighborID)
+			}
+		}
+		node.mu.RUnlock()
+	}
+
+	return nil // No path found
+}
+
+// GetCluster returns all nodes within depth hops of the given node
+// Uses BFS to explore the graph up to the specified depth
+// Returns nil if node doesn't exist
+func (g *SemanticGraph) GetCluster(nodeID int, depth int) []*SemanticNode {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if g.nodes[nodeID] == nil {
+		return nil
+	}
+
+	if depth < 0 {
+		return nil
+	}
+
+	if depth == 0 {
+		return []*SemanticNode{g.nodes[nodeID]}
+	}
+
+	cluster := []*SemanticNode{}
+	visited := make(map[int]bool)
+
+	type queueItem struct {
+		id    int
+		level int
+	}
+
+	queue := []queueItem{{nodeID, 0}}
+	visited[nodeID] = true
+
+	// BFS with depth tracking
+	for len(queue) > 0 {
+		item := queue[0]
+		queue = queue[1:]
+
+		cluster = append(cluster, g.nodes[item.id])
+
+		// Only explore neighbors if we haven't reached max depth
+		if item.level < depth {
+			node := g.nodes[item.id]
+			node.mu.RLock()
+			for neighborID := range node.neighbors {
+				if !visited[neighborID] {
+					visited[neighborID] = true
+					queue = append(queue, queueItem{neighborID, item.level + 1})
+				}
+			}
+			node.mu.RUnlock()
+		}
+	}
+
+	return cluster
+}
