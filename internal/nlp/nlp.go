@@ -258,7 +258,9 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 	}
 	for i := 0; i < *ngramLength; i++ {
 		if ng[i] != nil && ng[i].Word.Identity != nil {
-			semanticGraph.AddNode(ng[i].Word.Identity)
+			node := semanticGraph.AddNode(ng[i].Word.Identity)
+			// Track this ngram position for fast lookup during morpheme extraction
+			node.AddPosition(i)
 		}
 	}
 
@@ -432,15 +434,20 @@ func FindMorphemes(semanticGraph *graph.SemanticGraph, ng []*structs.Ngram, ngra
 		// Get neighbor IDs and iterate through them
 		neighborIDs := node.GetNeighbors()
 		for _, neighborID := range neighborIDs {
-			// Find ngrams with this neighbor word ID at indices j >= i + NgramSize
-			// This matches the original algorithm's constraint
-			for j := i + constants.NgramSize; j < ngramLength; j++ {
-				if ng[j] == nil || ng[j].Word.Identity == nil {
+			// Get positions where this neighbor appears (O(1) instead of O(n) scan!)
+			neighborNode := semanticGraph.GetNode(neighborID)
+			if neighborNode == nil {
+				continue
+			}
+
+			positions := neighborNode.GetPositions()
+			for _, j := range positions {
+				// Skip positions before i + NgramSize (maintains original algorithm constraint)
+				if j < i+constants.NgramSize {
 					continue
 				}
 
-				// Check if this ngram has the neighbor word ID
-				if ng[j].Word.Identity.ID != neighborID {
+				if ng[j] == nil {
 					continue
 				}
 

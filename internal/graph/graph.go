@@ -20,9 +20,11 @@ type SemanticGraph struct {
 
 // SemanticNode represents a single word in the semantic graph
 // Neighbors map stores edges: neighbor ID → similarity weight
+// Positions tracks where this word appears in the ngram array for fast lookup
 type SemanticNode struct {
 	word      *dictionary.WordIdentity
 	neighbors map[int]float64  // neighbor ID → similarity weight (1.0 for now)
+	positions []int             // ngram array indices where this word appears
 	mu        sync.RWMutex
 }
 
@@ -130,6 +132,22 @@ func (n *SemanticNode) GetNeighbors() []int {
 		neighborIDs = append(neighborIDs, id)
 	}
 	return neighborIDs
+}
+
+// AddPosition adds an ngram array index where this word appears
+// This enables O(1) lookup instead of O(n) scanning during morpheme extraction
+func (n *SemanticNode) AddPosition(ngramIndex int) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.positions = append(n.positions, ngramIndex)
+}
+
+// GetPositions returns all ngram array indices where this word appears
+// Used for fast lookup during morpheme pair processing
+func (n *SemanticNode) GetPositions() []int {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return n.positions
 }
 
 // NeighborCount returns number of neighbors
