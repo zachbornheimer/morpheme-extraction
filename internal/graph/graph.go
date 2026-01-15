@@ -62,7 +62,8 @@ func (g *SemanticGraph) AddNode(word *dictionary.WordIdentity) *SemanticNode {
 }
 
 // AddEdge creates a bidirectional edge between two nodes
-// Edge weight represents similarity strength (1.0 for co-occurrence)
+// Edge weight represents similarity strength - increments with each co-occurrence
+// This implements "neural pathway strengthening" where repeated evidence builds weight
 // Thread-safe for concurrent edge additions
 func (g *SemanticGraph) AddEdge(id1, id2 int, similarity float64) {
 	if id1 == id2 {
@@ -76,12 +77,13 @@ func (g *SemanticGraph) AddEdge(id1, id2 int, similarity float64) {
 
 	if node1 != nil && node2 != nil {
 		// Add edge in both directions (undirected graph)
+		// Increment weight for each occurrence (neural pathway strengthening)
 		node1.mu.Lock()
-		node1.neighbors[id2] = similarity
+		node1.neighbors[id2] += similarity
 		node1.mu.Unlock()
 
 		node2.mu.Lock()
-		node2.neighbors[id1] = similarity
+		node2.neighbors[id1] += similarity
 		node2.mu.Unlock()
 	}
 }
@@ -132,6 +134,14 @@ func (n *SemanticNode) GetNeighbors() []int {
 		neighborIDs = append(neighborIDs, id)
 	}
 	return neighborIDs
+}
+
+// GetEdgeWeight returns the weight of the edge to a neighbor
+// Returns 0.0 if neighbor doesn't exist
+func (n *SemanticNode) GetEdgeWeight(neighborID int) float64 {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return n.neighbors[neighborID]
 }
 
 // AddPosition adds an ngram array index where this word appears

@@ -37,6 +37,7 @@ const (
 	ThresholdSimilarNgrams  = 12.5
 	ThresholdCircumfix      = 100.0
 	ThresholdConfirmation   = 0.0  // Temporarily disabled for testing
+	MinEdgeWeight           = 10.0  // Minimum edge weight for morpheme extraction (neural pathway threshold)
 )
 
 // Morpheme Types

@@ -40,25 +40,25 @@ func (ci *ContextIndex) Add(ngramIdx int, ngramHalfSize int) {
 	// Collect unique context word IDs (use map to deduplicate)
 	contextIDs := make(map[int]bool)
 
-	// Before context
+	// Before context - iterate over unique WordFreq entries
 	for i := 0; i < ngramHalfSize; i++ {
 		if ng.Before.At[i] != nil {
-			for j := 0; j < ng.Before.At[i].Count; j++ {
+			for j := 0; j < len(ng.Before.At[i].Elems); j++ {
 				elem := ng.Before.At[i].Elems[j]
-				if elem != nil && elem.Identity != nil {
-					contextIDs[elem.Identity.ID] = true
+				if elem != nil && elem.Word != nil && elem.Word.Identity != nil {
+					contextIDs[elem.Word.Identity.ID] = true
 				}
 			}
 		}
 	}
 
-	// After context
+	// After context - iterate over unique WordFreq entries
 	for i := 0; i < ngramHalfSize; i++ {
 		if ng.After.At[i] != nil {
-			for j := 0; j < ng.After.At[i].Count; j++ {
+			for j := 0; j < len(ng.After.At[i].Elems); j++ {
 				elem := ng.After.At[i].Elems[j]
-				if elem != nil && elem.Identity != nil {
-					contextIDs[elem.Identity.ID] = true
+				if elem != nil && elem.Word != nil && elem.Word.Identity != nil {
+					contextIDs[elem.Word.Identity.ID] = true
 				}
 			}
 		}
@@ -92,25 +92,31 @@ func (ci *ContextIndex) FindCandidates(ngramIdx int, ngramHalfSize int, minOverl
 	// Collect context word IDs from ng
 	contextIDs := []int{}
 
-	// Before context
+	// Before context - expand by frequency
 	for i := 0; i < ngramHalfSize; i++ {
 		if ng.Before.At[i] != nil {
-			for j := 0; j < ng.Before.At[i].Count; j++ {
+			for j := 0; j < len(ng.Before.At[i].Elems); j++ {
 				elem := ng.Before.At[i].Elems[j]
-				if elem != nil && elem.Identity != nil {
-					contextIDs = append(contextIDs, elem.Identity.ID)
+				if elem != nil && elem.Word != nil && elem.Word.Identity != nil {
+					// Add ID once per frequency count
+					for f := 0; f < elem.Freq; f++ {
+						contextIDs = append(contextIDs, elem.Word.Identity.ID)
+					}
 				}
 			}
 		}
 	}
 
-	// After context
+	// After context - expand by frequency
 	for i := 0; i < ngramHalfSize; i++ {
 		if ng.After.At[i] != nil {
-			for j := 0; j < ng.After.At[i].Count; j++ {
+			for j := 0; j < len(ng.After.At[i].Elems); j++ {
 				elem := ng.After.At[i].Elems[j]
-				if elem != nil && elem.Identity != nil {
-					contextIDs = append(contextIDs, elem.Identity.ID)
+				if elem != nil && elem.Word != nil && elem.Word.Identity != nil {
+					// Add ID once per frequency count
+					for f := 0; f < elem.Freq; f++ {
+						contextIDs = append(contextIDs, elem.Word.Identity.ID)
+					}
 				}
 			}
 		}

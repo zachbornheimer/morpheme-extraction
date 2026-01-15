@@ -22,13 +22,55 @@ var contextIdentityPool = sync.Pool{
 	},
 }
 
-// AddNgramElement adds element to ngram array (lines 22-28)
-func AddNgramElement(atIndex **structs.WordArray, index int) int {
-	(*atIndex).Count++
-	newElems := make([]*structs.Word, (*atIndex).Count+1)
-	copy(newElems, (*atIndex).Elems)
-	(*atIndex).Elems = newElems
-	return (*atIndex).Count - 1
+// AddNgramElement adds or increments a word in the ngram array
+// Now uses frequency-based storage: finds existing word or creates new WordFreq entry
+// wordStr: the word to add
+// context: constants.BEFORE or constants.AFTER
+// offset: position offset from center
+// Returns: index of the WordFreq entry (for compatibility)
+func AddNgramElement(atIndex **structs.WordArray, wordStr string, context int, offset int) int {
+	if *atIndex == nil {
+		return -1
+	}
+
+	// Get word identity from dictionary
+	wordIdentity := dictionary.Dictionary.Word(wordStr)
+	if wordIdentity == nil {
+		return -1
+	}
+
+	// Search for existing WordFreq with this identity
+	for i := 0; i < len((*atIndex).Elems); i++ {
+		if (*atIndex).Elems[i] != nil &&
+		   (*atIndex).Elems[i].Word != nil &&
+		   (*atIndex).Elems[i].Word.Identity == wordIdentity {
+			// Found existing entry - increment frequency
+			(*atIndex).Elems[i].Freq++
+			(*atIndex).Count++ // Increment total count
+			// Track positional frequency in dictionary
+			wordIdentity.Frequency.IncPos(context, offset)
+			return i
+		}
+	}
+
+	// Not found - create new WordFreq entry
+	newWord := &structs.Word{}
+	newWord.SetWord(wordStr)
+
+	newWordFreq := &structs.WordFreq{
+		Word: newWord,
+		Freq: 1,
+	}
+
+	(*atIndex).Elems = append((*atIndex).Elems, newWordFreq)
+	(*atIndex).Count++ // Increment total count
+
+	// Track positional frequency in dictionary
+	if newWord.Identity != nil {
+		newWord.Identity.Frequency.IncPos(context, offset)
+	}
+
+	return len((*atIndex).Elems) - 1
 }
 
 // NewNgram creates a new ngram structure (lines 30-52)
@@ -40,11 +82,11 @@ func NewNgram() structs.Ngram {
 	for index := 0; index < (constants.NgramSize / 2); index++ {
 		ng.Before.At[index] = &structs.WordArray{
 			Count: 0,
-			Elems: make([]*structs.Word, 1),
+			Elems: make([]*structs.WordFreq, 0), // Start empty, will grow as needed
 		}
 		ng.After.At[index] = &structs.WordArray{
 			Count: 0,
-			Elems: make([]*structs.Word, 1),
+			Elems: make([]*structs.WordFreq, 0), // Start empty, will grow as needed
 		}
 	}
 
@@ -60,46 +102,24 @@ func FreeNgram(ng *structs.Ngram) {
 
 // Uniqify removes duplicates from ngram arrays (lines 68-92)
 func Uniqify(bora *structs.NgramHalfArray) {
-	// bora = before or after
-	for i := 0; i < (constants.NgramSize / 2); i++ {
-		count := bora.At[i].Count
-		
-		for j := 0; j < count; j++ {
-			elems := make([]*structs.Word, bora.At[i].Count+1)
-			elemsCount := 0
-			elems[elemsCount] = bora.At[i].Elems[j]
-			elemsCount++
-			elem := elems[elemsCount-1]
-
-			// C used OpenMP parallel for
-			for k := j + 1; k < count-1; k++ {
-				comp := bora.At[i].Elems[k]
-				if comp.Freq != 1 {
-					continue
-				}
-				// Use Identity pointer comparison (O(1) vs O(N) string comparison)
-				if elem.Identity != nil && comp.Identity != nil && elem.Identity == comp.Identity {
-					elem.Freq += bora.At[i].Elems[k].Freq
-				} else {
-					elems[elemsCount] = bora.At[i].Elems[k]
-					elemsCount++
-				}
-			}
-			bora.At[i].Elems = elems[:elemsCount]
-		}
-	}
+	// Note: With frequency-based storage, this function is now redundant
+	// AddNgramElement already deduplicates and merges frequencies
+	// Keeping this for compatibility but it's a no-op
+	_ = bora // unused
 }
 
 // NgramsSimilar checks if two ngrams are similar (lines 130-178)
-// Uses Identity pointers for O(1) comparison instead of O(N) string comparison
-func NgramsSimilar(a, b structs.Ngram) bool {
+// Uses Identity pointers for O(1) comparison, expands frequencies to match original algorithm
+// Returns: (isSimilar bool, overlapCount float64)
+// overlapCount = number of shared context words (neural pathway strength)
+func NgramsSimilar(a, b structs.Ngram) (bool, float64) {
 	ngramHalfSize := constants.NgramSize / 2
 
-	// Count all elements using struct methods
+	// Count all elements using struct methods (already accounts for frequencies via Count)
 	elemsCount := a.CountContextWords(ngramHalfSize) + b.CountContextWords(ngramHalfSize)
 
 	if elemsCount == 0 {
-		return false
+		return false, 0.0
 	}
 
 	// Get Identity buffer from pool (optimization: reuse allocations)
@@ -122,11 +142,11 @@ func NgramsSimilar(a, b structs.Ngram) bool {
 
 	arrCount := 0
 
-	// Collect all Identity pointers using struct methods (O(1) pointer operations)
+	// Collect all Identity pointers (expanded by frequency) using struct methods
 	arrCount += a.CollectContextIdentities(arr[arrCount:], ngramHalfSize)
 	arrCount += b.CollectContextIdentities(arr[arrCount:], ngramHalfSize)
 
-	// Count unique identities using O(1) pointer equality
+	// Count unique identities using bitset
 	count := functions.UniqIdentities(arr[:arrCount], arrCount)
 
 	// Line 170 in C: arr_count -= 1;
@@ -134,11 +154,15 @@ func NgramsSimilar(a, b structs.Ngram) bool {
 
 	// Line 171 in C: percent_similar = (double) 100.00 * (((double)arr_count - (double)count)/(double)arr_count);
 	if arrCount <= 0 {
-		return false
+		return false, 0.0
 	}
 	percentSimilar := int(100.0 * (float64(arrCount-count) / float64(arrCount)))
 
-	return float64(percentSimilar) >= constants.ThresholdSimilarNgrams
+	// Calculate overlap count (neural pathway strength)
+	overlapCount := float64(arrCount - count) // Number of shared context words
+
+	isSimilar := float64(percentSimilar) >= constants.ThresholdSimilarNgrams
+	return isSimilar, overlapCount
 }
 
 // AddSimilarNgramRef adds reference to similar ngram (lines 180-195)

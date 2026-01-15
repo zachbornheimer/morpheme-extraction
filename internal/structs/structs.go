@@ -154,24 +154,36 @@ func reverseString(s string) string {
 	return result
 }
 
+// WordFreq stores a word with its frequency in a specific context position
+// Replaces duplicate Word pointers with (word, frequency) pairs
+type WordFreq struct {
+	Word *Word // Pointer to the word
+	Freq int   // Number of times this word appears at this position
+}
+
 // WordArray represents struct word_t_array (lines 24-27)
+// Now stores unique words with frequencies instead of duplicate pointers
 type WordArray struct {
-	Elems []*Word // elems
-	Count int     // count (unsigned int)
+	Elems []*WordFreq // elems - unique words with frequencies
+	Count int         // count - total occurrences (sum of all frequencies)
 }
 
 // ToSlice converts WordArray to []string, collecting non-nil words
 // Uses raw Str (including nulls) to match C behavior
+// Note: With frequency-based storage, this expands words by their frequency
 func (wa *WordArray) ToSlice() []string {
 	if wa == nil {
 		return nil
 	}
-	result := make([]string, 0, wa.Count)
-	for i := 0; i < wa.Count; i++ {
-		if wa.Elems[i] != nil {
-			word := string(wa.Elems[i].Str)
+	result := make([]string, 0, wa.Count) // wa.Count is total occurrences
+	for i := 0; i < len(wa.Elems); i++ {
+		if wa.Elems[i] != nil && wa.Elems[i].Word != nil {
+			word := string(wa.Elems[i].Word.Str)
 			if word != "" {
-				result = append(result, word)
+				// Add word Freq times (expand by frequency)
+				for f := 0; f < wa.Elems[i].Freq; f++ {
+					result = append(result, word)
+				}
 			}
 		}
 	}
@@ -183,10 +195,10 @@ func (wa *WordArray) ToSet() StringSet {
 	if wa == nil {
 		return NewStringSet(0)
 	}
-	result := NewStringSet(wa.Count)
-	for i := 0; i < wa.Count; i++ {
-		if wa.Elems[i] != nil {
-			word := string(wa.Elems[i].Str)
+	result := NewStringSet(len(wa.Elems)) // len(Elems) is unique count
+	for i := 0; i < len(wa.Elems); i++ {
+		if wa.Elems[i] != nil && wa.Elems[i].Word != nil {
+			word := string(wa.Elems[i].Word.Str)
 			if word != "" {
 				result.Add(word)
 			}
@@ -213,16 +225,21 @@ func (h *NgramHalfArray) CountWords(ngramHalfSize int) int {
 
 // CollectWordsInto appends words from this half-array into the provided slice
 // Returns the number of words added
+// With frequency storage, expands each word by its frequency
 func (h *NgramHalfArray) CollectWordsInto(arr []string, startIdx int, ngramHalfSize int) int {
 	idx := startIdx
 	for i := 0; i < ngramHalfSize; i++ {
 		if h.At[i] != nil {
-			for j := 0; j < h.At[i].Count; j++ {
-				if h.At[i].Elems[j] != nil {
-					word := string(h.At[i].Elems[j].Str)
+			// Iterate over unique words (len(Elems))
+			for j := 0; j < len(h.At[i].Elems); j++ {
+				if h.At[i].Elems[j] != nil && h.At[i].Elems[j].Word != nil {
+					word := string(h.At[i].Elems[j].Word.Str)
 					if word != "" {
-						arr[idx] = word
-						idx++
+						// Add word Freq times
+						for f := 0; f < h.At[i].Elems[j].Freq; f++ {
+							arr[idx] = word
+							idx++
+						}
 					}
 				}
 			}
@@ -233,14 +250,20 @@ func (h *NgramHalfArray) CollectWordsInto(arr []string, startIdx int, ngramHalfS
 
 // CollectIdentitiesInto appends Identity pointers from this half-array into the provided slice
 // Returns the number of identities added (uses O(1) pointer operations)
+// With frequency storage, expands each identity by its frequency
 func (h *NgramHalfArray) CollectIdentitiesInto(arr []*dictionary.WordIdentity, startIdx int, ngramHalfSize int) int {
 	idx := startIdx
-	for i := 0; i < ngramHalfSize; i++ {
+	for i := range ngramHalfSize {
 		if h.At[i] != nil {
-			for j := 0; j < h.At[i].Count; j++ {
-				if h.At[i].Elems[j] != nil && h.At[i].Elems[j].Identity != nil {
-					arr[idx] = h.At[i].Elems[j].Identity
-					idx++
+			// Iterate over unique words (len(Elems))
+			for j := range len(h.At[i].Elems) {
+				if h.At[i].Elems[j] != nil && h.At[i].Elems[j].Word != nil && h.At[i].Elems[j].Word.Identity != nil {
+					identity := h.At[i].Elems[j].Word.Identity
+					// Add identity Freq times (use modern range syntax)
+					for range h.At[i].Elems[j].Freq {
+						arr[idx] = identity
+						idx++
+					}
 				}
 			}
 		}

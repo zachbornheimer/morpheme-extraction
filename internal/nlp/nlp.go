@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/zachbornheimer/morpheme-extraction/internal/alphabet"
 	"github.com/zachbornheimer/morpheme-extraction/internal/config"
@@ -192,45 +193,19 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 			for j := 0; j < (constants.NgramSize / 2); j++ {
 				index := i - (constants.NgramSize / 2) + j
-				var elemID int
+				offset := (constants.NgramSize / 2) - j
 
+				// Before context
 				if index > 0 && index < len(arr) && len(arr[index]) > 0 {
-					elemID = ngram_t.AddNgramElement(&ngram.Before.At[j], j)
-					if ngram.Before.At[j].Elems == nil {
-						ngram.Before.At[j].Elems = make([]*structs.Word, 1)
-					}
-					if elemID >= len(ngram.Before.At[j].Elems) {
-						newElems := make([]*structs.Word, elemID+1)
-						copy(newElems, ngram.Before.At[j].Elems)
-						ngram.Before.At[j].Elems = newElems
-					}
-					ngram.Before.At[j].Elems[elemID] = &structs.Word{}
-					ngram.Before.At[j].Elems[elemID].SetWord(arr[index])
-					// Track positional frequency: BEFORE context at offset (NgramSize/2 - j)
-					if ngram.Before.At[j].Elems[elemID].Identity != nil {
-						offset := (constants.NgramSize / 2) - j
-						ngram.Before.At[j].Elems[elemID].Identity.Frequency.IncPos(constants.BEFORE, offset)
-					}
+					// AddNgramElement now handles everything: find-or-create WordFreq, increment frequency, track position
+					ngram_t.AddNgramElement(&ngram.Before.At[j], arr[index], constants.BEFORE, offset)
 				}
 
+				// After context
 				afterIndex := index + (constants.NgramSize/2) + 1
 				if afterIndex <= wordCount && afterIndex < len(arr) && len(arr[afterIndex]) > 0 {
-					elemID = ngram_t.AddNgramElement(&ngram.After.At[j], j)
-					if ngram.After.At[j].Elems == nil {
-						ngram.After.At[j].Elems = make([]*structs.Word, 1)
-					}
-					if elemID >= len(ngram.After.At[j].Elems) {
-						newElems := make([]*structs.Word, elemID+1)
-						copy(newElems, ngram.After.At[j].Elems)
-						ngram.After.At[j].Elems = newElems
-					}
-					ngram.After.At[j].Elems[elemID] = &structs.Word{}
-					ngram.After.At[j].Elems[elemID].SetWord(arr[afterIndex])
-					// Track positional frequency: AFTER context at offset (NgramSize/2 - j)
-					if ngram.After.At[j].Elems[elemID].Identity != nil {
-						offset := (constants.NgramSize / 2) - j
-						ngram.After.At[j].Elems[elemID].Identity.Frequency.IncPos(constants.AFTER, offset)
-					}
+					// AddNgramElement now handles everything: find-or-create WordFreq, increment frequency, track position
+					ngram_t.AddNgramElement(&ngram.After.At[j], arr[afterIndex], constants.AFTER, offset)
 				}
 			}
 		}
@@ -276,6 +251,11 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 		fmt.Printf("Context index: %d unique context words, %d total entries\n", contextWords, totalEntries)
 	}
 
+	// Debug counters for context index effectiveness
+	var totalCandidates int64
+	var totalSimilarPairs int64
+	var totalPossiblePairs int64 = int64(*ngramLength) * int64(*ngramLength-constants.NgramSize) / 2
+
 	// Add linked list elements (similarity detection) - Parallel with chunked work distribution
 	const magicMultiplier = 4 // Tunable: workers = NumCPU × magicMultiplier
 	numWorkers := runtime.NumCPU() * magicMultiplier
@@ -285,6 +265,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 	if cfg.IsVerbose() {
 		fmt.Printf("Parallelizing similarity detection: %d workers, chunk size %d\n", numWorkers, chunkSize)
+		fmt.Printf("Ngrams: %d, Theoretical max pairs: %d\n", *ngramLength, totalPossiblePairs)
 	}
 
 	type workChunk struct {
@@ -292,7 +273,8 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 	}
 
 	type similarPair struct {
-		k, j int
+		k, j         int
+		overlapCount float64 // Number of shared context words (neural pathway strength)
 	}
 
 	workChan := make(chan workChunk, numWorkers)
@@ -309,22 +291,23 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 			for chunk := range workChan {
 				// Process this worker's chunk of k values
 				for k := chunk.start; k < chunk.end && k < *ngramLength; k++ {
-					// Phase 6: Context index - DISABLED
-					// TODO: Context index needs tuning - morphologically similar words
-					// may not share context words (e.g., "walking" and "talked" in different contexts)
-					// With minOverlap=1, got 3,525 morphemes vs expected 3,702
-					// For now, checking all pairs to ensure correctness
-					_ = contextIndex.FindCandidates(k, constants.NgramSize/2, 1)
+					// Context index DISABLED - checking all pairs to accumulate edge weights
+					// Neural pathway approach: edges strengthen with repeated evidence
+					// _ = contextIndex.FindCandidates(k, constants.NgramSize/2, 2)
 
 					for j := k + constants.NgramSize; j < *ngramLength; j++ {
+						atomic.AddInt64(&totalCandidates, 1)
+
 						// Use Identity pointer comparison (O(1) vs O(N) string comparison)
 						if ng[j] != nil && ng[k] != nil &&
 							ng[j].Word.Identity != nil && ng[k].Word.Identity != nil &&
 							ng[j].Word.Identity != ng[k].Word.Identity {
 
-							// Full similarity check
-							if ngram_t.NgramsSimilar(*ng[k], *ng[j]) {
-								localResults = append(localResults, similarPair{k, j})
+							// Full similarity check with overlap count
+							isSimilar, overlapCount := ngram_t.NgramsSimilar(*ng[k], *ng[j])
+							if isSimilar {
+								localResults = append(localResults, similarPair{k, j, overlapCount})
+								atomic.AddInt64(&totalSimilarPairs, 1)
 							}
 						}
 					}
@@ -353,25 +336,52 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 	// Collect results from all workers (sequential merge, but only happens once)
 	totalPairs := 0
+	edgeAddCount := make(map[[2]int]int) // Track how many times we add each edge
 	for localResults := range resultsChan {
 		for _, pair := range localResults {
 			ngram_t.AddSimilarNgramRef(&ng[pair.k], &ng[pair.j])
 
-			// Add edge to semantic graph (parallel construction)
+			// Add edge to semantic graph with overlap count as weight (neural pathway strength)
 			if ng[pair.k].Word.Identity != nil && ng[pair.j].Word.Identity != nil {
-				semanticGraph.AddEdge(ng[pair.k].Word.Identity.ID, ng[pair.j].Word.Identity.ID, 1.0)
+				id1, id2 := ng[pair.k].Word.Identity.ID, ng[pair.j].Word.Identity.ID
+				if id1 > id2 {
+					id1, id2 = id2, id1 // Normalize order for counting
+				}
+				edgeAddCount[[2]int{id1, id2}]++
+				// Use pair.overlapCount as edge weight (accumulates across multiple similar n-gram pairs)
+				semanticGraph.AddEdge(ng[pair.k].Word.Identity.ID, ng[pair.j].Word.Identity.ID, pair.overlapCount)
 			}
 
 			totalPairs++
 		}
 	}
 
-	// Count total pairs checked
-	totalChecked := 0
-	for k := 0; k < *ngramLength; k++ {
-		for j := k + constants.NgramSize; j < *ngramLength; j++ {
-			totalChecked++
+	// Debug: Print edge add statistics
+	if cfg.IsVerbose() {
+		var maxAdds int
+		var totalAdds int
+		for _, count := range edgeAddCount {
+			totalAdds += count
+			if count > maxAdds {
+				maxAdds = count
+			}
 		}
+		fmt.Printf("\nEdge Addition Stats:\n")
+		fmt.Printf("  Unique word pairs with edges: %d\n", len(edgeAddCount))
+		fmt.Printf("  Total AddEdge calls: %d\n", totalAdds)
+		fmt.Printf("  Average adds per edge: %.2f\n", float64(totalAdds)/float64(len(edgeAddCount)))
+		fmt.Printf("  Max adds for single edge: %d\n", maxAdds)
+	}
+
+	// Print context index effectiveness stats
+	if cfg.IsVerbose() {
+		fmt.Printf("\nContext Index Stats:\n")
+		fmt.Printf("  Candidate pairs from index: %d (avg %.1f per ngram)\n",
+			totalCandidates, float64(totalCandidates)/float64(*ngramLength))
+		fmt.Printf("  Similar pairs found: %d (%.2f%% of candidates)\n",
+			totalSimilarPairs, 100.0*float64(totalSimilarPairs)/float64(totalCandidates))
+		fmt.Printf("  Reduction: checked %d instead of %d (%.2f%% reduction)\n",
+			totalCandidates, totalPossiblePairs, 100.0*(1.0-float64(totalCandidates)/float64(totalPossiblePairs)))
 	}
 
 	if cfg.IsVerbose() {
@@ -417,6 +427,11 @@ func FindMorphemes(semanticGraph *graph.SemanticGraph, ng []*structs.Ngram, ngra
 	// Deduplicate morphemes as we go (instead of collecting 3M candidates first)
 	morphemeMap := make(map[string]*structs.Morpheme)
 
+	// Debug: Check edge weight distribution
+	var totalNeighbors int64
+	var neighborsAboveThreshold int64
+	var maxWeight float64
+
 	for i := 0; i < ngramLength; i++ {
 		if ng[i] == nil {
 			continue
@@ -434,6 +449,19 @@ func FindMorphemes(semanticGraph *graph.SemanticGraph, ng []*structs.Ngram, ngra
 		// Get neighbor IDs and iterate through them
 		neighborIDs := node.GetNeighbors()
 		for _, neighborID := range neighborIDs {
+			totalNeighbors++
+
+			// Check edge weight (neural pathway strength)
+			// Only extract morphemes if we have enough evidence (multiple similar n-gram occurrences)
+			edgeWeight := node.GetEdgeWeight(neighborID)
+			if edgeWeight > maxWeight {
+				maxWeight = edgeWeight
+			}
+			if edgeWeight < constants.MinEdgeWeight {
+				continue // Neural pathway not strong enough
+			}
+			neighborsAboveThreshold++
+
 			// Get positions where this neighbor appears (O(1) instead of O(n) scan!)
 			neighborNode := semanticGraph.GetNode(neighborID)
 			if neighborNode == nil {
@@ -541,8 +569,14 @@ func FindMorphemes(semanticGraph *graph.SemanticGraph, ng []*structs.Ngram, ngra
 
 	lex := make([]structs.LexicalCategories, morphemeList.Count)
 	morpheme_list_t.IdentifyTrueMorphemes(&morphemeList, &lex)
-	
+
 	if cfg.IsVerbose() {
+		fmt.Printf("\nEdge Weight Stats:\n")
+		fmt.Printf("  Total neighbor edges: %d\n", totalNeighbors)
+		fmt.Printf("  Edges >= threshold (%.1f): %d (%.2f%%)\n",
+			constants.MinEdgeWeight, neighborsAboveThreshold,
+			100.0*float64(neighborsAboveThreshold)/float64(totalNeighbors))
+		fmt.Printf("  Max edge weight: %.1f\n", maxWeight)
 		fmt.Printf("Writing %d morphemes to file\n", morphemeList.Count)
 	}
 	
