@@ -459,3 +459,149 @@ func IdentifyTrueMorphemes(list *structs.MorphemeList, lex *[]structs.LexicalCat
 	}
 }
 
+
+// findCommonPrefixStrings finds the longest common prefix between two strings
+// This is a string-only version to avoid Word object allocation in tight loops
+func findCommonPrefixStrings(s1, s2 string) string {
+	r1 := []rune(s1)
+	r2 := []rune(s2)
+
+	minLen := len(r1)
+	if len(r2) < minLen {
+		minLen = len(r2)
+	}
+
+	matchLen := 0
+	for i := 0; i < minLen; i++ {
+		if r1[i] != r2[i] {
+			break
+		}
+		matchLen++
+	}
+
+	if matchLen == 0 {
+		return constants.EmptyMorpheme
+	}
+
+	return string(r1[:matchLen])
+}
+
+// FindInternalMorphemesOptimized is an optimized version that uses string slicing
+// instead of Word.SetWord to avoid expensive dictionary lookups in inner loops
+// This should be ~5x faster by eliminating 14s of SetWord overhead
+func FindInternalMorphemesOptimized(oneOrig, twoOrig structs.Word, candidates *[]structs.MorphemeCandidate) {
+	debugFunctionCalls++
+
+	// Get clean strings once
+	word1 := oneOrig.StringClean()
+	word2 := twoOrig.StringClean()
+
+	lastAddedIdx := -1
+	lookback := 1
+	reverseBuf := make([]byte, 0, 256)
+
+	// Use string slicing - NO Word.SetWord calls in loops!
+	for iteration1 := 0; iteration1 < len(word1); iteration1++ {
+		suffix1 := word1[iteration1:]  // String slice - no allocation!
+
+		for iteration2 := 0; iteration2 < len(word2); iteration2++ {
+			suffix2 := word2[iteration2:]  // String slice - no allocation!
+
+			if len(suffix2) < (1 + len(constants.EmptyMorpheme)) {
+				break
+			}
+
+			// Find longest common prefix directly on string slices
+			morphemeStr := findCommonPrefixStrings(suffix1, suffix2)
+			debugTotalChecks++
+
+			if len(morphemeStr) >= 2 {
+				// Same validation logic as original
+				if lastAddedIdx >= 0 {
+					prevMorpheme := (*candidates)[lastAddedIdx].Morpheme
+					currentPrefixOfPrev := findCommonPrefixStr(morphemeStr, prevMorpheme)
+
+					if currentPrefixOfPrev != morphemeStr {
+						test := functions.ReverseInto(prevMorpheme, reverseBuf)
+
+						if (len(test) - lookback) >= 1 {
+							checkPos := len(test) - lookback
+							shouldTrim := len(test) > lookback
+
+							emptyByte := constants.EmptyMorphemeByte
+							if shouldTrim && constants.HasEmptyMarker && checkPos >= 0 && checkPos < len(test) {
+								if test[checkPos] == emptyByte {
+									shouldTrim = false
+								}
+							}
+
+							if shouldTrim {
+								test = test[:len(test)-lookback]
+							}
+						} else {
+							debugLookbackFail++
+							lookback = len(morphemeStr)
+							continue
+						}
+
+						test = functions.ReverseInto(test, reverseBuf)
+
+						if test != morphemeStr {
+							// Only create Word objects for GenRegex validation
+							m := structs.NewMorpheme(morphemeStr)
+							m.WordsCount = 0
+							m.Words = make([]*structs.Word, 0)
+							m.GenRegex(word1, word2, iteration1, iteration2)
+
+							if m.Regex() != "" {
+								*candidates = append(*candidates, structs.MorphemeCandidate{
+									Morpheme:  morphemeStr,
+									Word1:     word1,
+									Word2:     word2,
+									Pos1:      iteration1,
+									Pos2:      iteration2,
+									IsStem:    false,
+									IsForward: false,
+								})
+								lastAddedIdx = len(*candidates) - 1
+								debugAdded++
+							}
+
+							lookback = len(morphemeStr)
+						} else {
+							debugTestMismatch++
+							lookback = len(morphemeStr)
+						}
+					} else {
+						debugPrefixMatch++
+					}
+				} else {
+					// First candidate - only create Word for validation
+					m := structs.NewMorpheme(morphemeStr)
+					m.WordsCount = 0
+					m.Words = make([]*structs.Word, 0)
+					m.GenRegex(word1, word2, iteration1, iteration2)
+
+					if m.Regex() != "" {
+						*candidates = append(*candidates, structs.MorphemeCandidate{
+							Morpheme:  morphemeStr,
+							Word1:     word1,
+							Word2:     word2,
+							Pos1:      iteration1,
+							Pos2:      iteration2,
+							IsStem:    false,
+							IsForward: false,
+						})
+						lastAddedIdx = len(*candidates) - 1
+						debugFirstAdded++
+					}
+
+					lookback = len(morphemeStr)
+				}
+			} else {
+				debugTooShort++
+				lookback = 1
+			}
+		}
+	}
+}

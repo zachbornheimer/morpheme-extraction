@@ -463,8 +463,8 @@ func FindMorphemes(semanticGraph *graph.SemanticGraph, ng []*structs.Ngram, ngra
 					IsForward: true,
 				})
 
-				// Collect internal morphemes for this pair
-				morpheme_list_t.FindInternalMorphemes(ngram.Word, target.Word, pairCandidates)
+				// Collect internal morphemes for this pair (optimized: string slicing, no SetWord in loops)
+				morpheme_list_t.FindInternalMorphemesOptimized(ngram.Word, target.Word, pairCandidates)
 
 				// Process candidates from this pair → create/update morphemes
 				for _, cand := range *pairCandidates {
