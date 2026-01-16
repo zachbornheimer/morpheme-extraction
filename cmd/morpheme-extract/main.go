@@ -13,10 +13,11 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/nlp"
 )
 
-// Profiling flags
+// Profiling and export flags
 var (
-	cpuprofile string
-	memprofile string
+	cpuprofile   string
+	memprofile   string
+	exportNeo4j  string
 )
 
 func main() {
@@ -29,9 +30,10 @@ func run() int {
 	cfg.OutputFilename = constants.ZedramOutput
 	cfg.CorpusDir = constants.DefaultPath
 
-	// Add pprof flag support
+	// Add pprof and export flag support
 	flag.StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
 	flag.StringVar(&memprofile, "memprofile", "", "write memory profile to file")
+	flag.StringVar(&exportNeo4j, "export-neo4j", "", "export semantic graph to Neo4j Cypher file")
 
 	argc := len(os.Args)
 	argv := os.Args
@@ -67,8 +69,15 @@ func run() int {
 			if i+1 < argc {
 				memprofile = argv[i+1]
 			}
+		} else if argv[i] == "-export-neo4j" {
+			if i+1 < argc {
+				exportNeo4j = argv[i+1]
+			}
 		}
 	}
+
+	// Store export path in config
+	cfg.ExportNeo4jPath = exportNeo4j
 
 	// Start CPU profiling if requested
 	if cpuprofile != "" {

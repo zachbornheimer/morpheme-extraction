@@ -5,6 +5,7 @@ package nlp
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"sort"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
 	"github.com/zachbornheimer/morpheme-extraction/internal/dictionary"
 	"github.com/zachbornheimer/morpheme-extraction/internal/directory"
+	"github.com/zachbornheimer/morpheme-extraction/internal/export"
 	"github.com/zachbornheimer/morpheme-extraction/internal/file"
 	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
 	"github.com/zachbornheimer/morpheme-extraction/internal/graph"
@@ -112,7 +114,22 @@ func Nlp(cfg *config.Config) int {
 		fmt.Printf("  NumGC:      %10d (garbage collections)\n", m.NumGC)
 	}
 
+	// Export semantic graph to Neo4j if requested
+	if cfg.ExportNeo4jPath != "" && semanticGraph != nil {
+		cfg.VPrint(fmt.Sprintf("Exporting semantic graph to Neo4j Cypher file: %s", cfg.ExportNeo4jPath))
+		if err := exportNeo4j(semanticGraph, cfg.ExportNeo4jPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to export to Neo4j: %v\n", err)
+		} else {
+			cfg.VPrint("Export complete!")
+		}
+	}
+
 	return 0
+}
+
+// exportNeo4j wraps the export package function for convenience
+func exportNeo4j(g *graph.SemanticGraph, outputPath string) error {
+	return export.ExportToCypher(g, outputPath)
 }
 
 // BuildNgramRelationships builds n-gram structures (lines 113-211)

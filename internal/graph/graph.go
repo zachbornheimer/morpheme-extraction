@@ -172,6 +172,31 @@ func (n *SemanticNode) Word() *dictionary.WordIdentity {
 	return n.word
 }
 
+// GetAllNodes returns all nodes in the graph (for export/iteration)
+func (g *SemanticGraph) GetAllNodes() []*SemanticNode {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	nodes := make([]*SemanticNode, 0, len(g.nodes))
+	for _, node := range g.nodes {
+		nodes = append(nodes, node)
+	}
+	return nodes
+}
+
+// GetNeighborsWithWeights returns all neighbors with their edge weights
+func (n *SemanticNode) GetNeighborsWithWeights() map[int]float64 {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+
+	// Return a copy to avoid concurrent modification issues
+	neighbors := make(map[int]float64, len(n.neighbors))
+	for id, weight := range n.neighbors {
+		neighbors[id] = weight
+	}
+	return neighbors
+}
+
 // FindPath uses BFS to find the shortest path between two nodes
 // Returns nil if no path exists
 // Returns slice of nodes representing the path from fromID to toID (inclusive)

@@ -11,6 +11,7 @@ type Config struct {
 	ProcessFull         int
 	OutputFilename      string
 	CorpusDir           string
+	ExportNeo4jPath     string  // Path to export semantic graph as Neo4j Cypher statements
 }
 
 // VPrint prints message only if verbose mode is enabled
