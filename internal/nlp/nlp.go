@@ -116,11 +116,15 @@ func Nlp(cfg *config.Config) int {
 
 	// Export semantic graph to Neo4j if requested
 	if cfg.ExportNeo4jPath != "" && semanticGraph != nil {
-		cfg.VPrint(fmt.Sprintf("Exporting semantic graph to Neo4j Cypher file: %s", cfg.ExportNeo4jPath))
-		if err := exportNeo4j(semanticGraph, cfg.ExportNeo4jPath); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to export to Neo4j: %v\n", err)
+		cfg.VPrint(fmt.Sprintf("Exporting semantic graph to CSV files for Neo4j bulk import..."))
+
+		nodesPath := "neo4j-nodes.csv"
+		relsPath := "neo4j-relationships.csv"
+
+		if err := export.ExportToCSV(semanticGraph, nodesPath, relsPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to export CSV: %v\n", err)
 		} else {
-			cfg.VPrint("Export complete!")
+			cfg.VPrint(fmt.Sprintf("CSV export complete: %s, %s", nodesPath, relsPath))
 		}
 	}
 
