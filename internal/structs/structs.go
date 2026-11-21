@@ -171,20 +171,206 @@ func (ng *Ngram) CollectContextWords(arr []string, ngramHalfSize int) int {
 	return count
 }
 
+// RegexPattern encapsulates a regex pattern built from character alternatives at each position.
+//
+// Example:
+//   After adding "walk": charArray = ["w", "a", "l", "k"]
+//   After adding "run":  charArray = ["wr", "au", "ln", "k"]
+//   Pattern: ([wr])([au])([ln])([k])
+type RegexPattern struct {
+	charArray []string // Character alternatives at each position (e.g., ["wr", "au", "ln", "k"])
+	fixed     string   // Fixed pattern for STEM markers ("^" or "$")
+}
+
+// NewFixedPattern creates a pattern with a fixed string (for STEM markers)
+func NewFixedPattern(pattern string) *RegexPattern {
+	return &RegexPattern{fixed: pattern}
+}
+
+// AddContext adds a context string to the character array.
+// Characters are merged position-by-position (reversed for morpheme variation capture).
+//
+// Example:
+//   Pattern.AddContext("walk") → charArray = ["w", "a", "l", "k"]
+//   Pattern.AddContext("run")  → charArray = ["wr", "au", "ln", "kn"]
+func (rp *RegexPattern) AddContext(context string) {
+	if rp == nil || context == "" {
+		return
+	}
+
+	// Reverse context to build from end (where morphemes vary most)
+	reversed := reverseString(context)
+	runes := []rune(reversed)
+
+	// Ensure charArray is large enough
+	if len(runes) > len(rp.charArray) {
+		newArray := make([]string, len(runes))
+		copy(newArray, rp.charArray)
+		rp.charArray = newArray
+	}
+
+	// Merge characters at each position (avoid duplicates)
+	for i, char := range runes {
+		charStr := string(char)
+		if !containsChar(rp.charArray[i], charStr) {
+			rp.charArray[i] += charStr
+		}
+	}
+}
+
+// String returns the regex pattern string, built lazily from character array.
+func (rp *RegexPattern) String() string {
+	if rp == nil {
+		return ""
+	}
+
+	// Return fixed pattern for STEM markers
+	if rp.fixed != "" {
+		return rp.fixed
+	}
+
+	// Build pattern from charArray: )][chars][chars][(  → reversed → ([chars])([chars])
+	// Even empty charArray produces "()" pattern (not "")
+	pattern := ")"
+	for i := 0; i < len(rp.charArray); i++ {
+		if rp.charArray[i] != "" {
+			pattern += "]" + rp.charArray[i] + "["
+		}
+	}
+	pattern += "("
+
+	return reverseString(pattern)
+}
+
+// containsChar checks if a character already exists in the string
+func containsChar(s, char string) bool {
+	for _, c := range s {
+		if string(c) == char {
+			return true
+		}
+	}
+	return false
+}
+
+// Regex encapsulates the complete morpheme regex pattern.
+// Composes front pattern + morpheme + back pattern on demand.
+type Regex struct {
+	Front    *RegexPattern // Pattern for context before morpheme (e.g., "([rw])")
+	Back     *RegexPattern // Pattern for context after morpheme (e.g., "([sk])")
+	morpheme string        // The morpheme itself (e.g., "ing")
+}
+
+// String returns the complete regex pattern
+func (r *Regex) String() string {
+	if r == nil {
+		return ""
+	}
+	return r.Front.String() + r.morpheme + r.Back.String()
+}
+
+// SetStem configures as a STEM pattern (exact match only)
+func (r *Regex) SetStem(morpheme string) {
+	r.morpheme = morpheme
+	r.Front = NewFixedPattern("^")
+	r.Back = NewFixedPattern("$")
+}
+
 // Morpheme represents struct morpheme_t (lines 45-58)
 type Morpheme struct {
-	Regex               string   // regex
-	Morpheme            string   // morpheme
-	Freq                int      // freq
-	WordsCount          int      // words_count
-	Words               []*Word  // words
-	Type                int      // type
-	FrontRegex          string   // front_regex
-	FrontRegexArr       []string // front_regex_arr (char**)
-	BackRegex           string   // back_regex
-	BackRegexArr        []string // back_regex_arr (char**)
-	FrontRegexArrIndex  int      // front_regex_arr_index
-	BackRegexArrIndex   int      // back_regex_arr_index
+	Pattern    *Regex // Complete regex pattern (encapsulates front + morpheme + back)
+	Morpheme   string // The morpheme string (e.g., "ing")
+	Freq       int    // Frequency count
+	WordsCount int    // Number of words containing this morpheme
+	Words      []*Word // Words containing this morpheme
+	Type       int    // Morpheme type (STEM, PREFIX, SUFFIX, INFIX)
+}
+
+// Legacy accessors for compatibility with file writing code
+// TODO: Remove once file writing uses Pattern directly
+
+// Regex returns the complete regex pattern as a string
+func (m *Morpheme) Regex() string {
+	if m.Pattern == nil {
+		return ""
+	}
+	return m.Pattern.String()
+}
+
+// Legacy accessors for compatibility with morpheme_list_t.go
+// These access the internal charArray for merging operations
+
+func (m *Morpheme) GetFrontRegexArrIndex() int {
+	if m.Pattern == nil || m.Pattern.Front == nil {
+		return -1
+	}
+	return len(m.Pattern.Front.charArray) - 1
+}
+
+func (m *Morpheme) GetBackRegexArrIndex() int {
+	if m.Pattern == nil || m.Pattern.Back == nil {
+		return -1
+	}
+	return len(m.Pattern.Back.charArray) - 1
+}
+
+func (m *Morpheme) GetFrontRegexArr() []string {
+	if m.Pattern == nil || m.Pattern.Front == nil {
+		return nil
+	}
+	return m.Pattern.Front.charArray
+}
+
+func (m *Morpheme) GetBackRegexArr() []string {
+	if m.Pattern == nil || m.Pattern.Back == nil {
+		return nil
+	}
+	return m.Pattern.Back.charArray
+}
+
+func (m *Morpheme) SetFrontRegexArrIndex(idx int) {
+	// New design doesn't need this - array size managed automatically
+}
+
+func (m *Morpheme) SetBackRegexArrIndex(idx int) {
+	// New design doesn't need this - array size managed automatically
+}
+
+func (m *Morpheme) SetFrontRegexArr(arr []string) {
+	if m.Pattern != nil && m.Pattern.Front != nil {
+		m.Pattern.Front.charArray = arr
+	}
+}
+
+func (m *Morpheme) SetBackRegexArr(arr []string) {
+	if m.Pattern != nil && m.Pattern.Back != nil {
+		m.Pattern.Back.charArray = arr
+	}
+}
+
+func (m *Morpheme) GetFrontRegex() string {
+	if m.Pattern == nil || m.Pattern.Front == nil {
+		return ""
+	}
+	return m.Pattern.Front.String()
+}
+
+func (m *Morpheme) GetBackRegex() string {
+	if m.Pattern == nil || m.Pattern.Back == nil {
+		return ""
+	}
+	return m.Pattern.Back.String()
+}
+
+func (m *Morpheme) SetFrontRegex(pattern string) {
+	if m.Pattern != nil {
+		m.Pattern.Front = NewFixedPattern(pattern)
+	}
+}
+
+func (m *Morpheme) SetBackRegex(pattern string) {
+	if m.Pattern != nil {
+		m.Pattern.Back = NewFixedPattern(pattern)
+	}
 }
 
 // NewMorpheme creates a new morpheme with the given morpheme string
@@ -194,6 +380,11 @@ func NewMorpheme(morpheme string) Morpheme {
 		Freq:       1,
 		WordsCount: 0,
 		Words:      make([]*Word, 0),
+		Pattern: &Regex{
+			morpheme: morpheme,
+			Front:    &RegexPattern{},
+			Back:     &RegexPattern{},
+		},
 	}
 }
 
@@ -271,18 +462,14 @@ func (m *Morpheme) GenRegex(one, two string, placeOne, placeTwo int) {
 	}
 
 	// Extract surrounding context from both example words
-	// beforeMorpheme1: characters before morpheme in word 1
-	// afterMorpheme1:  characters after morpheme in word 1
 	beforeMorpheme1, afterMorpheme1 := splitAroundMorpheme(one, placeOne, len(m.Morpheme))
 	beforeMorpheme2, afterMorpheme2 := splitAroundMorpheme(two, placeTwo, len(m.Morpheme))
 
-	// Build character class patterns for before/after morpheme
-	factory := newRegexFactory()
-	m.FrontRegex, m.FrontRegexArr, m.FrontRegexArrIndex = factory.buildCharacterClass(beforeMorpheme1, beforeMorpheme2)
-	m.BackRegex, m.BackRegexArr, m.BackRegexArrIndex = factory.buildCharacterClass(afterMorpheme1, afterMorpheme2)
-
-	// Complete pattern: (before)morpheme(after)
-	m.Regex = m.FrontRegex + m.Morpheme + m.BackRegex
+	// Add contexts to build character class patterns
+	m.Pattern.Front.AddContext(beforeMorpheme1)
+	m.Pattern.Front.AddContext(beforeMorpheme2)
+	m.Pattern.Back.AddContext(afterMorpheme1)
+	m.Pattern.Back.AddContext(afterMorpheme2)
 }
 
 // SetType sets the morpheme type and configures appropriate regex pattern.
@@ -297,62 +484,16 @@ func (m *Morpheme) SetType(morphemeType int) {
 
 	if morphemeType == constants.STEM {
 		// STEM regex: exact match only (^word$)
-		m.Regex = "^" + m.Morpheme + "$"
-		m.FrontRegex = "^"
-		m.BackRegex = "$"
+		m.Pattern.SetStem(m.Morpheme)
 	}
 }
 
-// MergeRules rebuilds regex patterns after merging character arrays from multiple observations.
-//
-// When we see a morpheme in multiple words, we accumulate character alternatives:
-//   "running" → FrontRegexArr[0] = "r", [1] = "u", [2] = "n", [3] = "n"
-//   "walking" → FrontRegexArr[0] = "rw", [1] = "ua", [2] = "nl", [3] = "nk"
-//
-// This function reconstructs the regex from the merged arrays:
-//   Result: ([rw])([ua])([nl])([nk])ing
-//
-// Why not regenerate from scratch?
-// - We may have merged 10+ words and don't want to re-scan all of them
-// - The arrays already contain the merged character sets
+// MergeRules is a no-op with the new design.
+// Patterns are built lazily via String(), so no rebuild needed.
+// Kept for compatibility with existing code.
 func (m *Morpheme) MergeRules() {
-	// Rebuild front pattern from character array
-	front := ")"
-	for i := 0; i <= m.FrontRegexArrIndex; i++ {
-		front += "]"
-		front += m.FrontRegexArr[i]
-		front += "["
-	}
-	front += "("
-	front = reverseString(front)
-
-	// Rebuild back pattern from character array
-	back := ")"
-	for i := 0; i <= m.BackRegexArrIndex; i++ {
-		back += "]"
-		back += m.BackRegexArr[i]
-		back += "["
-	}
-	back += "("
-	back = reverseString(back)
-
-	// Assemble complete regex
-	m.Regex = ""
-	if m.FrontRegex != "^" {
-		m.FrontRegex = front
-		m.Regex += front
-	} else {
-		m.Regex += m.FrontRegex
-	}
-
-	m.Regex += m.Morpheme
-
-	if m.BackRegex != "$" {
-		m.BackRegex = back
-		m.Regex += back
-	} else {
-		m.Regex += m.BackRegex
-	}
+	// Pattern.String() builds regex on-demand from charArray
+	// No explicit rebuild needed
 }
 
 // isValidPlacement validates that the morpheme actually appears at the specified positions in both words.
@@ -418,97 +559,6 @@ func splitAroundMorpheme(word string, position, morphemeLen int) (beforeMorpheme
 	}
 
 	return beforeMorpheme, afterMorpheme
-}
-
-// regexFactory builds character class regex patterns from context strings.
-//
-// Character class pattern:
-// Given two contexts "abc" and "xyz", builds: ([ax])([by])([cz])
-// This matches either character at each position.
-type regexFactory struct{}
-
-func newRegexFactory() *regexFactory {
-	return &regexFactory{}
-}
-
-// buildCharacterClass creates a regex pattern matching either context at each character position.
-//
-// Algorithm:
-// 1. Takes two context strings (e.g., "runn" and "walk" before "ing")
-// 2. Reverses them for right-to-left processing
-// 3. At each position i, creates character class [xy] matching either char
-// 4. Stores character alternatives in array for later merging
-//
-// Example:
-//   context1: "runn"
-//   context2: "walk"
-//
-//   Reversed: "nnur" vs "klaw"
-//   Position 0: [nk]  (matches 'n' or 'k')
-//   Position 1: [nl]  (matches 'n' or 'l')
-//   Position 2: [ua]  (matches 'u' or 'a')
-//   Position 3: [rw]  (matches 'r' or 'w')
-//
-//   Pattern: ([rw])([ua])([nl])([nk])
-//   Array: ["rw", "ua", "nl", "nk"] for merging with more examples later
-//
-// Why reverse?
-// - Morphemes often vary at the end ("running", "walking" → "nn" vs "lk" before "ing")
-// - Building from the end captures the most relevant variations
-// - Historical: C code built patterns this way for prefix/suffix detection
-//
-// Returns:
-// - regex: The character class pattern string
-// - charArray: Character alternatives at each position (for merging)
-// - lastIndex: Highest index in charArray (-1 if empty)
-func (rf *regexFactory) buildCharacterClass(context1, context2 string) (regex string, charArray []string, lastIndex int) {
-	// Reverse strings to build pattern from end to start
-	context1 = reverseString(context1)
-	context2 = reverseString(context2)
-
-	// Find maximum length
-	maxLen := len(context1)
-	if len(context2) > maxLen {
-		maxLen = len(context2)
-	}
-
-	// Allocate character array (overallocate for safety, original C used 2x or 4x)
-	charArray = make([]string, maxLen*4)
-	lastIndex = -1
-
-	// Build pattern backwards: )][char2char1][
-	// Will be reversed at the end to: ([char1char2])
-	pattern := ")"
-	for i := 0; i < maxLen; i++ {
-		if i >= len(context1) && i >= len(context2) {
-			break
-		}
-
-		charArray[i] = ""
-		pattern += "]"
-
-		// Accumulate characters from both contexts at position i
-		if i < len(context2) {
-			char := string(context2[i])
-			pattern += char
-			charArray[i] += char
-		}
-
-		if i < len(context1) {
-			char := string(context1[i])
-			pattern += char
-			charArray[i] += char
-		}
-
-		lastIndex = i
-		pattern += "["
-	}
-
-	pattern += "("
-	// Reverse to get final pattern: ([char1char2])([...])
-	regex = reverseString(pattern)
-
-	return regex, charArray, lastIndex
 }
 
 // MorphemeList represents struct morpheme_list_t (lines 60-63)
