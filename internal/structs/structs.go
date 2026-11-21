@@ -125,18 +125,20 @@ func (h *NgramHalfArray) CountWords(ngramHalfSize int) int {
 
 // CollectWordsInto appends words from this half-array into the provided slice
 // Returns the number of words added
+// Optimized: Direct string assignment, reduced nil checks
 func (h *NgramHalfArray) CollectWordsInto(arr []string, startIdx int, ngramHalfSize int) int {
 	idx := startIdx
 	for i := 0; i < ngramHalfSize; i++ {
-		if h.At[i] != nil {
-			for j := 0; j < h.At[i].Count; j++ {
-				if h.At[i].Elems[j] != nil {
-					word := string(h.At[i].Elems[j].Str)
-					if word != "" {
-						arr[idx] = word
-						idx++
-					}
-				}
+		wa := h.At[i]
+		if wa == nil {
+			continue
+		}
+		// Direct access to Elems slice
+		for j := 0; j < wa.Count; j++ {
+			w := wa.Elems[j]
+			if w != nil && w.Str != "" {
+				arr[idx] = w.Str // Direct string access, no conversion
+				idx++
 			}
 		}
 	}
@@ -192,8 +194,12 @@ func (ng *Ngram) CollectContextWordsIntoSet(set *StringSet, ngramHalfSize int) {
 
 // AddSimilarRef adds a reference to a similar ngram
 // Matches AddSimilarNgramRef from ngram_t.c (lines 180-195)
-// Uses append() instead of manual slice copy for O(1) amortized performance
+// Pre-allocates capacity to avoid repeated growslice calls
 func (ng *Ngram) AddSimilarRef(ngramRef *Ngram) {
+	// Pre-allocate on first use to avoid repeated growslice
+	if ng.Refs == nil {
+		ng.Refs = make([]*Ngram, 0, 16) // Start with capacity for 16 similar ngrams
+	}
 	ng.Refs = append(ng.Refs, ngramRef)
 	ng.RefsCount++
 }
