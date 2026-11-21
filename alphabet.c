@@ -147,10 +147,10 @@ char* find_word_delimiter(char **file)
 		}
 		printf("DEBUG: Exited permutation loop\n");
 		fflush(stdout);
-	}
+		}
 
 	free(wd_permuted);
-	
+
 	printf("DEBUG: About to return, wd_final_freq=%d\n", wd_final_freq);
 	fflush(stdout);
 	if (wd_final_freq == 0) {

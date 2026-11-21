@@ -19,7 +19,13 @@ func AddMorpheme(morphemes *structs.MorphemeList, morpheme structs.Morpheme) {
 
 // FindInternalMorphemes finds morphemes within words (lines 24-93)
 // Optimized: Works with native Go strings (no conversions)
+var debugCallCount = 0
+var debugMorphemeCount = 0
+
 func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.MorphemeList) {
+	debugCallCount++
+	startCount := internal.Count
+	
 	word1 := oneOrig.Str
 	word2 := twoOrig.Str
 	one := oneOrig
@@ -53,7 +59,8 @@ func FindInternalMorphemes(oneOrig, twoOrig structs.Word, internal *structs.Morp
 						test = functions.Reverse(test)
 
 						if (len(test) - lookback) >= 1 {
-							if len(test) > lookback && test[len(test)-lookback] != 0 {
+							// FIXED: Remove null-byte check for native Go strings
+							if len(test) > lookback {
 								test = test[:len(test)-lookback]
 							}
 						} else {
