@@ -72,8 +72,21 @@ func Uniq(chars string) (string, int) {
 // Returns base 0
 // Optimized: Uses map for larger arrays (O(n)), linear search for small (less overhead)
 func UniqWords(arr []string, size int) int {
-	// Always use map for O(n) performance
-	// Profiling showed the threshold was hurting performance
+	// For small arrays, linear search has less overhead than map
+	const threshold = 50
+	if size <= threshold {
+		u := make([]string, size)
+		i := 0
+		for j := 0; j < size; j++ {
+			if i == 0 || InCharArray(arr[j], u, i) == -1 {
+				u[i] = arr[j]
+				i++
+			}
+		}
+		return i - 1
+	}
+
+	// For larger arrays, use map for O(n) performance
 	seen := structs.NewStringSet(size)
 	for j := 0; j < size; j++ {
 		seen.Add(arr[j])

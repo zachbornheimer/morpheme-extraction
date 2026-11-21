@@ -8,19 +8,28 @@ import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
-// AddWord is deprecated - use Morpheme.AddWord() method instead
+// AddWord adds word to morpheme's word list (lines 13-18)
 func AddWord(morpheme *structs.Morpheme, w structs.Word) {
-	morpheme.AddWord(w) // delegates to simple method in structs
+	morpheme.WordsCount++
+	newWords := make([]*structs.Word, morpheme.WordsCount)
+	copy(newWords, morpheme.Words)
+	newWords[morpheme.WordsCount-1] = &w
+	morpheme.Words = newWords
+}
+
+// FreeMorpheme frees morpheme memory (lines 20-23)
+// Kept for C compatibility, Go GC handles this
+func FreeMorpheme(morpheme *structs.Morpheme) {
+	// Go GC handles cleanup
 }
 
 // FindLongestMatch finds longest matching prefix (lines 25-60)
-// Optimized: Works with native strings (no byte array allocation)
 func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 	var longest, shortest structs.Word
-	empty := structs.Morpheme{Morpheme: "", Freq: 1}
+	empty := structs.Morpheme{Morpheme: "\x00", Freq: 1}
 	realLength := 0
 
-	if one.Len() >= two.Len() {
+	if one.Len >= two.Len {
 		longest = one
 		shortest = two
 	} else {
@@ -28,13 +37,16 @@ func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 		shortest = one
 	}
 
-	shortestStr := shortest.Str
-	longestStr := longest.Str
+	str := make([]byte, shortest.Len+2)
+	shortestStr := string(shortest.Str)
+	longestStr := string(longest.Str)
 
 	for realLength < len(shortestStr) && realLength < len(longestStr) &&
-		shortestStr[realLength] == longestStr[realLength] {
+		shortestStr[realLength] != '\x00' && shortestStr[realLength] == longestStr[realLength] {
+		str[realLength] = shortestStr[realLength]
 		realLength++
 	}
+	str[realLength] = '\x00'
 
 	if realLength == 0 {
 		return empty
@@ -42,7 +54,7 @@ func FindLongestMatch(one, two structs.Word) structs.Morpheme {
 
 	longestMatch := structs.Morpheme{
 		Freq:     1,
-		Morpheme: shortestStr[:realLength],
+		Morpheme: string(str[:realLength]),
 	}
 
 	return longestMatch
@@ -56,16 +68,26 @@ func GenRegex(one, two string, placeOne, placeTwo int, morpheme *structs.Morphem
 		return
 	}
 
-	// Extract morpheme from both words using string slicing (zero-copy!)
-	word1 := one[placeOne : placeOne+len(morpheme.Morpheme)]
-	word2 := two[placeTwo : placeTwo+len(morpheme.Morpheme)]
+	i := 0
+	word1 := make([]byte, len(morpheme.Morpheme)+1)
+	word2 := make([]byte, len(morpheme.Morpheme)+1)
 
-	if !(word1 == word2 && word1 == morpheme.Morpheme) {
+	for i = placeOne; i < (placeOne + len(morpheme.Morpheme)); i++ {
+		word1[i-placeOne] = one[i]
+	}
+	word1[i-placeOne] = '\x00'
+
+	for i = placeTwo; i < (placeTwo + len(morpheme.Morpheme)); i++ {
+		word2[i-placeTwo] = two[i]
+	}
+	word2[i-placeTwo] = '\x00'
+
+	if !(string(word1[:len(morpheme.Morpheme)]) == string(word2[:len(morpheme.Morpheme)]) &&
+		string(word1[:len(morpheme.Morpheme)]) == morpheme.Morpheme) {
 		return
 	}
 
 	// Step 1.5: If Either Word = Morpheme, it's a STEM
-	var i int
 	morpheme.Type = constants.UNDEF
 
 	if one == morpheme.Morpheme || two == morpheme.Morpheme {

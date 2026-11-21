@@ -29,6 +29,9 @@ func NewNGramComparator() *NGramComparator {
 	}
 }
 
+var similarCount = 0
+var notSimilarCount = 0
+
 // AreSimilar checks if two ngrams are similar based on context word overlap
 // Uses array-based comparison to preserve word frequency information (matches C algorithm)
 func (c *NGramComparator) AreSimilar(a, b *structs.Ngram) bool {
@@ -48,15 +51,18 @@ func (c *NGramComparator) AreSimilar(a, b *structs.Ngram) bool {
 	
 	// Collect all words (with duplicates) into the buffer
 	arrCount := 0
-	arrCount += a.CollectContextWords(c.buffer, c.ngramHalfSize)
-	arrCount += b.CollectContextWords(c.buffer[arrCount:], c.ngramHalfSize)
+	countA := a.CollectContextWords(c.buffer, c.ngramHalfSize)
+	countB := b.CollectContextWords(c.buffer[countA:], c.ngramHalfSize)
+	arrCount = countA + countB
 	
 	// Count unique words using reusable set
+	// CRITICAL: Only iterate over filled portion [:arrCount], not full buffer
 	c.set.Clear()
-	for _, word := range c.buffer {
+	for _, word := range c.buffer[:arrCount] {
 		c.set.Add(word)
 	}
-	count := c.set.Len()
+	// Match C algorithm: uniq_words returns count-1, not count
+	count := c.set.Len() - 1
 	
 	// Match C algorithm: arr_count -= 1
 	arrCount--
@@ -68,6 +74,17 @@ func (c *NGramComparator) AreSimilar(a, b *structs.Ngram) bool {
 	// Calculate similarity: percent_similar = 100 * ((arrCount - count) / arrCount)
 	percentSimilar := int(100.0 * (float64(arrCount-count) / float64(arrCount)))
 	
-	return float64(percentSimilar) >= constants.ThresholdSimilarNgrams
+	result := float64(percentSimilar) >= constants.ThresholdSimilarNgrams
+	if result {
+		similarCount++
+	} else {
+		notSimilarCount++
+	}
+	return result
+}
+
+// GetSimilarityCounts returns the number of similar and not-similar comparisons
+func GetSimilarityCounts() (int, int) {
+	return similarCount, notSimilarCount
 }
 

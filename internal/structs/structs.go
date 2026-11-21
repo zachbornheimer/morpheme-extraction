@@ -1,10 +1,6 @@
 // Package structs contains all struct definitions from structs.h (lines 1-73)
 package structs
 
-import (
-	"unicode/utf8"
-)
-
 // CharDoubleton represents struct char_doubleton (lines 11-14)
 type CharDoubleton struct {
 	First  byte // c
@@ -12,64 +8,21 @@ type CharDoubleton struct {
 }
 
 // Word represents struct word_t (lines 16-20)
-// Optimized: Uses native Go string instead of []byte
 type Word struct {
-	Str  string // word - native Go string (knows its own length)
+	Len  int    // i (unsigned int)
 	Freq int    // freq
+	Str  []byte // word (char*)
 }
 
-// String returns the word as a string (zero-cost with native string)
+// String returns the word as a string (uses Len to exclude null padding)
 func (w *Word) String() string {
-	return w.Str
-}
-
-// Len returns the length of the word (for C compatibility)
-func (w *Word) Len() int {
-	return len(w.Str)
-}
-
-// Set sets the word string and resets frequency to 1
-// Pointer receiver: modifies the Word in place
-func (w *Word) Set(s string) {
-	w.Str = s
-	w.Freq = 1
-}
-
-// Reverse reverses the word string in place using built-in rune iteration
-// Pointer receiver: modifies the Word in place
-func (w *Word) Reverse() {
-	runes := []rune(w.Str)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
-	}
-	w.Str = string(runes)
-}
-
-// RemoveFirstChar removes the first UTF-8 character from the word
-// Pointer receiver: modifies the Word in place
-func (w *Word) RemoveFirstChar() {
-	if len(w.Str) == 0 {
-		return
-	}
-	// Find the byte index of the second rune
-	_, i := utf8.DecodeRuneInString(w.Str)
-	w.Str = w.Str[i:]
+	return string(w.Str[:w.Len])
 }
 
 // WordArray represents struct word_t_array (lines 24-27)
 type WordArray struct {
 	Elems []*Word // elems
 	Count int     // count (unsigned int)
-}
-
-// AddElement adds a new element slot to the array and returns its index
-// Matches AddNgramElement from ngram_t.c (lines 22-28)
-func (wa *WordArray) AddElement() int {
-	wa.Count++
-	newElems := make([]*Word, wa.Count+1)
-	copy(newElems, wa.Elems)
-	wa.Elems = newElems
-	return wa.Count - 1
 }
 
 // ToSlice converts WordArray to []string, collecting non-nil words
@@ -131,6 +84,7 @@ func (h *NgramHalfArray) CollectWordsInto(arr []string, startIdx int, ngramHalfS
 		if h.At[i] != nil {
 			for j := 0; j < h.At[i].Count; j++ {
 				if h.At[i].Elems[j] != nil {
+					// Convert []byte to string (includes any null bytes)
 					word := string(h.At[i].Elems[j].Str)
 					if word != "" {
 						arr[idx] = word
@@ -141,23 +95,6 @@ func (h *NgramHalfArray) CollectWordsInto(arr []string, startIdx int, ngramHalfS
 		}
 	}
 	return idx - startIdx
-}
-
-// CollectWordsIntoSet collects all words directly into a StringSet
-// This avoids intermediate slice allocations for performance
-func (h *NgramHalfArray) CollectWordsIntoSet(set *StringSet, ngramHalfSize int) {
-	for i := 0; i < ngramHalfSize; i++ {
-		if h.At[i] != nil {
-			for j := 0; j < h.At[i].Count; j++ {
-				if h.At[i].Elems[j] != nil {
-					word := h.At[i].Elems[j].Str
-					if word != "" {
-						set.Add(word)
-					}
-				}
-			}
-		}
-	}
 }
 
 // Ngram represents struct ngram_t (lines 33-39)
@@ -181,21 +118,6 @@ func (ng *Ngram) CollectContextWords(arr []string, ngramHalfSize int) int {
 	count += ng.Before.CollectWordsInto(arr, count, ngramHalfSize)
 	count += ng.After.CollectWordsInto(arr, count, ngramHalfSize)
 	return count
-}
-
-// CollectContextWordsIntoSet collects all context words directly into a StringSet
-// This avoids intermediate slice allocations for performance
-func (ng *Ngram) CollectContextWordsIntoSet(set *StringSet, ngramHalfSize int) {
-	ng.Before.CollectWordsIntoSet(set, ngramHalfSize)
-	ng.After.CollectWordsIntoSet(set, ngramHalfSize)
-}
-
-// AddSimilarRef adds a reference to a similar ngram
-// Matches AddSimilarNgramRef from ngram_t.c (lines 180-195)
-// Uses append() instead of manual slice copy for O(1) amortized performance
-func (ng *Ngram) AddSimilarRef(ngramRef *Ngram) {
-	ng.Refs = append(ng.Refs, ngramRef)
-	ng.RefsCount++
 }
 
 // Morpheme represents struct morpheme_t (lines 45-58)
@@ -242,31 +164,10 @@ func (m *Morpheme) WordsToSet() StringSet {
 	return result
 }
 
-// AddWord adds a word to the morpheme's word list
-// Simple data manipulation - no external dependencies
-func (m *Morpheme) AddWord(w Word) {
-	m.WordsCount++
-	newWords := make([]*Word, m.WordsCount)
-	copy(newWords, m.Words)
-	newWords[m.WordsCount-1] = &w
-	m.Words = newWords
-}
-
-// GenRegex and MergeRules are defined in morpheme_t package
-// (they require functions and constants imports)
-
 // MorphemeList represents struct morpheme_list_t (lines 60-63)
 type MorphemeList struct {
 	List  []*Morpheme // list
 	Count int         // count
-}
-
-// Add adds a morpheme to the list
-// Translated from morpheme_list_t.c add_morpheme (lines 15-22)
-// Uses append instead of manual copy to avoid O(n²) performance
-func (ml *MorphemeList) Add(morpheme Morpheme) {
-	ml.List = append(ml.List, &morpheme)
-	ml.Count++
 }
 
 // LexicalCategories represents struct lexical_categories_t (lines 65-69)
@@ -305,43 +206,5 @@ func (s StringSet) AddAll(strs []string) {
 	for _, str := range strs {
 		s.Add(str)
 	}
-}
-
-// Clear removes all elements from the set
-func (s StringSet) Clear() {
-	for k := range s {
-		delete(s, k)
-	}
-}
-
-// SimilarityPercent calculates the percentage of overlap between two sets
-// Returns the percentage of non-unique elements (duplicates between sets)
-// This matches the original C algorithm's calculation
-func (s StringSet) SimilarityPercent(other *StringSet) float64 {
-	// totalCount = total words from both ngrams
-	totalCount := s.Len() + other.Len()
-	
-	if totalCount == 0 {
-		return 0
-	}
-	
-	// uniqueCount = number of distinct words across both sets
-	uniqueCount := s.Len()  // Start with all elements from set A
-	for k := range *other {
-		if !s.Contains(k) {
-			uniqueCount++  // Add unique elements from set B
-		}
-	}
-	
-	// Subtract 1 from total (line 170 in C: arr_count -= 1;)
-	totalCount--
-	
-	if totalCount == 0 {
-		return 0
-	}
-	
-	// Calculate similarity: (total - unique) / total * 100
-	// Line 171 in C: percent_similar = 100.00 * ((arr_count - count) / arr_count)
-	return 100.0 * (float64(totalCount-uniqueCount) / float64(totalCount))
 }
 

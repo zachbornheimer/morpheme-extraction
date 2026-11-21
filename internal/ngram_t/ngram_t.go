@@ -4,11 +4,21 @@ package ngram_t
 
 import (
 	"github.com/zachbornheimer/morpheme-extraction/internal/constants"
+	"github.com/zachbornheimer/morpheme-extraction/internal/functions"
 	"github.com/zachbornheimer/morpheme-extraction/internal/structs"
 )
 
 var debugCounter = 0
 var debugCallCounter = 0
+
+// AddNgramElement adds element to ngram array (lines 22-28)
+func AddNgramElement(atIndex **structs.WordArray, index int) int {
+	(*atIndex).Count++
+	newElems := make([]*structs.Word, (*atIndex).Count+1)
+	copy(newElems, (*atIndex).Elems)
+	(*atIndex).Elems = newElems
+	return (*atIndex).Count - 1
+}
 
 // NewNgram creates a new ngram structure (lines 30-52)
 func NewNgram() structs.Ngram {
@@ -29,6 +39,13 @@ func NewNgram() structs.Ngram {
 
 	ng.RefsCount = 0
 	return ng
+}
+
+// FreeNgram frees ngram memory (lines 54-64)
+// In Go, this is mostly handled by GC, but we keep the function for compatibility
+func FreeNgram(ng *structs.Ngram) {
+	// Go's GC will handle cleanup
+	// Keeping function signature for C compatibility
 }
 
 // Uniqify removes duplicates from ngram arrays (lines 68-92)
@@ -62,9 +79,41 @@ func Uniqify(bora *structs.NgramHalfArray) {
 	}
 }
 
-// NgramsSimilar has been replaced by NGramComparator.AreSimilar()
-// The comparator approach reuses buffers to avoid allocations in hot paths.
-// See comparator.go for the implementation.
+// NgramsSimilar checks if two ngrams are similar (lines 130-178)
+// Uses struct methods for abstraction while maintaining original C algorithm
+func NgramsSimilar(a, b structs.Ngram) bool {
+	ngramHalfSize := constants.NgramSize / 2
+
+	// Count all elements using struct methods
+	elemsCount := a.CountContextWords(ngramHalfSize) + b.CountContextWords(ngramHalfSize)
+
+	if elemsCount == 0 {
+		return false
+	}
+
+	// Allocate array for all words
+	arr := make([]string, elemsCount)
+	arrCount := 0
+
+	// Collect all words using struct methods
+	arrCount += a.CollectContextWords(arr[arrCount:], ngramHalfSize)
+	arrCount += b.CollectContextWords(arr[arrCount:], ngramHalfSize)
+
+	// Line 167 in C: count = uniq_words(arr, elems_count);
+	// We pass arrCount for correctness (C has undefined behavior here)
+	count := functions.UniqWords(arr[:arrCount], arrCount)
+
+	// Line 170 in C: arr_count -= 1;
+	arrCount--
+
+	// Line 171 in C: percent_similar = (double) 100.00 * (((double)arr_count - (double)count)/(double)arr_count);
+	if arrCount <= 0 {
+		return false
+	}
+	percentSimilar := int(100.0 * (float64(arrCount-count) / float64(arrCount)))
+
+	return float64(percentSimilar) >= constants.ThresholdSimilarNgrams
+}
 
 // AddSimilarNgramRef adds reference to similar ngram (lines 180-195)
 // Fixed: Use append() instead of manual slice copy for O(1) amortized performance

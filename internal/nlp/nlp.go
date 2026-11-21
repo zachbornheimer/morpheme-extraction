@@ -75,7 +75,9 @@ func Nlp(verboseMode, processSequentially, processFull int, outputFilename, corp
 		// Go GC handles cleanup
 	}
 
-	// Go GC automatically handles ngram cleanup (no explicit free needed)
+	for i := ngramLength - 1; i >= 0; i-- {
+		ngram_t.FreeNgram(ng[i])
+	}
 
 	return 0
 }
@@ -86,7 +88,7 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 	wordCount := len(arr)
 
 	i := 0
-	ngramCount := wordCount
+	_ = wordCount // ngramCount was used for deduplication, now skipped
 	makeNew := 1
 	addLoc := *ngramLength
 
@@ -110,9 +112,10 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 
 		if i != 0 {
 			for q = 0; q < addLoc; q++ {
-				if string(ng[q].Word.Str) == arr[i] {
+				// Match "good" version: use string(ng[q].Word.Str) which includes any null bytes
+				// This comparison should work correctly since Word.Str is now a clean string
+				if ng[q].Word.Str == arr[i] {
 					ngram = *ng[q]
-					ngramCount--
 					makeNew = 0
 					break
 				} else {
@@ -139,8 +142,8 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 				index := i - (constants.NgramSize / 2) + j
 				var elemID int
 
-			if index > 0 && index < len(arr) && len(arr[index]) > 0 {
-				elemID = ngram.Before.At[j].AddElement()
+				if index > 0 && index < len(arr) && len(arr[index]) > 0 {
+					elemID = ngram_t.AddNgramElement(&ngram.Before.At[j], j)
 					if ngram.Before.At[j].Elems == nil {
 						ngram.Before.At[j].Elems = make([]*structs.Word, 1)
 					}
@@ -153,9 +156,9 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 					word_t.SetWord(ngram.Before.At[j].Elems[elemID], arr[index])
 				}
 
-			afterIndex := index + (constants.NgramSize/2) + 1
-			if afterIndex <= wordCount && afterIndex < len(arr) && len(arr[afterIndex]) > 0 {
-				elemID = ngram.After.At[j].AddElement()
+				afterIndex := index + (constants.NgramSize/2) + 1
+				if afterIndex <= wordCount && afterIndex < len(arr) && len(arr[afterIndex]) > 0 {
+					elemID = ngram_t.AddNgramElement(&ngram.After.At[j], j)
 					if ngram.After.At[j].Elems == nil {
 						ngram.After.At[j].Elems = make([]*structs.Word, 1)
 					}
@@ -184,9 +187,6 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 	*ngramLength = addLoc
 
 	// Add linked list elements (similarity detection) - Sequential version
-	// Create comparator once to reuse buffers (avoid allocations in hot path)
-	comparator := ngram_t.NewNGramComparator()
-	
 	for k := 0; k < *ngramLength; k++ {
 		for j := k; j < *ngramLength; j++ {
 			if j-k < constants.NgramSize {
@@ -196,13 +196,28 @@ func BuildNgramRelationships(wd, f string, ngramLength *int, ngramFull *[]*struc
 			if ng[j] != nil && ng[k] != nil &&
 				string(ng[j].Word.Str) != "" && string(ng[k].Word.Str) != "" &&
 				string(ng[j].Word.Str) != string(ng[k].Word.Str) {
-			if comparator.AreSimilar(ng[k], ng[j]) {
-				ng[k].AddSimilarRef(ng[j])
-			}
+				if ngram_t.NgramsSimilar(*ng[k], *ng[j]) {
+					ngram_t.AddSimilarNgramRef(&ng[k], &ng[j])
+				}
 			}
 		}
 	}
 
+	// DEBUG: Print ngram count and context word stats
+	println("DEBUG: ngramLength:", *ngramLength)
+	totalContextWords := 0
+	ngramHalfSize := constants.NgramSize / 2
+	for k := 0; k < *ngramLength; k++ {
+		if ng[k] != nil {
+			totalContextWords += ng[k].CountContextWords(ngramHalfSize)
+		}
+	}
+	if *ngramLength > 0 {
+		avgContext := float64(totalContextWords) / float64(*ngramLength)
+		println("DEBUG: totalContextWords:", totalContextWords, "avgPerNgram:", int(avgContext*100)/100)
+	sim, notSim := ngram_t.GetSimilarityCounts()
+	println("DEBUG: Similar pairs:", sim, "Not similar pairs:", notSim)
+	
 	functions.VPrint("")
 	*ngramFull = ng
 }
@@ -222,18 +237,18 @@ func FindMorphemes(ng []*structs.Ngram, ngramLength int, header string, lexMap *
 
 		for j := 0; j < ngram.RefsCount; j++ {
 			target := *ngram.Refs[j]
-			// Direct string access (no conversion needed with native strings)
-			w1 := ngram.Word.Str
-			w2 := target.Word.Str
+			// Use Word.Len to get exact word length (excludes null padding)
+			w1 := string(ngram.Word.Str[:ngram.Word.Len])
+			w2 := string(target.Word.Str[:target.Word.Len])
 
 			forward := morpheme_t.FindLongestMatch(ngram.Word, target.Word)
 			forward.WordsCount = 0
 			forward.Words = make([]*structs.Word, 0)
 			morpheme_t.GenRegex(w1, w2, 0, 0, &forward)
-			forward.AddWord(ngram.Word)
-			forward.AddWord(target.Word)
+			morpheme_t.AddWord(&forward, ngram.Word)
+			morpheme_t.AddWord(&forward, target.Word)
 
-			internal.Add(forward)
+			morpheme_list_t.AddMorpheme(&internal, forward)
 			morpheme_list_t.FindInternalMorphemes(ngram.Word, target.Word, &internal)
 		}
 	}
