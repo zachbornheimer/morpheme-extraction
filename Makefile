@@ -1,4 +1,4 @@
-CC=gcc -fopenmp
+CC=/opt/homebrew/opt/gcc/bin/gcc-15 -fopenmp
 DEBUG_CFLAGS=-pg -g -c -Wall
 CFLAGS=-c -Wall -O2
 LDFLAGS=
