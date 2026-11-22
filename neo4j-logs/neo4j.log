@@ -12,3 +12,152 @@
 2026-01-16 14:27:19.679+0000 INFO  name: system
 2026-01-16 14:27:19.703+0000 INFO  creationDate: 2026-01-16T14:27:12.474Z
 2026-01-16 14:27:19.751+0000 INFO  Started.
+2026-01-16 19:16:46.997+0000 INFO  Logging config in use: File '/var/lib/neo4j/conf/user-logs.xml'
+2026-01-16 19:16:47.007+0000 WARN  Use of deprecated setting 'dbms.memory.pagecache.size'. It is replaced by 'server.memory.pagecache.size'.
+2026-01-16 19:16:47.008+0000 WARN  Use of deprecated setting 'dbms.memory.heap.max_size'. It is replaced by 'server.memory.heap.max_size'.
+2026-01-16 19:16:47.028+0000 INFO  Starting...
+2026-01-16 19:16:48.979+0000 INFO  This instance is ServerId{8ef0e6d2} (8ef0e6d2-9281-403f-8f19-d341943b02ad)
+2026-01-16 19:16:51.709+0000 INFO  ======== Neo4j 2025.11.2 ========
+2026-01-16 19:16:55.415+0000 INFO  Anonymous Usage Data is being sent to Neo4j, see https://neo4j.com/docs/usage-data/
+2026-01-16 19:16:56.071+0000 INFO  Bolt enabled on 0.0.0.0:7687.
+2026-01-16 19:16:57.916+0000 INFO  HTTP enabled on 0.0.0.0:7474.
+2026-01-16 19:16:57.922+0000 INFO  Remote interface available at http://localhost:7474/
+2026-01-16 19:16:57.931+0000 INFO  id: 9D4269909AD5965E08C1D330109C9913123F44410FC2A1DDAF156861F42AEC22
+2026-01-16 19:16:57.940+0000 INFO  name: system
+2026-01-16 19:16:57.942+0000 INFO  creationDate: 2026-01-16T14:27:12.474Z
+2026-01-16 19:16:57.946+0000 INFO  Started.
+2026-01-24 00:11:22.606+0000 INFO  Logging config in use: File '/var/lib/neo4j/conf/user-logs.xml'
+2026-01-24 00:11:22.613+0000 WARN  Use of deprecated setting 'dbms.memory.pagecache.size'. It is replaced by 'server.memory.pagecache.size'.
+2026-01-24 00:11:22.614+0000 WARN  Use of deprecated setting 'dbms.memory.heap.max_size'. It is replaced by 'server.memory.heap.max_size'.
+2026-01-24 00:11:22.629+0000 INFO  Starting...
+2026-01-24 00:11:23.627+0000 INFO  This instance is ServerId{8ef0e6d2} (8ef0e6d2-9281-403f-8f19-d341943b02ad)
+2026-01-24 00:11:24.516+0000 INFO  ======== Neo4j 2025.11.2 ========
+2026-01-24 00:11:25.816+0000 INFO  Anonymous Usage Data is being sent to Neo4j, see https://neo4j.com/docs/usage-data/
+2026-01-24 00:11:26.067+0000 INFO  Bolt enabled on 0.0.0.0:7687.
+2026-01-24 00:11:26.705+0000 INFO  HTTP enabled on 0.0.0.0:7474.
+2026-01-24 00:11:26.707+0000 INFO  Remote interface available at http://localhost:7474/
+2026-01-24 00:11:26.710+0000 INFO  id: 9D4269909AD5965E08C1D330109C9913123F44410FC2A1DDAF156861F42AEC22
+2026-01-24 00:11:26.710+0000 INFO  name: system
+2026-01-24 00:11:26.711+0000 INFO  creationDate: 2026-01-16T14:27:12.474Z
+2026-01-24 00:11:26.712+0000 INFO  Started.
+2026-01-24 02:35:38.443+0000 WARN  Failed authentication attempt for 'neo4j' from 172.31.0.1
+2026-01-24 02:36:16.859+0000 INFO  Neo4j Server shutdown initiated by request
+2026-01-24 02:36:16.861+0000 INFO  Stopping...
+2026-01-24 02:36:33.697+0000 INFO  Logging config in use: File '/var/lib/neo4j/conf/user-logs.xml'
+2026-01-24 02:36:33.702+0000 WARN  Use of deprecated setting 'dbms.memory.pagecache.size'. It is replaced by 'server.memory.pagecache.size'.
+2026-01-24 02:36:33.703+0000 WARN  Use of deprecated setting 'dbms.memory.heap.max_size'. It is replaced by 'server.memory.heap.max_size'.
+2026-01-24 02:36:33.709+0000 INFO  Starting...
+2026-01-24 02:36:34.319+0000 INFO  This instance is ServerId{8ef0e6d2} (8ef0e6d2-9281-403f-8f19-d341943b02ad)
+2026-01-24 02:36:35.099+0000 INFO  ======== Neo4j 2025.11.2 ========
+2026-01-24 02:36:36.357+0000 INFO  Anonymous Usage Data is being sent to Neo4j, see https://neo4j.com/docs/usage-data/
+2026-01-24 02:36:36.579+0000 INFO  Bolt enabled on 0.0.0.0:7687.
+2026-01-24 02:36:37.098+0000 INFO  HTTP enabled on 0.0.0.0:7474.
+2026-01-24 02:36:37.099+0000 INFO  Remote interface available at http://localhost:7474/
+2026-01-24 02:36:37.102+0000 INFO  id: 9D4269909AD5965E08C1D330109C9913123F44410FC2A1DDAF156861F42AEC22
+2026-01-24 02:36:37.103+0000 INFO  name: system
+2026-01-24 02:36:37.103+0000 INFO  creationDate: 2026-01-16T14:27:12.474Z
+2026-01-24 02:36:37.104+0000 INFO  Started.
+2026-01-24 14:40:29.559+0000 INFO  Logging config in use: File '/var/lib/neo4j/conf/user-logs.xml'
+2026-01-24 14:40:29.565+0000 WARN  Use of deprecated setting 'dbms.memory.pagecache.size'. It is replaced by 'server.memory.pagecache.size'.
+2026-01-24 14:40:29.566+0000 WARN  Use of deprecated setting 'dbms.memory.heap.max_size'. It is replaced by 'server.memory.heap.max_size'.
+2026-01-24 14:40:29.572+0000 INFO  Starting...
+2026-01-24 14:40:30.278+0000 INFO  This instance is ServerId{8ef0e6d2} (8ef0e6d2-9281-403f-8f19-d341943b02ad)
+2026-01-24 14:40:31.297+0000 INFO  ======== Neo4j 2025.11.2 ========
+2026-01-24 14:42:53.416+0000 INFO  Anonymous Usage Data is being sent to Neo4j, see https://neo4j.com/docs/usage-data/
+2026-01-24 14:43:05.637+0000 ERROR Failed to start Neo4j on 0.0.0.0:7474.
+java.lang.RuntimeException: Error starting Neo4j database server at /data/databases
+	at org.neo4j.graphdb.facade.DatabaseManagementServiceFactory.startDatabaseServer(DatabaseManagementServiceFactory.java:291)
+	at org.neo4j.graphdb.facade.DatabaseManagementServiceFactory.build(DatabaseManagementServiceFactory.java:225)
+	at org.neo4j.server.CommunityBootstrapper.createNeo(CommunityBootstrapper.java:39)
+	at org.neo4j.server.NeoBootstrapper.start(NeoBootstrapper.java:199)
+	at org.neo4j.server.NeoBootstrapper.start(NeoBootstrapper.java:142)
+	at org.neo4j.server.NeoBootstrapper.start(NeoBootstrapper.java:105)
+	at org.neo4j.server.Neo4jCommunity.main(Neo4jCommunity.java:30)
+Caused by: org.neo4j.kernel.lifecycle.LifecycleException: Component 'org.neo4j.dbms.database.DefaultSystemGraphInitializer@70091872' was successfully initialized, but failed to start. Please see the attached cause exception "Transaction logs are missing and recovery is not possible.".
+	at org.neo4j.kernel.lifecycle.LifeSupport$LifecycleInstance.start(LifeSupport.java:364)
+	at org.neo4j.kernel.lifecycle.LifeSupport.start(LifeSupport.java:91)
+	at org.neo4j.graphdb.facade.DatabaseManagementServiceFactory.startDatabaseServer(DatabaseManagementServiceFactory.java:282)
+	... 6 more
+	Suppressed: org.neo4j.kernel.lifecycle.LifecycleException: Component 'org.neo4j.dbms.database.DatabaseLifecycles$AllDatabaseStopper@6e7f29d5' failed to stop. Please see the attached cause exception "null".
+		at org.neo4j.kernel.lifecycle.LifeSupport$LifecycleInstance.stop(LifeSupport.java:378)
+		at org.neo4j.kernel.lifecycle.LifeSupport.stopInstances(LifeSupport.java:211)
+		at org.neo4j.kernel.lifecycle.LifeSupport.stop(LifeSupport.java:119)
+		at org.neo4j.kernel.lifecycle.LifeSupport.start(LifeSupport.java:96)
+		... 7 more
+	Caused by: org.neo4j.dbms.systemgraph.SystemDatabaseProvider$SystemDatabaseUnavailableException
+		at org.neo4j.dbms.systemgraph.SystemDatabaseProvider.query(SystemDatabaseProvider.java:80)
+		at org.neo4j.dbms.systemgraph.SystemDatabaseProvider.query(SystemDatabaseProvider.java:49)
+		at org.neo4j.dbms.database.CommunityDatabaseObjectRepositoryModelProvider.withModel(CommunityDatabaseObjectRepositoryModelProvider.java:37)
+		at org.neo4j.kernel.database.ModelBasedDatabaseIdRepository.getByName(ModelBasedDatabaseIdRepository.java:40)
+		at org.neo4j.kernel.database.MapCachingDatabaseIdRepository.lambda$getByName$0(MapCachingDatabaseIdRepository.java:50)
+		at java.base/java.util.concurrent.ConcurrentHashMap.computeIfAbsent(ConcurrentHashMap.java:1708)
+		at org.neo4j.kernel.database.MapCachingDatabaseIdRepository.getByName(MapCachingDatabaseIdRepository.java:49)
+		at org.neo4j.kernel.database.DatabaseIdRepository.getByName(DatabaseIdRepository.java:63)
+		at org.neo4j.dbms.database.DatabaseRepository.getDatabaseContext(DatabaseRepository.java:54)
+		at org.neo4j.dbms.database.DatabaseLifecycles.defaultContext(DatabaseLifecycles.java:80)
+		at org.neo4j.dbms.database.DatabaseLifecycles$AllDatabaseStopper.stop(DatabaseLifecycles.java:167)
+		at org.neo4j.kernel.lifecycle.LifeSupport$LifecycleInstance.stop(LifeSupport.java:374)
+		... 10 more
+Caused by: org.neo4j.graphdb.DatabaseShutdownException: This database is shutdown.
+	at org.neo4j.graphdb.DatabaseShutdownException.databaseUnavailable(DatabaseShutdownException.java:51)
+	at org.neo4j.kernel.availability.DatabaseAvailabilityGuard.assertDatabaseAvailable(DatabaseAvailabilityGuard.java:159)
+	at org.neo4j.kernel.impl.factory.GraphDatabaseFacade.beginKernelTransaction(GraphDatabaseFacade.java:166)
+	at org.neo4j.kernel.impl.factory.GraphDatabaseFacade.beginTransactionInternal(GraphDatabaseFacade.java:131)
+	at org.neo4j.kernel.impl.factory.GraphDatabaseFacade.beginTransaction(GraphDatabaseFacade.java:96)
+	at org.neo4j.kernel.impl.factory.GraphDatabaseTransactions.beginTransaction(GraphDatabaseTransactions.java:108)
+	at org.neo4j.kernel.impl.factory.GraphDatabaseTransactions.beginTransaction(GraphDatabaseTransactions.java:102)
+	at org.neo4j.kernel.internal.GraphDatabaseAPI.beginTransaction(GraphDatabaseAPI.java:69)
+	at org.neo4j.kernel.impl.factory.GraphDatabaseTransactions.beginTx(GraphDatabaseTransactions.java:92)
+	at org.neo4j.dbms.database.SystemGraphComponents.initializeSystemGraph(SystemGraphComponents.java:85)
+	at org.neo4j.dbms.database.DefaultSystemGraphInitializer.initializeSystemGraph(DefaultSystemGraphInitializer.java:38)
+	at org.neo4j.dbms.database.SystemGraphInitializer.start(SystemGraphInitializer.java:27)
+	at org.neo4j.kernel.lifecycle.LifeSupport$LifecycleInstance.start(LifeSupport.java:347)
+	... 8 more
+Caused by: org.neo4j.kernel.lifecycle.LifecycleException: Component 'org.neo4j.kernel.recovery.Recovery$MissingTransactionLogsCheck@2674ca88' failed to initialize. Please see the attached cause exception "Transaction logs are missing and recovery is not possible.".
+	at org.neo4j.kernel.lifecycle.LifeSupport$LifecycleInstance.init(LifeSupport.java:334)
+	at org.neo4j.kernel.lifecycle.LifeSupport.init(LifeSupport.java:56)
+	at org.neo4j.kernel.lifecycle.LifeSupport.start(LifeSupport.java:85)
+	at org.neo4j.kernel.recovery.Recovery.performRecovery(Recovery.java:793)
+	at org.neo4j.kernel.recovery.Recovery.performRecovery(Recovery.java:447)
+	at org.neo4j.kernel.database.Database.specificStart(Database.java:441)
+	at org.neo4j.kernel.database.AbstractDatabase.start(AbstractDatabase.java:165)
+	at org.neo4j.dbms.database.DatabaseLifecycles.startDatabase(DatabaseLifecycles.java:132)
+	at org.neo4j.dbms.database.DatabaseLifecycles$SystemDatabaseStarter.start(DatabaseLifecycles.java:160)
+	... 9 more
+Caused by: java.lang.RuntimeException: Transaction logs are missing and recovery is not possible.
+	at org.neo4j.kernel.recovery.Recovery$MissingTransactionLogsCheck.checkForMissingLogFiles(Recovery.java:1089)
+	at org.neo4j.kernel.recovery.Recovery$MissingTransactionLogsCheck.init(Recovery.java:1075)
+	at org.neo4j.kernel.lifecycle.LifeSupport$LifecycleInstance.init(LifeSupport.java:317)
+	... 17 more
+2026-01-24 14:43:05.639+0000 INFO  Neo4j Server shutdown initiated by request
+2026-01-24 14:43:05.640+0000 INFO  Stopped.
+2026-01-24 14:46:44.924+0000 INFO  Logging config in use: File '/var/lib/neo4j/conf/user-logs.xml'
+2026-01-24 14:46:44.930+0000 WARN  Use of deprecated setting 'dbms.memory.pagecache.size'. It is replaced by 'server.memory.pagecache.size'.
+2026-01-24 14:46:44.931+0000 WARN  Use of deprecated setting 'dbms.memory.heap.max_size'. It is replaced by 'server.memory.heap.max_size'.
+2026-01-24 14:46:44.937+0000 INFO  Starting...
+2026-01-24 14:46:45.546+0000 INFO  This instance is ServerId{9398bf25} (9398bf25-0fd2-44e4-a389-8b2fb9690784)
+2026-01-24 14:46:46.328+0000 INFO  ======== Neo4j 2025.11.2 ========
+2026-01-24 14:46:47.659+0000 INFO  Anonymous Usage Data is being sent to Neo4j, see https://neo4j.com/docs/usage-data/
+2026-01-24 14:46:49.228+0000 INFO  Bolt enabled on 0.0.0.0:7687.
+2026-01-24 14:46:49.821+0000 INFO  HTTP enabled on 0.0.0.0:7474.
+2026-01-24 14:46:49.822+0000 INFO  Remote interface available at http://localhost:7474/
+2026-01-24 14:46:49.825+0000 INFO  id: A5B62320BF8DB081A4BD02F40418D10BE613D587ED63E6285B68BC9F1F9E5D8C
+2026-01-24 14:46:49.833+0000 INFO  name: system
+2026-01-24 14:46:49.838+0000 INFO  creationDate: 2026-01-24T14:46:47.218Z
+2026-01-24 14:46:49.839+0000 INFO  Started.
+2026-01-24 14:51:51.624+0000 INFO  Neo4j Server shutdown initiated by request
+2026-01-24 14:51:51.631+0000 INFO  Stopping...
+2026-01-24 14:52:05.784+0000 INFO  Logging config in use: File '/var/lib/neo4j/conf/user-logs.xml'
+2026-01-24 14:52:05.791+0000 WARN  Use of deprecated setting 'dbms.memory.pagecache.size'. It is replaced by 'server.memory.pagecache.size'.
+2026-01-24 14:52:05.791+0000 WARN  Use of deprecated setting 'dbms.memory.heap.max_size'. It is replaced by 'server.memory.heap.max_size'.
+2026-01-24 14:52:05.799+0000 INFO  Starting...
+2026-01-24 14:52:06.628+0000 INFO  This instance is ServerId{9398bf25} (9398bf25-0fd2-44e4-a389-8b2fb9690784)
+2026-01-24 14:52:07.471+0000 INFO  ======== Neo4j 2025.11.2 ========
+2026-01-24 14:52:09.925+0000 INFO  Anonymous Usage Data is being sent to Neo4j, see https://neo4j.com/docs/usage-data/
+2026-01-24 14:52:11.245+0000 INFO  Bolt enabled on 0.0.0.0:7687.
+2026-01-24 14:52:12.000+0000 INFO  HTTP enabled on 0.0.0.0:7474.
+2026-01-24 14:52:12.002+0000 INFO  Remote interface available at http://localhost:7474/
+2026-01-24 14:52:12.005+0000 INFO  id: A5B62320BF8DB081A4BD02F40418D10BE613D587ED63E6285B68BC9F1F9E5D8C
+2026-01-24 14:52:12.005+0000 INFO  name: system
+2026-01-24 14:52:12.006+0000 INFO  creationDate: 2026-01-24T14:46:47.218Z
+2026-01-24 14:52:12.007+0000 INFO  Started.

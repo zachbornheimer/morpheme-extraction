@@ -1,0 +1,6 @@
+Reading: ./test-corpus/Moby_Dick.txt
+Reading: ./test-corpus/alice.txt
+Reading: ./test-corpus/frankenstein.txt
+Reading: ./test-corpus/pride_prejudice.txt
+Reading: ./test-corpus/sherlock.txt
+Writing data to file: languageModel.zy

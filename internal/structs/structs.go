@@ -250,7 +250,7 @@ func (h *NgramHalfArray) CollectWordsInto(arr []string, startIdx int, ngramHalfS
 
 // CollectIdentitiesInto appends Identity pointers from this half-array into the provided slice
 // Returns the number of identities added (uses O(1) pointer operations)
-// With frequency storage, expands each identity by its frequency
+// Collects unique identities only (no frequency expansion) since caller uses UniqIdentities anyway
 func (h *NgramHalfArray) CollectIdentitiesInto(arr []*dictionary.WordIdentity, startIdx int, ngramHalfSize int) int {
 	idx := startIdx
 	for i := range ngramHalfSize {
@@ -259,11 +259,9 @@ func (h *NgramHalfArray) CollectIdentitiesInto(arr []*dictionary.WordIdentity, s
 			for j := range len(h.At[i].Elems) {
 				if h.At[i].Elems[j] != nil && h.At[i].Elems[j].Word != nil && h.At[i].Elems[j].Word.Identity != nil {
 					identity := h.At[i].Elems[j].Word.Identity
-					// Add identity Freq times (use modern range syntax)
-					for range h.At[i].Elems[j].Freq {
-						arr[idx] = identity
-						idx++
-					}
+					// Add identity once (skip frequency expansion to avoid millions of duplicates)
+					arr[idx] = identity
+					idx++
 				}
 			}
 		}

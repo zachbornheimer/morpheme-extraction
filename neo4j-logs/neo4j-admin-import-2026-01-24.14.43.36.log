@@ -1,0 +1,6 @@
+2026-01-24 14:43:36.852+0000 INFO  [o.n.k.i.s.f.RecordFormatSelector] [neo4j] Selected configured format for store /data/databases/neo4j: RecordFormat:PageAlignedV5_0[aligned-1.1]
+2026-01-24 14:43:37.241+0000 INFO  [o.n.i.b.ImportLogic] [neo4j] Import starting
+2026-01-24 14:46:30.149+0000 INFO  [o.n.i.b.ImportLogic] [neo4j] Import completed successfully, took 2m 52s 905ms. Imported:
+  19750 nodes
+  113999223 relationships
+  114058473 properties
